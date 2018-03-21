@@ -13,7 +13,8 @@ jobs:
           name: Run highlevel tests and upload coverage
           command: |
             cd python
-            flake8 --max-line-length 89 kastore setup.py tests
-            nosetests -v --with-coverage --cover-package kastore \
+            python -m flake8 --max-line-length 89 kastore setup.py tests
+            python -m nose -v --with-coverage --cover-package kastore \
               --cover-branches --cover-erase --cover-xml \
               --cover-inclusive tests
+            python3 -m codecov -F python
