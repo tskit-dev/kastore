@@ -1,0 +1,19 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.5.5
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies 
+          command: |
+            pip install --user -r python/requirements/development.txt
+      - run:
+          name: Run highlevel tests and upload coverage
+          command: |
+            cd python
+            flake8 --max-line-length 89 kastore setup.py tests
+            nosetests -v --with-coverage --cover-package kastore \
+              --cover-branches --cover-erase --cover-xml \
+              --cover-inclusive tests
