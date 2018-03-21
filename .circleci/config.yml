@@ -17,3 +17,4 @@ jobs:
             python -m nose -v --with-coverage --cover-package kastore \
               --cover-branches --cover-erase --cover-xml \
               --cover-inclusive tests
+            python3 -m codecov -F python
