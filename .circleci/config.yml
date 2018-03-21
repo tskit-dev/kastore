@@ -2,19 +2,32 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/python:3.5.5
+      - image: circleci/python:3.6-stretch
     steps:
       - checkout
       - run:
-          name: Install dependencies 
+          name: Install dependencies and set path
           command: |
             pip install --user -r python/requirements/development.txt
+            sudo apt-get install ninja-build libcunit1-dev 
+            pip install meson --user
+            echo 'export PATH=/home/circleci/.local/bin:$PATH' >> $BASH_ENV
       - run:
           name: Run highlevel tests and upload coverage
           command: |
             cd python
-            python -m flake8 --max-line-length 89 kastore setup.py tests
-            python -m nose -v --with-coverage --cover-package kastore \
+            flake8 --max-line-length 89 kastore setup.py tests
+            nosetests -v --with-coverage --cover-package kastore \
               --cover-branches --cover-erase --cover-xml \
               --cover-inclusive tests
             python3 -m codecov -F python
+      - run:
+          name: Compile C tests
+          command: |
+            cd c
+            meson builddir && cd builddir && ninja
+      - run:
+          name: Run C tests
+          command: |
+            cd c/builddir
+            ./tests
