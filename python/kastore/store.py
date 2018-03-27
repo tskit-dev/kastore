@@ -3,6 +3,7 @@ The Python engine for kastore.
 """
 from __future__ import print_function
 from __future__ import division
+from __future__ import unicode_literals
 
 import struct
 import logging
@@ -21,8 +22,13 @@ VERSION_MINOR = 1
 np_dtype_to_type_map = {
     # Obviously support more of these...
     "int8": 1,
-    "uint32": 2,
-    "float64": 3,
+    "uint8": 2,
+    "uint32": 3,
+    "int32": 4,
+    "uint64": 5,
+    "int64": 6,
+    "float32": 7,
+    "float64": 8,
 }
 
 type_to_np_dtype_map = {t: dtype for dtype, t in np_dtype_to_type_map.items()}
@@ -81,7 +87,7 @@ class ItemDescriptor(object):
         return cls(type_, key_start, key_len, array_start, array_len)
 
 
-def dump(arrays, filename):
+def dump(arrays, filename, key_encoding="utf-8"):
     """
     Writes the arrays in the specified mapping to the key-array-store file.
     """
@@ -102,13 +108,14 @@ def dump(arrays, filename):
         descriptors = []
         for key in sorted(arrays.keys()):
             array = arrays[key]
+            encoded_key = key.encode(key_encoding)
             assert len(array.shape) == 1  # Only 1D arrays supported.
             key_start = offset
-            array_start = key_start + len(key)  # TODO Add padding to 8-align
+            array_start = key_start + len(encoded_key)  # TODO Add padding to 8-align
             descriptor = ItemDescriptor(
                 np_dtype_to_type_map[array.dtype.name],
-                key_start, len(key), array_start, array.nbytes)
-            descriptor.key = key
+                key_start, len(encoded_key), array_start, array.nbytes)
+            descriptor.key = encoded_key
             descriptor.array = array
             descriptors.append(descriptor)
             offset = array_start + array.nbytes  # TODO Add padding to 8-align
@@ -121,12 +128,12 @@ def dump(arrays, filename):
         # Write the keys and arrays
         for descriptor in descriptors:
             assert f.tell() == descriptor.key_start
-            f.write(descriptor.key.encode())
+            f.write(descriptor.key)
             assert f.tell() == descriptor.array_start
             f.write(descriptor.array.data)
 
 
-def load(filename):
+def load(filename, key_encoding="utf-8"):
     """
     Reads arrays from the specified file and returns the resulting mapping.
     """
@@ -159,7 +166,7 @@ def load(filename):
             # TODO change this to seek to the start addresses and therefore
             # skip padding.
             assert f.tell() == descriptor.key_start
-            descriptor.key = f.read(descriptor.key_len).decode()
+            descriptor.key = f.read(descriptor.key_len).decode(key_encoding)
             assert f.tell() == descriptor.array_start
             dtype = type_to_np_dtype_map[descriptor.type]
             data = f.read(descriptor.array_len)
