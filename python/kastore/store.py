@@ -12,15 +12,18 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# This is a rubbish magic number. Just generate something randomly for the
-# real thing.
-MAGIC = bytearray([0, 1, 2, 3, 4, 5, 6, 7])
+
+# Magic number is derived from the strategy used by HDF5 and PNG;
+# see https://support.hdfgroup.org/HDF5/doc/H5.format.html and
+# http://www.libpng.org/pub/png/spec/iso/index-object.html#5PNG-file-signature.
+# In ASCII C notation this is "\211KAS\r\n\032\n"
+MAGIC = bytearray([137, 75, 65, 83, 13, 10, 26, 10])
+
 VERSION_MAJOR = 0
 VERSION_MINOR = 1
 
 
 np_dtype_to_type_map = {
-    # Obviously support more of these...
     "int8": 1,
     "uint8": 2,
     "uint32": 3,

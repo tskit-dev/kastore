@@ -3,6 +3,7 @@ Basic tests for the storage integrity of the data.
 """
 from __future__ import print_function
 from __future__ import division
+from __future__ import unicode_literals
 
 import unittest
 import tempfile
