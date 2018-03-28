@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 # http://www.libpng.org/pub/png/spec/iso/index-object.html#5PNG-file-signature.
 # In ASCII C notation this is "\211KAS\r\n\032\n"
 MAGIC = bytearray([137, 75, 65, 83, 13, 10, 26, 10])
+HEADER_SIZE = 64
 
 VERSION_MAJOR = 0
 VERSION_MINOR = 1
@@ -90,90 +91,88 @@ class ItemDescriptor(object):
         return cls(type_, key_start, key_len, array_start, array_len)
 
 
-def dump(arrays, filename, key_encoding="utf-8"):
+def dump(arrays, fileobj, key_encoding="utf-8"):
     """
     Writes the arrays in the specified mapping to the key-array-store file.
     """
-    with open(filename, "wb") as f:
-        num_items = len(arrays)
-        header_size = 64
-        header = bytearray(header_size)
-        header[0:8] = MAGIC
-        header[8:12] = struct.pack("<I", VERSION_MAJOR)
-        header[12:16] = struct.pack("<I", VERSION_MINOR)
-        header[16:20] = struct.pack("<I", num_items)
-        # The rest of the header is reserved.
-        f.write(header)
+    num_items = len(arrays)
+    header_size = HEADER_SIZE
+    header = bytearray(header_size)
+    header[0:8] = MAGIC
+    header[8:12] = struct.pack("<I", VERSION_MAJOR)
+    header[12:16] = struct.pack("<I", VERSION_MINOR)
+    header[16:20] = struct.pack("<I", num_items)
+    # The rest of the header is reserved.
+    fileobj.write(header)
 
-        # We store the keys in sorted order.
-        descriptor_block_size = num_items * ItemDescriptor.size
-        offset = header_size + descriptor_block_size
-        descriptors = []
-        for key in sorted(arrays.keys()):
-            array = arrays[key]
-            encoded_key = key.encode(key_encoding)
-            assert len(array.shape) == 1  # Only 1D arrays supported.
-            key_start = offset
-            array_start = key_start + len(encoded_key)  # TODO Add padding to 8-align
-            descriptor = ItemDescriptor(
-                np_dtype_to_type_map[array.dtype.name],
-                key_start, len(encoded_key), array_start, array.nbytes)
-            descriptor.key = encoded_key
-            descriptor.array = array
-            descriptors.append(descriptor)
-            offset = array_start + array.nbytes  # TODO Add padding to 8-align
+    # We store the keys in sorted order.
+    descriptor_block_size = num_items * ItemDescriptor.size
+    offset = header_size + descriptor_block_size
+    descriptors = []
+    for key in sorted(arrays.keys()):
+        array = arrays[key]
+        encoded_key = key.encode(key_encoding)
+        assert len(array.shape) == 1  # Only 1D arrays supported.
+        key_start = offset
+        array_start = key_start + len(encoded_key)  # TODO Add padding to 8-align
+        descriptor = ItemDescriptor(
+            np_dtype_to_type_map[array.dtype.name],
+            key_start, len(encoded_key), array_start, array.nbytes)
+        descriptor.key = encoded_key
+        descriptor.array = array
+        descriptors.append(descriptor)
+        offset = array_start + array.nbytes  # TODO Add padding to 8-align
 
-        assert f.tell() == header_size
-        # Now write the descriptors.
-        for descriptor in descriptors:
-            f.write(descriptor.pack())
+    assert fileobj.tell() == header_size
+    # Now write the descriptors.
+    for descriptor in descriptors:
+        fileobj.write(descriptor.pack())
 
-        # Write the keys and arrays
-        for descriptor in descriptors:
-            assert f.tell() == descriptor.key_start
-            f.write(descriptor.key)
-            assert f.tell() == descriptor.array_start
-            f.write(descriptor.array.data)
+    # Write the keys and arrays
+    for descriptor in descriptors:
+        assert fileobj.tell() == descriptor.key_start
+        fileobj.write(descriptor.key)
+        assert fileobj.tell() == descriptor.array_start
+        fileobj.write(descriptor.array.data)
 
 
-def load(filename, key_encoding="utf-8"):
+def load(fileobj, key_encoding="utf-8"):
     """
     Reads arrays from the specified file and returns the resulting mapping.
     """
-    with open(filename, "rb") as f:
-        header_size = 64
-        header = f.read(header_size)
-        if header[0:8] != MAGIC:
-            raise ValueError("Incorrect file format")
-        version_major = struct.unpack("<I", header[8:12])[0]
-        version_minor = struct.unpack("<I", header[12:16])[0]
-        logger.debug("Loading file version {}.{}".format(version_major, version_minor))
-        if version_major != VERSION_MAJOR:
-            raise ValueError("Incompatible major version")
-        num_items = struct.unpack("<I", header[16:20])[0]
-        logger.debug("Loading {} items".format(num_items))
+    header_size = 64
+    header = fileobj.read(header_size)
+    if header[0:8] != MAGIC:
+        raise ValueError("Incorrect file format")
+    version_major = struct.unpack("<I", header[8:12])[0]
+    version_minor = struct.unpack("<I", header[12:16])[0]
+    logger.debug("Loading file version {}.{}".format(version_major, version_minor))
+    if version_major != VERSION_MAJOR:
+        raise ValueError("Incompatible major version")
+    num_items = struct.unpack("<I", header[16:20])[0]
+    logger.debug("Loading {} items".format(num_items))
 
-        descriptor_block_size = num_items * ItemDescriptor.size
-        descriptor_block = f.read(descriptor_block_size)
+    descriptor_block_size = num_items * ItemDescriptor.size
+    descriptor_block = fileobj.read(descriptor_block_size)
 
-        offset = 0
-        descriptors = []
-        for _ in range(num_items):
-            descriptor = ItemDescriptor.unpack(
-                descriptor_block[offset: offset + ItemDescriptor.size])
-            descriptors.append(descriptor)
-            offset += ItemDescriptor.size
+    offset = 0
+    descriptors = []
+    for _ in range(num_items):
+        descriptor = ItemDescriptor.unpack(
+            descriptor_block[offset: offset + ItemDescriptor.size])
+        descriptors.append(descriptor)
+        offset += ItemDescriptor.size
 
-        items = {}
-        for descriptor in descriptors:
-            # TODO change this to seek to the start addresses and therefore
-            # skip padding.
-            assert f.tell() == descriptor.key_start
-            descriptor.key = f.read(descriptor.key_len).decode(key_encoding)
-            assert f.tell() == descriptor.array_start
-            dtype = type_to_np_dtype_map[descriptor.type]
-            data = f.read(descriptor.array_len)
-            descriptor.array = np.frombuffer(data, dtype=dtype)
-            items[descriptor.key] = descriptor.array
-            logger.debug("Loaded '{}'".format(descriptor.key))
-        return items
+    items = {}
+    for descriptor in descriptors:
+        # TODO change this to seek to the start addresses and therefore
+        # skip padding.
+        assert fileobj.tell() == descriptor.key_start
+        descriptor.key = fileobj.read(descriptor.key_len).decode(key_encoding)
+        assert fileobj.tell() == descriptor.array_start
+        dtype = type_to_np_dtype_map[descriptor.type]
+        data = fileobj.read(descriptor.array_len)
+        descriptor.array = np.frombuffer(data, dtype=dtype)
+        items[descriptor.key] = descriptor.array
+        logger.debug("Loaded '{}'".format(descriptor.key))
+    return items

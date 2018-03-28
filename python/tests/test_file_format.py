@@ -37,10 +37,24 @@ class TestFormat(unittest.TestCase):
 
     def test_header_format(self):
         for n in range(10):
-            kas.dump({str(j): np.zeros(1) for j in range(n)}, self.temp_file)
+            with open(self.temp_file, "wb") as f:
+                kas.dump({str(j): np.zeros(1) for j in range(n)}, f)
             with open(self.temp_file, "rb") as f:
                 contents = f.read()
             self.assertEqual(contents[0:8], kas.MAGIC)
             self.assertEqual(struct.unpack("<I", contents[8:12])[0], kas.VERSION_MAJOR)
             self.assertEqual(struct.unpack("<I", contents[12:16])[0], kas.VERSION_MINOR)
             self.assertEqual(struct.unpack("<I", contents[16:20])[0], n)
+            trailer = contents[20: kas.HEADER_SIZE]
+            # The remainder should be zeros. Total length is 64, so 44 bytes remaining.
+            self.assertEqual(trailer, bytes([0 for _ in range(kas.HEADER_SIZE - 20)]))
+
+    def test_zero_items(self):
+        with open(self.temp_file, "wb") as f:
+            kas.dump({}, f)
+        with open(self.temp_file, "rb") as f:
+            contents = f.read()
+        self.assertEqual(len(contents), 64)
+
+    def test_item_descriptor_format(self):
+        pass

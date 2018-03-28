@@ -21,21 +21,16 @@ class TestRoundTrip(unittest.TestCase):
     """
     Tests that we can round trip data through a temporary file.
     """
-    def setUp(self):
-        fd, self.temp_file = tempfile.mkstemp(suffix=".kas", prefix="kas_rt_test")
-        os.close(fd)
-
-    def tearDown(self):
-        os.unlink(self.temp_file)
-
     def verify(self, data):
-        kas.dump(data, self.temp_file)
-        new_data = kas.load(self.temp_file)
-        self.assertEqual(sorted(new_data.keys()), sorted(data.keys()))
-        for key, source_array in data.items():
-            dest_array = new_data[key]
-            # Numpy's testing assert_equal will deal correctly with NaNs.
-            np.testing.assert_equal(source_array, dest_array)
+        with tempfile.TemporaryFile("wb+") as f:
+            kas.dump(data, f)
+            f.seek(0)
+            new_data = kas.load(f)
+            self.assertEqual(sorted(new_data.keys()), sorted(data.keys()))
+            for key, source_array in data.items():
+                dest_array = new_data[key]
+                # Numpy's testing assert_equal will deal correctly with NaNs.
+                np.testing.assert_equal(source_array, dest_array)
 
 
 class TestRoundTripSimple(TestRoundTrip):
