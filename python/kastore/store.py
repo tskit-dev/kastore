@@ -1,5 +1,17 @@
 """
 The Python engine for kastore.
+
+The file format layout is as follows.
+
++===================================+
++ Header (64 bytes)
++===================================+
++ Item descriptors (n * 64 bytes)
++===================================+
++ Keys densely.
++===================================+
++ Arrays packed densely.
++===================================+
 """
 from __future__ import print_function
 from __future__ import division
@@ -19,20 +31,29 @@ logger = logging.getLogger(__name__)
 # In ASCII C notation this is "\211KAS\r\n\032\n"
 MAGIC = bytearray([137, 75, 65, 83, 13, 10, 26, 10])
 HEADER_SIZE = 64
+ITEM_DESCRIPTOR_SIZE = 64
 
 VERSION_MAJOR = 0
 VERSION_MINOR = 1
 
+INT8 = 0
+UINT8 = 1
+INT32 = 2
+UINT32 = 3
+INT64 = 4
+UINT64 = 5
+FLOAT32 = 6
+FLOAT64 = 7
 
 np_dtype_to_type_map = {
-    "int8": 1,
-    "uint8": 2,
-    "uint32": 3,
-    "int32": 4,
-    "uint64": 5,
-    "int64": 6,
-    "float32": 7,
-    "float64": 8,
+    "int8": INT8,
+    "uint8": UINT8,
+    "uint32": UINT32,
+    "int32": INT32,
+    "uint64": UINT64,
+    "int64": INT64,
+    "float32": FLOAT32,
+    "float64": FLOAT64,
 }
 
 type_to_np_dtype_map = {t: dtype for dtype, t in np_dtype_to_type_map.items()}
@@ -54,9 +75,10 @@ class ItemDescriptor(object):
     For example, we may wish to add an 'encoding' field in the future,
     which allows for things like simple run-length encoding and so on.
     """
-    size = 64
+    size = ITEM_DESCRIPTOR_SIZE
 
-    def __init__(self, type_, key_start, key_len, array_start, array_len):
+    def __init__(
+            self, type_, key_start=None, key_len=None, array_start=None, array_len=None):
         self.type = type_
         self.key_start = key_start
         self.key_len = key_len
@@ -71,9 +93,9 @@ class ItemDescriptor(object):
                 self.array_len)
 
     def pack(self):
-        descriptor = bytearray(64)
-        # It's a bit ridiclous having 4 bytes for the type really.
-        descriptor[0:4] = struct.pack("<I", self.type)
+        descriptor = bytearray(ITEM_DESCRIPTOR_SIZE)
+        descriptor[0:1] = struct.pack("<B", self.type)
+        # bytes 1:4 are reserved.
         descriptor[4:12] = struct.pack("<Q", self.key_start)
         descriptor[12:20] = struct.pack("<Q", self.key_len)
         descriptor[20:28] = struct.pack("<Q", self.array_start)
@@ -83,7 +105,7 @@ class ItemDescriptor(object):
 
     @classmethod
     def unpack(cls, descriptor):
-        type_ = struct.unpack("<I", descriptor[0:4])[0]
+        type_ = struct.unpack("<B", descriptor[0:1])[0]
         key_start = struct.unpack("<Q", descriptor[4:12])[0]
         key_len = struct.unpack("<Q", descriptor[12:20])[0]
         array_start = struct.unpack("<Q", descriptor[20:28])[0]
@@ -95,6 +117,12 @@ def dump(arrays, fileobj, key_encoding="utf-8"):
     """
     Writes the arrays in the specified mapping to the key-array-store file.
     """
+    for key, array in arrays.items():
+        if len(key) == 0:
+            raise ValueError("Empty keys not supported")
+        if len(array.shape) != 1:
+            raise ValueError("Only 1D arrays supported")
+
     num_items = len(arrays)
     header_size = HEADER_SIZE
     header = bytearray(header_size)
@@ -105,33 +133,38 @@ def dump(arrays, fileobj, key_encoding="utf-8"):
     # The rest of the header is reserved.
     fileobj.write(header)
 
-    # We store the keys in sorted order.
+    # We store the keys in sorted order in the key block.
+    sorted_keys = sorted(arrays.keys())
     descriptor_block_size = num_items * ItemDescriptor.size
     offset = header_size + descriptor_block_size
     descriptors = []
-    for key in sorted(arrays.keys()):
+    for key in sorted_keys:
         array = arrays[key]
         encoded_key = key.encode(key_encoding)
-        assert len(array.shape) == 1  # Only 1D arrays supported.
-        key_start = offset
-        array_start = key_start + len(encoded_key)  # TODO Add padding to 8-align
-        descriptor = ItemDescriptor(
-            np_dtype_to_type_map[array.dtype.name],
-            key_start, len(encoded_key), array_start, array.nbytes)
+        descriptor = ItemDescriptor(np_dtype_to_type_map[array.dtype.name])
         descriptor.key = encoded_key
         descriptor.array = array
+        descriptor.key_start = offset
+        descriptor.key_len = len(encoded_key)
+        offset += descriptor.key_len
         descriptors.append(descriptor)
-        offset = array_start + array.nbytes  # TODO Add padding to 8-align
+
+    # Now pack the arrays in densely after the keys.
+    for descriptor in descriptors:
+        descriptor.array_start = offset
+        descriptor.array_len = descriptor.array.nbytes
+        offset += descriptor.array_len
 
     assert fileobj.tell() == header_size
     # Now write the descriptors.
     for descriptor in descriptors:
         fileobj.write(descriptor.pack())
-
+    assert fileobj.tell() == header_size + descriptor_block_size
     # Write the keys and arrays
     for descriptor in descriptors:
         assert fileobj.tell() == descriptor.key_start
         fileobj.write(descriptor.key)
+    for descriptor in descriptors:
         assert fileobj.tell() == descriptor.array_start
         fileobj.write(descriptor.array.data)
 
@@ -163,13 +196,17 @@ def load(fileobj, key_encoding="utf-8"):
         descriptors.append(descriptor)
         offset += ItemDescriptor.size
 
-    items = {}
+    # Load the keys first, so that we do sequential IOs within the key block.
     for descriptor in descriptors:
-        # TODO change this to seek to the start addresses and therefore
-        # skip padding.
+        fileobj.seek(descriptor.key_start)
         assert fileobj.tell() == descriptor.key_start
         descriptor.key = fileobj.read(descriptor.key_len).decode(key_encoding)
-        assert fileobj.tell() == descriptor.array_start
+
+    # Now load in the arrays.
+    items = {}
+    for descriptor in descriptors:
+        items[descriptor.key] = descriptor.array
+        fileobj.seek(descriptor.array_start)
         dtype = type_to_np_dtype_map[descriptor.type]
         data = fileobj.read(descriptor.array_len)
         descriptor.array = np.frombuffer(data, dtype=dtype)
