@@ -7,12 +7,60 @@
 #include <CUnit/Basic.h>
 
 static void
-test_stuff(void)
+test_bad_open_mode(void)
 {
     int ret;
     kastore_t store;
-    ret = kastore_load(&store, "/no_such_file/definitely.kas", 0);
+    const char *bad_modes[] = {"", "R", "W", "read", "rw", "write"};
+    size_t j;
+
+    for (j = 0; j < sizeof(bad_modes) / sizeof(*bad_modes); j++) {
+        ret = kastore_open(&store, "", bad_modes[j], 0);
+        CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_MODE);
+        ret = kastore_close(&store);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+    }
+}
+
+static void
+test_open_io_errors(void)
+{
+    int ret;
+    kastore_t store;
+
+    /* Read a non existant file */
+    ret = kastore_open(&store, "", "r", 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    CU_ASSERT_EQUAL_FATAL(errno, ENOENT);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    /* TODO add more */
+
+}
+
+static void
+test_simple_round_trip(void)
+{
+    int ret;
+    kastore_t store;
+    kaitem_t item;
+    uint32_t array[] = {1, 2, 3, 4};
+
+    ret = kastore_open(&store, "tmp.kas", "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    item.type = KAS_UINT32;
+    item.key = "a";
+    item.key_len = 1;
+    item.array = array;
+    item.array_len = 4;
+
+    ret = kastore_put(&store, &item, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
 }
 
 static int
@@ -42,7 +90,9 @@ main(int argc, char **argv)
     CU_pTest test;
     CU_pSuite suite;
     CU_TestInfo tests[] = {
-        {"test_stuff", test_stuff},
+        {"test_bad_open_mode", test_bad_open_mode},
+        {"test_open_io_errors", test_open_io_errors},
+        {"test_simple_round_trip", test_simple_round_trip},
         CU_TEST_INFO_NULL,
     };
 
