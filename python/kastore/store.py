@@ -127,9 +127,9 @@ def dump(arrays, fileobj, key_encoding="utf-8"):
     header_size = HEADER_SIZE
     header = bytearray(header_size)
     header[0:8] = MAGIC
-    header[8:12] = struct.pack("<I", VERSION_MAJOR)
-    header[12:16] = struct.pack("<I", VERSION_MINOR)
-    header[16:20] = struct.pack("<I", num_items)
+    header[8:10] = struct.pack("<I", VERSION_MAJOR)
+    header[10:12] = struct.pack("<H", VERSION_MINOR)
+    header[12:16] = struct.pack("<H", num_items)
     # The rest of the header is reserved.
     fileobj.write(header)
 
@@ -177,12 +177,12 @@ def load(fileobj, key_encoding="utf-8"):
     header = fileobj.read(header_size)
     if header[0:8] != MAGIC:
         raise ValueError("Incorrect file format")
-    version_major = struct.unpack("<I", header[8:12])[0]
-    version_minor = struct.unpack("<I", header[12:16])[0]
+    version_major = struct.unpack("<H", header[8:10])[0]
+    version_minor = struct.unpack("<H", header[10:12])[0]
     logger.debug("Loading file version {}.{}".format(version_major, version_minor))
     if version_major != VERSION_MAJOR:
         raise ValueError("Incompatible major version")
-    num_items = struct.unpack("<I", header[16:20])[0]
+    num_items = struct.unpack("<I", header[12:16])[0]
     logger.debug("Loading {} items".format(num_items))
 
     descriptor_block_size = num_items * ItemDescriptor.size

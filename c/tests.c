@@ -36,7 +36,6 @@ test_open_io_errors(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
     /* TODO add more */
-
 }
 
 static void
@@ -44,20 +43,21 @@ test_simple_round_trip(void)
 {
     int ret;
     kastore_t store;
-    kaitem_t item;
-    uint32_t array[] = {1, 2, 3, 4};
+    const uint32_t array[] = {1, 2, 3, 4};
 
     ret = kastore_open(&store, "tmp.kas", "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
-    item.type = KAS_UINT32;
-    item.key = "a";
-    item.key_len = 1;
-    item.array = array;
-    item.array_len = 4;
-
-    ret = kastore_put(&store, &item, 0);
+    ret = kastore_put(&store, "a", 1, array, 4, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_open(&store, "tmp.kas", "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    /* kastore_print_state(&store, stdout); */
 
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);

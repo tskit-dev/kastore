@@ -44,13 +44,13 @@ class TestFormat(unittest.TestCase):
             with open(self.temp_file, "rb") as f:
                 contents = f.read()
             self.assertEqual(contents[0:8], kas.MAGIC)
-            self.assertEqual(struct.unpack("<I", contents[8:12])[0], kas.VERSION_MAJOR)
-            self.assertEqual(struct.unpack("<I", contents[12:16])[0], kas.VERSION_MINOR)
-            self.assertEqual(struct.unpack("<I", contents[16:20])[0], n)
-            trailer = contents[20: kas.HEADER_SIZE]
+            self.assertEqual(struct.unpack("<H", contents[8:10])[0], kas.VERSION_MAJOR)
+            self.assertEqual(struct.unpack("<H", contents[10:12])[0], kas.VERSION_MINOR)
+            self.assertEqual(struct.unpack("<I", contents[12:16])[0], n)
+            trailer = contents[16: kas.HEADER_SIZE]
             # The remainder should be zeros.
             self.assertEqual(
-                trailer, bytearray([0 for _ in range(kas.HEADER_SIZE - 20)]))
+                trailer, bytearray([0 for _ in range(kas.HEADER_SIZE - 16)]))
 
     def test_zero_items(self):
         with open(self.temp_file, "wb") as f:
@@ -65,7 +65,7 @@ class TestFormat(unittest.TestCase):
                 kas.dump({str(j): j * np.ones(j) for j in range(n)}, f)
             with open(self.temp_file, "rb") as f:
                 contents = f.read()
-            self.assertEqual(struct.unpack("<I", contents[16:20])[0], n)
+            self.assertEqual(struct.unpack("<I", contents[12:16])[0], n)
             offset = kas.HEADER_SIZE
             for j in range(n):
                 descriptor = contents[offset: offset + kas.ITEM_DESCRIPTOR_SIZE]
