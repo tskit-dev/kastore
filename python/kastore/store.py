@@ -95,21 +95,21 @@ class ItemDescriptor(object):
     def pack(self):
         descriptor = bytearray(ITEM_DESCRIPTOR_SIZE)
         descriptor[0:1] = struct.pack("<B", self.type)
-        # bytes 1:4 are reserved.
-        descriptor[4:12] = struct.pack("<Q", self.key_start)
-        descriptor[12:20] = struct.pack("<Q", self.key_len)
-        descriptor[20:28] = struct.pack("<Q", self.array_start)
-        descriptor[28:36] = struct.pack("<Q", self.array_len)
-        # bytes 36:64 are reserved.
+        # bytes 1:8 are reserved.
+        descriptor[8:16] = struct.pack("<Q", self.key_start)
+        descriptor[16:24] = struct.pack("<Q", self.key_len)
+        descriptor[24:32] = struct.pack("<Q", self.array_start)
+        descriptor[32:40] = struct.pack("<Q", self.array_len)
+        # bytes 40:64 are reserved.
         return descriptor
 
     @classmethod
     def unpack(cls, descriptor):
         type_ = struct.unpack("<B", descriptor[0:1])[0]
-        key_start = struct.unpack("<Q", descriptor[4:12])[0]
-        key_len = struct.unpack("<Q", descriptor[12:20])[0]
-        array_start = struct.unpack("<Q", descriptor[20:28])[0]
-        array_len = struct.unpack("<Q", descriptor[28:36])[0]
+        key_start = struct.unpack("<Q", descriptor[8:16])[0]
+        key_len = struct.unpack("<Q", descriptor[16:24])[0]
+        array_start = struct.unpack("<Q", descriptor[24:32])[0]
+        array_len = struct.unpack("<Q", descriptor[32:40])[0]
         return cls(type_, key_start, key_len, array_start, array_len)
 
 

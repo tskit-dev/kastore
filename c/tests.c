@@ -44,11 +44,16 @@ test_simple_round_trip(void)
     int ret;
     kastore_t store;
     const uint32_t array[] = {1, 2, 3, 4};
+    const uint32_t *a;
 
     ret = kastore_open(&store, "tmp.kas", "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
-    ret = kastore_put(&store, "a", 1, array, 4, KAS_UINT32, 0);
+    ret = kastore_put(&store, "c", 1, array, 4, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_put(&store, "b", 1, array, 2, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_put(&store, "a", 1, array, 1, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
     ret = kastore_close(&store);
@@ -57,7 +62,31 @@ test_simple_round_trip(void)
     ret = kastore_open(&store, "tmp.kas", "r", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
-    /* kastore_print_state(&store, stdout); */
+    CU_ASSERT_EQUAL(store.num_items, 3);
+    CU_ASSERT_EQUAL(store.items[0].type, KAS_UINT32);
+    CU_ASSERT_EQUAL(store.items[0].key_len, 1);
+    CU_ASSERT_NSTRING_EQUAL(store.items[0].key, "a", 1);
+    CU_ASSERT_EQUAL(store.items[0].array_len, 1);
+    a = (const uint32_t *) store.items[0].array;
+    CU_ASSERT_EQUAL(a[0], 1);
+
+    CU_ASSERT_EQUAL(store.items[1].type, KAS_UINT32);
+    CU_ASSERT_EQUAL(store.items[1].key_len, 1);
+    CU_ASSERT_NSTRING_EQUAL(store.items[1].key, "b", 1);
+    CU_ASSERT_EQUAL(store.items[1].array_len, 2);
+    a = (const uint32_t *) store.items[1].array;
+    CU_ASSERT_EQUAL(a[0], 1);
+    CU_ASSERT_EQUAL(a[1], 2);
+
+    CU_ASSERT_EQUAL(store.items[2].type, KAS_UINT32);
+    CU_ASSERT_EQUAL(store.items[2].key_len, 1);
+    CU_ASSERT_NSTRING_EQUAL(store.items[2].key, "c", 1);
+    CU_ASSERT_EQUAL(store.items[2].array_len, 4);
+    a = (const uint32_t *) store.items[2].array;
+    CU_ASSERT_EQUAL(a[0], 1);
+    CU_ASSERT_EQUAL(a[1], 2);
+    CU_ASSERT_EQUAL(a[2], 3);
+    CU_ASSERT_EQUAL(a[3], 4);
 
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);

@@ -44,9 +44,10 @@ class TestFormat(unittest.TestCase):
             with open(self.temp_file, "rb") as f:
                 contents = f.read()
             self.assertEqual(contents[0:8], kas.MAGIC)
-            self.assertEqual(struct.unpack("<H", contents[8:10])[0], kas.VERSION_MAJOR)
-            self.assertEqual(struct.unpack("<H", contents[10:12])[0], kas.VERSION_MINOR)
-            self.assertEqual(struct.unpack("<I", contents[12:16])[0], n)
+            major, minor, num_items = struct.unpack("<HHI", contents[8:16])
+            self.assertEqual(major, kas.VERSION_MAJOR)
+            self.assertEqual(minor, kas.VERSION_MINOR)
+            self.assertEqual(num_items, n)
             trailer = contents[16: kas.HEADER_SIZE]
             # The remainder should be zeros.
             self.assertEqual(
@@ -70,15 +71,13 @@ class TestFormat(unittest.TestCase):
             for j in range(n):
                 descriptor = contents[offset: offset + kas.ITEM_DESCRIPTOR_SIZE]
                 type_ = struct.unpack("<B", descriptor[0:1])[0]
-                key_start = struct.unpack("<Q", descriptor[4:12])[0]
-                key_len = struct.unpack("<Q", descriptor[12:20])[0]
-                array_start = struct.unpack("<Q", descriptor[20:28])[0]
-                array_len = struct.unpack("<Q", descriptor[28:36])[0]
-                trailer = descriptor[36: kas.ITEM_DESCRIPTOR_SIZE]
+                key_start, key_len, array_start, array_len = struct.unpack(
+                    "<QQQQ", descriptor[8:40])
+                trailer = descriptor[40: kas.ITEM_DESCRIPTOR_SIZE]
                 # The remainder should be zeros.
                 self.assertEqual(
                     trailer,
-                    bytearray([0 for _ in range(kas.ITEM_DESCRIPTOR_SIZE - 36)]))
+                    bytearray([0 for _ in range(kas.ITEM_DESCRIPTOR_SIZE - 40)]))
                 self.assertEqual(descriptor[1:4], bytearray([0, 0, 0]))
                 self.assertEqual(type_, kas.FLOAT64)
                 self.assertGreater(key_start, 0)
