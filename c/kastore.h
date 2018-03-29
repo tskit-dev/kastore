@@ -15,6 +15,7 @@
 #define KAS_ERR_BAD_TYPE                              -8
 #define KAS_ERR_EMPTY_KEY                             -9
 #define KAS_ERR_DUPLICATE_KEY                         -10
+#define KAS_ERR_KEY_NOT_FOUND                         -11
 
 #define KAS_FILE_VERSION_MAJOR 0
 #define KAS_FILE_VERSION_MINOR 1
@@ -37,13 +38,11 @@
 #define KAS_MAGIC                   "\211KAS\r\n\032\n"
 
 typedef struct {
-    /* Public attributes denoting the key and array pointers and size.*/
     int type;
     size_t key_len;
     size_t array_len;
     const char *key;
     const void *array;
-    /* Private internal fields */
     size_t key_start;
     size_t array_start;
 } kaitem_t;
@@ -61,8 +60,8 @@ typedef struct {
 
 int kastore_open(kastore_t *self, const char *filename, const char *mode, int flags);
 int kastore_close(kastore_t *self);
-
-int kastore_get(kastore_t *self, const char *key, kaitem_t **item, int flags);
+int kastore_get(kastore_t *self, const char *key, size_t key_len,
+       const void **array, size_t *array_len, int *type);
 int kastore_put(kastore_t *self, const char *key, size_t key_len,
        const void *array, size_t array_len, int type, int flags);
 

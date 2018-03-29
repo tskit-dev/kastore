@@ -94,16 +94,6 @@ out:
     return ret;
 }
 
-/* Sort the items by their keys. */ static int kastore_sort_items(kastore_t *self)
-{
-    int ret = 0;
-
-    qsort(self->items, self->num_items, sizeof(kaitem_t), compare_items);
-    /* TODO detect equal keys */
-
-    return ret;
-}
-
 /* Compute the locations of the keys and arrays in the file. */
 static int
 kastore_pack_items(kastore_t *self)
@@ -276,10 +266,7 @@ kastore_write_file(kastore_t *self)
 
     /* Sort the items first so that we can detect duplicate keys before
      * we write the header */
-    ret = kastore_sort_items(self);
-    if (ret != 0) {
-        goto out;
-    }
+    qsort(self->items, self->num_items, sizeof(kaitem_t), compare_items);
     ret = kastore_write_header(self);
     if (ret != 0) {
         goto out;
@@ -391,9 +378,28 @@ out:
 }
 
 int
-kastore_get(kastore_t *self, const char *key, kaitem_t **item, int flags)
+kastore_get(kastore_t *self, const char *key, size_t key_len,
+        const void **array, size_t *array_len, int *type)
 {
-    return 0;
+    int ret = KAS_ERR_KEY_NOT_FOUND;
+    kaitem_t search;
+    kaitem_t *item;
+    search.key = key;
+    search.key_len = key_len;
+
+    item = bsearch(&search, self->items, self->num_items, sizeof(kaitem_t),
+            compare_items);
+    if (item == NULL) {
+        goto out;
+    } else if (item->key_len != key_len) {
+        goto out;
+    }
+    *array = item->array;
+    *array_len = item->array_len;
+    *type = item->type;
+    ret = 0;
+out:
+    return ret;
 }
 
 int
@@ -403,6 +409,7 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     int ret = 0;
     kaitem_t *new_item;
     void *p;
+    size_t j;
 
     if (type < 0 || type >= KAS_NUM_TYPES) {
         ret = KAS_ERR_BAD_TYPE;
@@ -412,7 +419,21 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
         ret = KAS_ERR_EMPTY_KEY;
         goto out;
     }
-
+    /* Check if this keys is already in here. OK, this is a quadratic time
+     * algorithm, but we're not expecting to have lots of items (< 100). In
+     * this case, the simple algorithm is probably better. If/when we ever
+     * deal with more items than this, then we will need a better algorithm.
+     */
+    for (j = 0; j < self->num_items; j++) {
+        if (key_len == self->items[j].key_len) {
+            if (strncmp(key, self->items[j].key, key_len) == 0) {
+                ret = KAS_ERR_DUPLICATE_KEY;
+                goto out;
+            }
+        }
+    }
+    /* Again, this isn't terribly efficient, but we're not expecting large
+     * numbers of items. */
     p = realloc(self->items, (self->num_items + 1) * sizeof(*self->items));
     if (p == NULL) {
         ret = KAS_ERR_NO_MEMORY;

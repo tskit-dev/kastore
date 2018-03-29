@@ -10,7 +10,6 @@
 char * _tmp_file_name;
 FILE * _devnull;
 
-
 static void
 test_bad_open_mode(void)
 {
@@ -75,12 +74,13 @@ test_duplicate_key(void)
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
+
     ret = kastore_put(&store, "a", 1, array, 1, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_put(&store, "b", 1, array, 1, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    /* ret = kastore_put(&store, "a", 0, array, 1, KAS_UINT32, 0); */
-    /* CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_DUPLICATE_KEY); */
+    ret = kastore_put(&store, "a", 1, array, 1, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_DUPLICATE_KEY);
 
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -105,12 +105,49 @@ test_empty_key(void)
 }
 
 static void
+test_missing_key(void)
+{
+    int ret;
+    kastore_t store;
+    const uint32_t array[] = {1, 2, 3, 4};
+    uint32_t *a;
+    size_t array_len;
+    int type;
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_put(&store, "abc", 3, array, 4, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_put(&store, "defg", 4, array, 2, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_put(&store, "hijkl", 5, array, 1, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_open(&store, _tmp_file_name, "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_get(&store, "xyz", 3, (const void **) &a, &array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_KEY_NOT_FOUND);
+    ret = kastore_get(&store, "a", 1, (const void **) &a, &array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_KEY_NOT_FOUND);
+    ret = kastore_get(&store, "defgh", 5, (const void **) &a, &array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_KEY_NOT_FOUND);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+
+static void
 test_simple_round_trip(void)
 {
     int ret;
     kastore_t store;
     const uint32_t array[] = {1, 2, 3, 4};
-    const uint32_t *a;
+    uint32_t *a;
+    size_t array_len;
+    int type;
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -129,26 +166,23 @@ test_simple_round_trip(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
     CU_ASSERT_EQUAL(store.num_items, 3);
-    CU_ASSERT_EQUAL(store.items[0].type, KAS_UINT32);
-    CU_ASSERT_EQUAL(store.items[0].key_len, 1);
-    CU_ASSERT_NSTRING_EQUAL(store.items[0].key, "a", 1);
-    CU_ASSERT_EQUAL(store.items[0].array_len, 1);
-    a = (const uint32_t *) store.items[0].array;
+    ret = kastore_get(&store, "a", 1, (const void **) &a, &array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL(type, KAS_UINT32);
+    CU_ASSERT_EQUAL(array_len, 1);
     CU_ASSERT_EQUAL(a[0], 1);
 
-    CU_ASSERT_EQUAL(store.items[1].type, KAS_UINT32);
-    CU_ASSERT_EQUAL(store.items[1].key_len, 1);
-    CU_ASSERT_NSTRING_EQUAL(store.items[1].key, "b", 1);
-    CU_ASSERT_EQUAL(store.items[1].array_len, 2);
-    a = (const uint32_t *) store.items[1].array;
+    ret = kastore_get(&store, "b", 1, (const void **) &a, &array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL(type, KAS_UINT32);
+    CU_ASSERT_EQUAL(array_len, 2);
     CU_ASSERT_EQUAL(a[0], 1);
     CU_ASSERT_EQUAL(a[1], 2);
 
-    CU_ASSERT_EQUAL(store.items[2].type, KAS_UINT32);
-    CU_ASSERT_EQUAL(store.items[2].key_len, 1);
-    CU_ASSERT_NSTRING_EQUAL(store.items[2].key, "c", 1);
-    CU_ASSERT_EQUAL(store.items[2].array_len, 4);
-    a = (const uint32_t *) store.items[2].array;
+    ret = kastore_get(&store, "c", 1, (const void **) &a, &array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL(type, KAS_UINT32);
+    CU_ASSERT_EQUAL(array_len, 4);
     CU_ASSERT_EQUAL(a[0], 1);
     CU_ASSERT_EQUAL(a[1], 2);
     CU_ASSERT_EQUAL(a[2], 3);
@@ -216,6 +250,7 @@ main(int argc, char **argv)
         {"test_open_io_errors", test_open_io_errors},
         {"test_empty_key", test_empty_key},
         {"test_duplicate_key", test_duplicate_key},
+        {"test_missing_key", test_missing_key},
         {"test_bad_types", test_bad_types},
         {"test_simple_round_trip", test_simple_round_trip},
         CU_TEST_INFO_NULL,
