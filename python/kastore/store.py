@@ -95,21 +95,21 @@ class ItemDescriptor(object):
     def pack(self):
         descriptor = bytearray(ITEM_DESCRIPTOR_SIZE)
         descriptor[0:1] = struct.pack("<B", self.type)
-        # bytes 1:4 are reserved.
-        descriptor[4:12] = struct.pack("<Q", self.key_start)
-        descriptor[12:20] = struct.pack("<Q", self.key_len)
-        descriptor[20:28] = struct.pack("<Q", self.array_start)
-        descriptor[28:36] = struct.pack("<Q", self.array_len)
-        # bytes 36:64 are reserved.
+        # bytes 1:8 are reserved.
+        descriptor[8:16] = struct.pack("<Q", self.key_start)
+        descriptor[16:24] = struct.pack("<Q", self.key_len)
+        descriptor[24:32] = struct.pack("<Q", self.array_start)
+        descriptor[32:40] = struct.pack("<Q", self.array_len)
+        # bytes 40:64 are reserved.
         return descriptor
 
     @classmethod
     def unpack(cls, descriptor):
         type_ = struct.unpack("<B", descriptor[0:1])[0]
-        key_start = struct.unpack("<Q", descriptor[4:12])[0]
-        key_len = struct.unpack("<Q", descriptor[12:20])[0]
-        array_start = struct.unpack("<Q", descriptor[20:28])[0]
-        array_len = struct.unpack("<Q", descriptor[28:36])[0]
+        key_start = struct.unpack("<Q", descriptor[8:16])[0]
+        key_len = struct.unpack("<Q", descriptor[16:24])[0]
+        array_start = struct.unpack("<Q", descriptor[24:32])[0]
+        array_len = struct.unpack("<Q", descriptor[32:40])[0]
         return cls(type_, key_start, key_len, array_start, array_len)
 
 
@@ -127,9 +127,9 @@ def dump(arrays, fileobj, key_encoding="utf-8"):
     header_size = HEADER_SIZE
     header = bytearray(header_size)
     header[0:8] = MAGIC
-    header[8:12] = struct.pack("<I", VERSION_MAJOR)
-    header[12:16] = struct.pack("<I", VERSION_MINOR)
-    header[16:20] = struct.pack("<I", num_items)
+    header[8:10] = struct.pack("<I", VERSION_MAJOR)
+    header[10:12] = struct.pack("<H", VERSION_MINOR)
+    header[12:16] = struct.pack("<H", num_items)
     # The rest of the header is reserved.
     fileobj.write(header)
 
@@ -177,12 +177,12 @@ def load(fileobj, key_encoding="utf-8"):
     header = fileobj.read(header_size)
     if header[0:8] != MAGIC:
         raise ValueError("Incorrect file format")
-    version_major = struct.unpack("<I", header[8:12])[0]
-    version_minor = struct.unpack("<I", header[12:16])[0]
+    version_major = struct.unpack("<H", header[8:10])[0]
+    version_minor = struct.unpack("<H", header[10:12])[0]
     logger.debug("Loading file version {}.{}".format(version_major, version_minor))
     if version_major != VERSION_MAJOR:
         raise ValueError("Incompatible major version")
-    num_items = struct.unpack("<I", header[16:20])[0]
+    num_items = struct.unpack("<I", header[12:16])[0]
     logger.debug("Loading {} items".format(num_items))
 
     descriptor_block_size = num_items * ItemDescriptor.size
