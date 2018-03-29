@@ -13,6 +13,8 @@
 #define KAS_ERR_VERSION_TOO_OLD                       -6
 #define KAS_ERR_VERSION_TOO_NEW                       -7
 #define KAS_ERR_BAD_TYPE                              -8
+#define KAS_ERR_EMPTY_KEY                             -9
+#define KAS_ERR_DUPLICATE_KEY                         -10
 
 #define KAS_FILE_VERSION_MAJOR 0
 #define KAS_FILE_VERSION_MINOR 1

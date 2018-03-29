@@ -404,8 +404,12 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     kaitem_t *new_item;
     void *p;
 
-    if (type < 0 || type > KAS_NUM_TYPES) {
+    if (type < 0 || type >= KAS_NUM_TYPES) {
         ret = KAS_ERR_BAD_TYPE;
+        goto out;
+    }
+    if (key_len == 0) {
+        ret = KAS_ERR_EMPTY_KEY;
         goto out;
     }
 
