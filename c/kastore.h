@@ -17,8 +17,10 @@
 #define KAS_ERR_DUPLICATE_KEY                         -10
 #define KAS_ERR_KEY_NOT_FOUND                         -11
 
-#define KAS_FILE_VERSION_MAJOR 0
-#define KAS_FILE_VERSION_MINOR 1
+/* Flags for open */
+
+#define KAS_FILE_VERSION_MAJOR  0
+#define KAS_FILE_VERSION_MINOR  1
 
 #define KAS_INT8          0
 #define KAS_UINT8         1
@@ -30,8 +32,8 @@
 #define KAS_FLOAT64       7
 #define KAS_NUM_TYPES     8
 
-#define KAS_READ          0
-#define KAS_WRITE         1
+#define KAS_READ          1
+#define KAS_WRITE         2
 
 #define KAS_HEADER_SIZE             64
 #define KAS_ITEM_DESCRIPTOR_SIZE    64
@@ -41,13 +43,14 @@ typedef struct {
     int type;
     size_t key_len;
     size_t array_len;
-    const char *key;
+    char *key;
     const void *array;
     size_t key_start;
     size_t array_start;
 } kaitem_t;
 
 typedef struct {
+    int flags;
     int mode;
     int file_version[2];
     size_t num_items;
@@ -67,5 +70,15 @@ int kastore_put(kastore_t *self, const char *key, size_t key_len,
 
 /* Debugging */
 void kastore_print_state(kastore_t *self, FILE *out);
+
+#define kas_safe_free(pointer) \
+do {\
+    if (pointer != NULL) {\
+        free(pointer);\
+        pointer = NULL;\
+    }\
+} while (0)
+
+
 
 #endif

@@ -59,6 +59,23 @@ np_dtype_to_type_map = {
 type_to_np_dtype_map = {t: dtype for dtype, t in np_dtype_to_type_map.items()}
 
 
+def type_size(ka_type):
+    """
+    Returns the size in bytes of one item in the specified kastore type.
+    """
+    size_map = {
+        INT8: 1,
+        UINT8: 1,
+        INT32: 4,
+        UINT32: 4,
+        INT64: 8,
+        UINT64: 8,
+        FLOAT32: 8,
+        FLOAT64: 8,
+    }
+    return size_map[ka_type]
+
+
 class ItemDescriptor(object):
     """
     The information required to recover a single key-value pair from the
@@ -141,7 +158,7 @@ def dump(arrays, fileobj, key_encoding="utf-8"):
     for key in sorted_keys:
         array = arrays[key]
         encoded_key = key.encode(key_encoding)
-        descriptor = ItemDescriptor(np_dtype_to_type_map[array.dtype.name])
+        descriptor = ItemDescriptor(np_dtype_to_type_map[str(array.dtype)])
         descriptor.key = encoded_key
         descriptor.array = array
         descriptor.key_start = offset
@@ -152,8 +169,8 @@ def dump(arrays, fileobj, key_encoding="utf-8"):
     # Now pack the arrays in densely after the keys.
     for descriptor in descriptors:
         descriptor.array_start = offset
-        descriptor.array_len = descriptor.array.nbytes
-        offset += descriptor.array_len
+        descriptor.array_len = descriptor.array.shape[0]
+        offset += descriptor.array_len * type_size(descriptor.type)
 
     assert fileobj.tell() == header_size
     # Now write the descriptors.
@@ -208,7 +225,7 @@ def load(fileobj, key_encoding="utf-8"):
         items[descriptor.key] = descriptor.array
         fileobj.seek(descriptor.array_start)
         dtype = type_to_np_dtype_map[descriptor.type]
-        data = fileobj.read(descriptor.array_len)
+        data = fileobj.read(descriptor.array_len * type_size(descriptor.type))
         descriptor.array = np.frombuffer(data, dtype=dtype)
         items[descriptor.key] = descriptor.array
         logger.debug("Loaded '{}'".format(descriptor.key))

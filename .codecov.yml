@@ -9,3 +9,8 @@ coverage:
       python:
         target: 90%
         flags: python
+
+fixes:
+  # Codecov expects paths to be relative to the root. See 
+  # https://docs.codecov.io/docs/fixing-paths
+  - "::python/"

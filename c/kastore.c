@@ -18,7 +18,11 @@ compare_items(const void *a, const void *b) {
     const kaitem_t *ia = (const kaitem_t *) a;
     const kaitem_t *ib = (const kaitem_t *) b;
     size_t len = ia->key_len < ib->key_len? ia->key_len: ib->key_len;
-    return memcmp(ia->key, ib->key, len);
+    int ret = memcmp(ia->key, ib->key, len);
+    if (ret == 0) {
+        ret = ia->key_len > ib->key_len;
+    }
+    return ret;
 }
 
 /* When a read error occurs we don't know whether this is because the file
@@ -212,7 +216,7 @@ kastore_write_data(kastore_t *self)
     for (j = 0; j < self->num_items; j++) {
         assert(ftell(self->file) == (long) self->items[j].array_start);
         size = self->items[j].array_len * type_size(self->items[j].type);
-        if (fwrite(self->items[j].array, size, 1, self->file) != 1) {
+        if (size > 0 && fwrite(self->items[j].array, size, 1, self->file) != 1) {
             ret = KAS_ERR_IO;
             goto out;
         }
@@ -333,6 +337,7 @@ kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
         ret = KAS_ERR_BAD_MODE;
         goto out;
     }
+    self->flags = flags;
     self->filename = filename;
     self->file = fopen(filename, mode);
     if (self->file == NULL) {
@@ -351,29 +356,33 @@ kastore_close(kastore_t *self)
 {
     int ret = 0;
     int err;
+    size_t j;
 
     if (self->mode == KAS_WRITE) {
-        ret = kastore_write_file(self);
-        if (ret != 0) {
-            /* Ignore errors on close now */
-            fclose(self->file);
-            self->file = NULL;
+        if (self->file != NULL) {
+            ret = kastore_write_file(self);
+            if (ret != 0) {
+                /* Ignore errors on close now */
+                fclose(self->file);
+                self->file = NULL;
+            }
+        }
+        if (self->items != NULL) {
+            /* We only alloc memory for the keys in write mode */
+            for (j = 0; j < self->num_items; j++) {
+                kas_safe_free(self->items[j].key);
+            }
         }
     }
+    kas_safe_free(self->items);
+    kas_safe_free(self->read_buffer);
     if (self->file != NULL) {
         err = fclose(self->file);
         if (err != 0) {
             ret = KAS_ERR_IO;
-            goto out;
         }
     }
-    if (self->items != NULL) {
-        free(self->items);
-    }
-    if (self->read_buffer != NULL) {
-        free(self->read_buffer);
-    }
-out:
+    memset(self, 0, sizeof(*self));
     return ret;
 }
 
@@ -384,9 +393,14 @@ kastore_get(kastore_t *self, const char *key, size_t key_len,
     int ret = KAS_ERR_KEY_NOT_FOUND;
     kaitem_t search;
     kaitem_t *item;
-    search.key = key;
+    search.key = malloc(key_len);
     search.key_len = key_len;
 
+    if (search.key == NULL) {
+        ret = KAS_ERR_NO_MEMORY;
+        goto out;
+    }
+    memcpy(search.key, key, key_len);
     item = bsearch(&search, self->items, self->num_items, sizeof(kaitem_t),
             compare_items);
     if (item == NULL) {
@@ -399,6 +413,7 @@ kastore_get(kastore_t *self, const char *key, size_t key_len,
     *type = item->type;
     ret = 0;
 out:
+    kas_safe_free(search.key);
     return ret;
 }
 
@@ -444,7 +459,12 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     self->num_items++;
     memset(new_item, 0, sizeof(*new_item));
     new_item->type = type;
-    new_item->key = key;
+    new_item->key = malloc(key_len);
+    if (new_item->key == NULL) {
+        ret = KAS_ERR_NO_MEMORY;
+        goto out;
+    }
+    memcpy(new_item->key, key, key_len);
     new_item->key_len = key_len;
     new_item->array = array;
     new_item->array_len = array_len;
