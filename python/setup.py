@@ -7,6 +7,20 @@ here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
+
+def get_numpy_includes():
+    import numpy as np
+    return np.get_include()
+
+
+_kastore_module = setuptools.Extension(
+    '_kastore',
+    sources=["_kastoremodule.c", "lib/kastore.c"],
+    extra_compile_args=["-std=c99"],
+    include_dirs=[get_numpy_includes(), "lib"],
+)
+
+
 setuptools.setup(
     name='kastore',
     version='0.0.1',
@@ -30,6 +44,7 @@ setuptools.setup(
     ],
     keywords='Binary store numerical arrays',
     packages=['kastore'],
+    ext_modules=[_kastore_module],
     install_requires=['numpy'],
     entry_points={
         'console_scripts': [

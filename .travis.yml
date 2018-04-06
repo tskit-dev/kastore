@@ -42,7 +42,9 @@ install:
   - source activate test-environment
   - conda install --yes numpy
   - pip install -r python/requirements/development.txt
-  - pip install python/
+  # Need to install in 'edit' mode, as pip can't find the header files otherwise.
+  # No idea why.
+  - pip install -e python/
 
 script:
   - nosetests -vs python/tests

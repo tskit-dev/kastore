@@ -13,7 +13,12 @@ jobs:
             pip install meson --user
             echo 'export PATH=/home/circleci/.local/bin:$PATH' >> $BASH_ENV
       - run:
-          name: Run highlevel tests and upload coverage
+          name: Compile Python
+          command: |
+            cd python 
+            python setup.py build_ext --inplace
+      - run:
+          name: Run Python tests 
           command: |
             cd python
             flake8 --max-line-length 89 kastore setup.py tests
@@ -22,9 +27,9 @@ jobs:
               --cover-inclusive tests
             python3 -m codecov -F python
       - run:
-          name: Compile C tests
+          name: Compile C
           command: |
-            cd c
+            cd c 
             meson builddir && cd builddir && ninja
       - run:
           name: Run C tests
