@@ -21,6 +21,7 @@ import struct
 import logging
 
 import numpy as np
+import six
 
 logger = logging.getLogger(__name__)
 
@@ -130,15 +131,22 @@ class ItemDescriptor(object):
         return cls(type_, key_start, key_len, array_start, array_len)
 
 
-def dump(arrays, fileobj, key_encoding="utf-8"):
+def dump(arrays, filename, key_encoding="utf-8"):
+    with open(filename, "wb") as f:
+        _dump(arrays, f, key_encoding)
+
+
+def _dump(arrays, fileobj, key_encoding):
     """
     Writes the arrays in the specified mapping to the key-array-store file.
     """
+    # This is really overly strict, but Python2 doesn't support
+    # collections.abc.Mapping.
+    if not isinstance(arrays, dict):
+        raise TypeError("Input must be dict-like")
     for key, array in arrays.items():
         if len(key) == 0:
             raise ValueError("Empty keys not supported")
-        if len(array.shape) != 1:
-            raise ValueError("Only 1D arrays supported")
 
     num_items = len(arrays)
     header_size = HEADER_SIZE
@@ -156,7 +164,13 @@ def dump(arrays, fileobj, key_encoding="utf-8"):
     offset = header_size + descriptor_block_size
     descriptors = []
     for key in sorted_keys:
-        array = arrays[key]
+        # Normally we wouldn't bother with this in Python, but we want to
+        # ensure that the behaviour is identical to the low-level module.
+        if not isinstance(key, six.text_type):
+            raise TypeError("Key must be a string")
+        array = np.array(arrays[key])
+        if len(array.shape) != 1:
+            raise ValueError("Only 1D arrays supported")
         encoded_key = key.encode(key_encoding)
         descriptor = ItemDescriptor(np_dtype_to_type_map[str(array.dtype)])
         descriptor.key = encoded_key
@@ -186,7 +200,12 @@ def dump(arrays, fileobj, key_encoding="utf-8"):
         fileobj.write(descriptor.array.data)
 
 
-def load(fileobj, key_encoding="utf-8"):
+def load(filename, key_encoding="utf-8"):
+    with open(filename, "rb") as f:
+        return _load(f, key_encoding)
+
+
+def _load(fileobj, key_encoding):
     """
     Reads arrays from the specified file and returns the resulting mapping.
     """
