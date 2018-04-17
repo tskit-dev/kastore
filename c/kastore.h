@@ -68,6 +68,8 @@ int kastore_get(kastore_t *self, const char *key, size_t key_len,
 int kastore_put(kastore_t *self, const char *key, size_t key_len,
        const void *array, size_t array_len, int type, int flags);
 
+const char *kas_strerror(int err);
+
 /* Debugging */
 void kastore_print_state(kastore_t *self, FILE *out);
 

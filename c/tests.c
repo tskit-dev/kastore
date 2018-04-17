@@ -31,15 +31,50 @@ test_open_io_errors(void)
 {
     int ret;
     kastore_t store;
+    const char *msg1, *msg2;
 
     /* Read a non existent file */
     ret = kastore_open(&store, "", "r", 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
     CU_ASSERT_EQUAL_FATAL(errno, ENOENT);
+    msg1 = kas_strerror(KAS_ERR_IO);
+    msg2 = strerror(errno);
+    CU_ASSERT_STRING_EQUAL(msg1, msg2);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
-    /* TODO add more */
+    /* Read a directory */
+    ret = kastore_open(&store, "/", "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    CU_ASSERT_EQUAL_FATAL(errno, EISDIR)
+    msg1 = kas_strerror(KAS_ERR_IO);
+    msg2 = strerror(errno);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    /* Write a directory */
+    ret = kastore_open(&store, "./", "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    CU_ASSERT_EQUAL_FATAL(errno, EISDIR)
+    msg1 = kas_strerror(KAS_ERR_IO);
+    msg2 = strerror(errno);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    /* Write without permissions */
+    ret = kastore_open(&store, "/noway.kas", "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    msg1 = kas_strerror(KAS_ERR_IO);
+    msg2 = strerror(errno);
+    CU_ASSERT_EQUAL_FATAL(errno, EACCES);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
+test_strerror(void)
+{
+    printf("FINISH strerror and WRITE TESTS\n");
 }
 
 static void
@@ -312,6 +347,7 @@ main(int argc, char **argv)
     CU_TestInfo tests[] = {
         {"test_bad_open_mode", test_bad_open_mode},
         {"test_open_io_errors", test_open_io_errors},
+        {"test_strerror", test_strerror},
         {"test_empty_key", test_empty_key},
         {"test_different_key_length", test_different_key_length},
         {"test_different_key_length_reverse", test_different_key_length_reverse},

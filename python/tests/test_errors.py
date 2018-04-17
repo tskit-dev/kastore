@@ -85,9 +85,8 @@ class InterfaceMixin(object):
             self.assertRaises(
                 exception, kas.dump, filename=tmp_dir, data={"a": []},
                 engine=self.engine)
-            # TODO fix this when low-level issues resolved.
-            # self.assertRaises(
-            #     exception, kas.load, filename=tmp_dir, engine=self.engine)
+            self.assertRaises(
+                exception, kas.load, filename=tmp_dir, engine=self.engine)
         finally:
             os.rmdir(tmp_dir)
 

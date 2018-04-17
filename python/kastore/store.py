@@ -71,7 +71,7 @@ def type_size(ka_type):
         UINT32: 4,
         INT64: 8,
         UINT64: 8,
-        FLOAT32: 8,
+        FLOAT32: 4,
         FLOAT64: 8,
     }
     return size_map[ka_type]
@@ -150,17 +150,10 @@ def _dump(arrays, fileobj, key_encoding):
 
     num_items = len(arrays)
     header_size = HEADER_SIZE
-    header = bytearray(header_size)
-    header[0:8] = MAGIC
-    header[8:10] = struct.pack("<I", VERSION_MAJOR)
-    header[10:12] = struct.pack("<H", VERSION_MINOR)
-    header[12:16] = struct.pack("<H", num_items)
-    # The rest of the header is reserved.
-    fileobj.write(header)
-
     # We store the keys in sorted order in the key block.
     sorted_keys = sorted(arrays.keys())
     descriptor_block_size = num_items * ItemDescriptor.size
+    # First pack the keys and arrays to determine their locations.
     offset = header_size + descriptor_block_size
     descriptors = []
     for key in sorted_keys:
@@ -185,6 +178,16 @@ def _dump(arrays, fileobj, key_encoding):
         descriptor.array_start = offset
         descriptor.array_len = descriptor.array.shape[0]
         offset += descriptor.array_len * type_size(descriptor.type)
+    file_size = offset
+
+    header = bytearray(header_size)
+    header[0:8] = MAGIC
+    header[8:10] = struct.pack("<I", VERSION_MAJOR)
+    header[10:12] = struct.pack("<H", VERSION_MINOR)
+    header[12:16] = struct.pack("<H", num_items)
+    header[16:24] = struct.pack("<Q", file_size)
+    # The rest of the header is reserved.
+    fileobj.write(header)
 
     assert fileobj.tell() == header_size
     # Now write the descriptors.
@@ -198,6 +201,7 @@ def _dump(arrays, fileobj, key_encoding):
     for descriptor in descriptors:
         assert fileobj.tell() == descriptor.array_start
         fileobj.write(descriptor.array.data)
+    assert fileobj.tell() == file_size
 
 
 def load(filename, key_encoding="utf-8"):
@@ -218,8 +222,8 @@ def _load(fileobj, key_encoding):
     logger.debug("Loading file version {}.{}".format(version_major, version_minor))
     if version_major != VERSION_MAJOR:
         raise ValueError("Incompatible major version")
-    num_items = struct.unpack("<I", header[12:16])[0]
-    logger.debug("Loading {} items".format(num_items))
+    num_items, file_size = struct.unpack("<IQ", header[12:24])
+    logger.debug("Loading {} items from {} bytes".format(num_items, file_size))
 
     descriptor_block_size = num_items * ItemDescriptor.size
     descriptor_block = fileobj.read(descriptor_block_size)
@@ -248,4 +252,6 @@ def _load(fileobj, key_encoding):
         descriptor.array = np.frombuffer(data, dtype=dtype)
         items[descriptor.key] = descriptor.array
         logger.debug("Loaded '{}'".format(descriptor.key))
+    if fileobj.tell() != file_size:
+        print("DIFF", fileobj.tell(), file_size)
     return items
