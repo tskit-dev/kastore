@@ -13,6 +13,7 @@ type_size(int type)
     return type_size_map[type];
 }
 
+/* Compare item keys lexicographically. */
 static int
 compare_items(const void *a, const void *b) {
     const kaitem_t *ia = (const kaitem_t *) a;
@@ -20,7 +21,7 @@ compare_items(const void *a, const void *b) {
     size_t len = ia->key_len < ib->key_len? ia->key_len: ib->key_len;
     int ret = memcmp(ia->key, ib->key, len);
     if (ret == 0) {
-        ret = ia->key_len > ib->key_len;
+        ret = (ia->key_len > ib->key_len) - (ia->key_len < ib->key_len);
     }
     return ret;
 }
@@ -59,7 +60,6 @@ kastore_write_header(kastore_t *self)
         ret = KAS_ERR_IO;
         goto out;
     }
-
 out:
     return ret;
 }
@@ -268,8 +268,6 @@ kastore_write_file(kastore_t *self)
 {
     int ret = 0;
 
-    /* Sort the items first so that we can detect duplicate keys before
-     * we write the header */
     qsort(self->items, self->num_items, sizeof(kaitem_t), compare_items);
     ret = kastore_write_header(self);
     if (ret != 0) {
@@ -323,6 +321,7 @@ int
 kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
 {
     int ret = 0;
+    const char *file_mode;
 
     memset(self, 0, sizeof(*self));
     if (strlen(mode) != 1) {
@@ -331,15 +330,17 @@ kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
     }
     if (strncmp(mode, "r", 1) == 0) {
         self->mode = KAS_READ;
+        file_mode = "rb";
     } else if (strncmp(mode, "w", 1) == 0) {
         self->mode = KAS_WRITE;
+        file_mode = "wb";
     } else {
         ret = KAS_ERR_BAD_MODE;
         goto out;
     }
     self->flags = flags;
     self->filename = filename;
-    self->file = fopen(filename, mode);
+    self->file = fopen(filename, file_mode);
     if (self->file == NULL) {
         ret = KAS_ERR_IO;
         goto out;
@@ -434,20 +435,7 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
         ret = KAS_ERR_EMPTY_KEY;
         goto out;
     }
-    /* Check if this keys is already in here. OK, this is a quadratic time
-     * algorithm, but we're not expecting to have lots of items (< 100). In
-     * this case, the simple algorithm is probably better. If/when we ever
-     * deal with more items than this, then we will need a better algorithm.
-     */
-    for (j = 0; j < self->num_items; j++) {
-        if (key_len == self->items[j].key_len) {
-            if (strncmp(key, self->items[j].key, key_len) == 0) {
-                ret = KAS_ERR_DUPLICATE_KEY;
-                goto out;
-            }
-        }
-    }
-    /* Again, this isn't terribly efficient, but we're not expecting large
+    /* This isn't terribly efficient, but we're not expecting large
      * numbers of items. */
     p = realloc(self->items, (self->num_items + 1) * sizeof(*self->items));
     if (p == NULL) {
@@ -468,6 +456,21 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     new_item->key_len = key_len;
     new_item->array = array;
     new_item->array_len = array_len;
+
+    /* Check if this key is already in here. OK, this is a quadratic time
+     * algorithm, but we're not expecting to have lots of items (< 100). In
+     * this case, the simple algorithm is probably better. If/when we ever
+     * deal with more items than this, then we will need a better algorithm.
+     */
+    for (j = 0; j < self->num_items - 1; j++) {
+        if (compare_items(new_item, self->items + j) == 0) {
+            /* Free the key memory and remove this item */
+            self->num_items--;
+            free(new_item->key);
+            ret = KAS_ERR_DUPLICATE_KEY;
+            goto out;
+        }
+    }
 out:
     return ret;
 }
