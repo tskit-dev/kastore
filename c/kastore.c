@@ -13,6 +13,7 @@ type_size(int type)
     return type_size_map[type];
 }
 
+/* Compare item keys lexicographically. */
 static int
 compare_items(const void *a, const void *b) {
     const kaitem_t *ia = (const kaitem_t *) a;
@@ -20,7 +21,7 @@ compare_items(const void *a, const void *b) {
     size_t len = ia->key_len < ib->key_len? ia->key_len: ib->key_len;
     int ret = memcmp(ia->key, ib->key, len);
     if (ret == 0) {
-        ret = ia->key_len > ib->key_len;
+        ret = (ia->key_len > ib->key_len) - (ia->key_len < ib->key_len);
     }
     return ret;
 }
@@ -443,6 +444,7 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     }
     self->items = p;
     new_item = self->items + self->num_items;
+    self->num_items++;
     memset(new_item, 0, sizeof(*new_item));
     new_item->type = type;
     new_item->key = malloc(key_len);
@@ -460,13 +462,15 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
      * this case, the simple algorithm is probably better. If/when we ever
      * deal with more items than this, then we will need a better algorithm.
      */
-    for (j = 0; j < self->num_items; j++) {
+    for (j = 0; j < self->num_items - 1; j++) {
         if (compare_items(new_item, self->items + j) == 0) {
+            /* Free the key memory and remove this item */
+            self->num_items--;
+            free(new_item->key);
             ret = KAS_ERR_DUPLICATE_KEY;
             goto out;
         }
     }
-    self->num_items++;
 out:
     return ret;
 }

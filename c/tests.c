@@ -32,7 +32,7 @@ test_open_io_errors(void)
     int ret;
     kastore_t store;
 
-    /* Read a non existant file */
+    /* Read a non existent file */
     ret = kastore_open(&store, "", "r", 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
     CU_ASSERT_EQUAL_FATAL(errno, ENOENT);
@@ -66,6 +66,64 @@ test_bad_types(void)
 }
 
 static void
+verify_key_round_trip(const char **keys, size_t num_keys)
+{
+    int ret;
+    kastore_t store;
+    size_t j;
+    uint32_t array[] = {1};
+    uint32_t *a;
+    size_t array_len;
+    int type;
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    for (j = 0; j < num_keys; j++) {
+        ret = kastore_put(&store, keys[j], strlen(keys[j]), array, 1, KAS_UINT32, 0);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+    }
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_open(&store, _tmp_file_name, "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    CU_ASSERT_EQUAL(store.num_items, num_keys);
+    for (j = 0; j < num_keys; j++) {
+        ret = kastore_get(&store, keys[j], strlen(keys[j]),
+                (const void **) &a, &array_len, &type);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        CU_ASSERT_EQUAL(type, KAS_UINT32);
+        CU_ASSERT_EQUAL(array_len, 1);
+        CU_ASSERT_EQUAL(a[0], 1);
+    }
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
+test_different_key_length(void)
+{
+    const char *keys[] = {"a", "aa", "aaa", "aaaa", "aaaaa"};
+    verify_key_round_trip(keys, sizeof(keys) / sizeof(*keys));
+}
+
+static void
+test_different_key_length_reverse(void)
+{
+    const char *keys[] = {"aaaaaa", "aaaa", "aaa", "aa", "a"};
+    verify_key_round_trip(keys, sizeof(keys) / sizeof(*keys));
+}
+
+static void
+test_mixed_keys(void)
+{
+    const char *keys[] = {"x", "aabs", "pqrastuvw", "st", "12345", "67^%"};
+    verify_key_round_trip(keys, sizeof(keys) / sizeof(*keys));
+}
+
+static void
 test_duplicate_key(void)
 {
     int ret;
@@ -81,9 +139,15 @@ test_duplicate_key(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_put(&store, "a", 1, array, 1, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_DUPLICATE_KEY);
+    CU_ASSERT_EQUAL_FATAL(store.num_items, 2);
 
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_open(&store, _tmp_file_name, "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL(store.num_items, 2);
+    ret = kastore_close(&store);
 }
 
 static void
@@ -249,6 +313,9 @@ main(int argc, char **argv)
         {"test_bad_open_mode", test_bad_open_mode},
         {"test_open_io_errors", test_open_io_errors},
         {"test_empty_key", test_empty_key},
+        {"test_different_key_length", test_different_key_length},
+        {"test_different_key_length_reverse", test_different_key_length_reverse},
+        {"test_mixed_keys", test_mixed_keys},
         {"test_duplicate_key", test_duplicate_key},
         {"test_missing_key", test_missing_key},
         {"test_bad_types", test_bad_types},

@@ -133,7 +133,8 @@ class FormatMixin(object):
 
     # Note that hypothesis seems to be leaking memory, so when we're running tests
     # against the C API for memory leaks this must be commented out.
-    @hypothesis.reproduce_failure('3.55.6', b'AXicY2RkYIAgBkYkGsoBQhCDCUKBeBACJMDAzMAAAAPiACM=')
+    @hypothesis.given(
+        keys=hst.sets(hst.text(alphabet=key_alphabet, min_size=1), min_size=1))
     def test_many_keys(self, keys):
         data = {key: np.ones(j, dtype=np.int32) * j for j, key in enumerate(keys)}
         self.validate_storage(data)
