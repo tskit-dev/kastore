@@ -13,4 +13,4 @@ coverage:
 fixes:
   # Codecov expects paths to be relative to the root. See 
   # https://docs.codecov.io/docs/fixing-paths
-  - "::python/"
+  - "python/::"
