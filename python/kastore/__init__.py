@@ -14,8 +14,7 @@ def _raise_unknown_engine():
 
 def load(filename, key_encoding="utf-8", engine=PY_ENGINE):
     if engine == PY_ENGINE:
-        with open(filename, "rb") as f:
-            return store.load(f, key_encoding)
+        return store.load(filename, key_encoding)
     elif engine == C_ENGINE:
         return _kastore.load(filename)
     else:
@@ -24,8 +23,7 @@ def load(filename, key_encoding="utf-8", engine=PY_ENGINE):
 
 def dump(data, filename, key_encoding="utf-8", engine=PY_ENGINE):
     if engine == PY_ENGINE:
-        with open(filename, "wb") as f:
-            store.dump(data, f, key_encoding)
+        store.dump(data, filename, key_encoding)
     elif engine == C_ENGINE:
         _kastore.dump(data, filename)
     else:

@@ -21,6 +21,7 @@ import struct
 import logging
 
 import numpy as np
+import six
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ def type_size(ka_type):
         UINT32: 4,
         INT64: 8,
         UINT64: 8,
-        FLOAT32: 8,
+        FLOAT32: 4,
         FLOAT64: 8,
     }
     return size_map[ka_type]
@@ -130,33 +131,39 @@ class ItemDescriptor(object):
         return cls(type_, key_start, key_len, array_start, array_len)
 
 
-def dump(arrays, fileobj, key_encoding="utf-8"):
+def dump(arrays, filename, key_encoding="utf-8"):
+    with open(filename, "wb") as f:
+        _dump(arrays, f, key_encoding)
+
+
+def _dump(arrays, fileobj, key_encoding):
     """
     Writes the arrays in the specified mapping to the key-array-store file.
     """
+    # This is really overly strict, but Python2 doesn't support
+    # collections.abc.Mapping.
+    if not isinstance(arrays, dict):
+        raise TypeError("Input must be dict-like")
     for key, array in arrays.items():
         if len(key) == 0:
             raise ValueError("Empty keys not supported")
-        if len(array.shape) != 1:
-            raise ValueError("Only 1D arrays supported")
 
     num_items = len(arrays)
     header_size = HEADER_SIZE
-    header = bytearray(header_size)
-    header[0:8] = MAGIC
-    header[8:10] = struct.pack("<I", VERSION_MAJOR)
-    header[10:12] = struct.pack("<H", VERSION_MINOR)
-    header[12:16] = struct.pack("<H", num_items)
-    # The rest of the header is reserved.
-    fileobj.write(header)
-
     # We store the keys in sorted order in the key block.
     sorted_keys = sorted(arrays.keys())
     descriptor_block_size = num_items * ItemDescriptor.size
+    # First pack the keys and arrays to determine their locations.
     offset = header_size + descriptor_block_size
     descriptors = []
     for key in sorted_keys:
-        array = arrays[key]
+        # Normally we wouldn't bother with this in Python, but we want to
+        # ensure that the behaviour is identical to the low-level module.
+        if not isinstance(key, six.text_type):
+            raise TypeError("Key must be a string")
+        array = np.array(arrays[key])
+        if len(array.shape) != 1:
+            raise ValueError("Only 1D arrays supported")
         encoded_key = key.encode(key_encoding)
         descriptor = ItemDescriptor(np_dtype_to_type_map[str(array.dtype)])
         descriptor.key = encoded_key
@@ -171,6 +178,16 @@ def dump(arrays, fileobj, key_encoding="utf-8"):
         descriptor.array_start = offset
         descriptor.array_len = descriptor.array.shape[0]
         offset += descriptor.array_len * type_size(descriptor.type)
+    file_size = offset
+
+    header = bytearray(header_size)
+    header[0:8] = MAGIC
+    header[8:10] = struct.pack("<I", VERSION_MAJOR)
+    header[10:12] = struct.pack("<H", VERSION_MINOR)
+    header[12:16] = struct.pack("<H", num_items)
+    header[16:24] = struct.pack("<Q", file_size)
+    # The rest of the header is reserved.
+    fileobj.write(header)
 
     assert fileobj.tell() == header_size
     # Now write the descriptors.
@@ -184,9 +201,15 @@ def dump(arrays, fileobj, key_encoding="utf-8"):
     for descriptor in descriptors:
         assert fileobj.tell() == descriptor.array_start
         fileobj.write(descriptor.array.data)
+    assert fileobj.tell() == file_size
 
 
-def load(fileobj, key_encoding="utf-8"):
+def load(filename, key_encoding="utf-8"):
+    with open(filename, "rb") as f:
+        return _load(f, key_encoding)
+
+
+def _load(fileobj, key_encoding):
     """
     Reads arrays from the specified file and returns the resulting mapping.
     """
@@ -199,8 +222,8 @@ def load(fileobj, key_encoding="utf-8"):
     logger.debug("Loading file version {}.{}".format(version_major, version_minor))
     if version_major != VERSION_MAJOR:
         raise ValueError("Incompatible major version")
-    num_items = struct.unpack("<I", header[12:16])[0]
-    logger.debug("Loading {} items".format(num_items))
+    num_items, file_size = struct.unpack("<IQ", header[12:24])
+    logger.debug("Loading {} items from {} bytes".format(num_items, file_size))
 
     descriptor_block_size = num_items * ItemDescriptor.size
     descriptor_block = fileobj.read(descriptor_block_size)
@@ -229,4 +252,6 @@ def load(fileobj, key_encoding="utf-8"):
         descriptor.array = np.frombuffer(data, dtype=dtype)
         items[descriptor.key] = descriptor.array
         logger.debug("Loaded '{}'".format(descriptor.key))
+    if fileobj.tell() != file_size:
+        print("DIFF", fileobj.tell(), file_size)
     return items

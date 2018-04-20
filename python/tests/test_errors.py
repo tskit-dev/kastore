@@ -8,14 +8,18 @@ from __future__ import unicode_literals
 import unittest
 import tempfile
 import os
+import platform
+import sys
 
 import numpy as np
 
-import _kastore
 import kastore as kas
 
+IS_WINDOWS = platform.system() == "Windows"
+IS_PY2 = sys.version_info[0] < 3
 
-class TestLowLevelInterface(unittest.TestCase):
+
+class InterfaceMixin(object):
     """
     Exercise the low-level interface.
     """
@@ -29,37 +33,70 @@ class TestLowLevelInterface(unittest.TestCase):
 
     def test_bad_dicts(self):
         for bad_dict in [[], "w34", None, 1]:
-            self.assertRaises(TypeError, _kastore.dump, bad_dict, "")
-            self.assertRaises(TypeError, _kastore.dump, data=bad_dict, filename="")
+            self.assertRaises(
+                TypeError, kas.dump, bad_dict, self.temp_file, engine=self.engine)
+            self.assertRaises(
+                TypeError, kas.dump, data=bad_dict, filename=self.temp_file,
+                engine=self.engine)
 
-    def test_bad_filename(self):
-        for bad_filename in [[], None, {}, 1234]:
-            self.assertRaises(TypeError, _kastore.dump, {}, bad_filename)
-            self.assertRaises(TypeError, _kastore.dump, data={}, filename=bad_filename)
-            self.assertRaises(TypeError, _kastore.load, bad_filename)
-            self.assertRaises(TypeError, _kastore.load, filename=bad_filename)
+    def test_bad_filename_type(self):
+        for bad_filename in [[], None, {}]:
+            self.assertRaises(
+                TypeError, kas.dump, {}, bad_filename, engine=self.engine)
+            self.assertRaises(
+                TypeError, kas.dump, data={}, filename=bad_filename, engine=self.engine)
+            self.assertRaises(
+                TypeError, kas.load, bad_filename, engine=self.engine)
+            self.assertRaises(
+                TypeError, kas.load, filename=bad_filename, engine=self.engine)
 
     def test_bad_keys(self):
         a = np.zeros(1)
         for bad_key in [(1234,), b"1234", None, 1234]:
             self.assertRaises(
-                TypeError, _kastore.dump, data={bad_key: a}, filename=self.temp_file)
+                TypeError, kas.dump, data={bad_key: a}, filename=self.temp_file,
+                engine=self.engine)
 
     def test_bad_arrays(self):
-        _kastore.dump(data={"a": []}, filename=self.temp_file)
-        for bad_array in [_kastore, lambda x: x, "1234", None, [[0, 1], [0, 2]]]:
+        kas.dump(data={"a": []}, filename=self.temp_file, engine=self.engine)
+        for bad_array in [kas, lambda x: x, "1234", None, [[0, 1], [0, 2]]]:
             self.assertRaises(
-                ValueError, _kastore.dump, data={"a": bad_array},
-                filename=self.temp_file)
+                ValueError, kas.dump, data={"a": bad_array},
+                filename=self.temp_file, engine=self.engine)
         # TODO add tests for arrays in fortran order and so on.
 
-    def test_bad_file(self):
+    @unittest.skipIf(IS_PY2, "Skip IO errors for py2")
+    def test_file_not_found(self):
         a = np.zeros(1)
-        for bad_file in ["", "/no/such/file"]:
-            # TODO Should raise the correct IO errors.
+        for bad_file in ["no_such_file", "/no/such/file"]:
             self.assertRaises(
-                ValueError, _kastore.dump, data={"a": a}, filename=bad_file)
-            self.assertRaises(ValueError, _kastore.load, filename=bad_file)
+                FileNotFoundError, kas.load, filename=bad_file, engine=self.engine)
+        self.assertRaises(
+            FileNotFoundError, kas.dump, data={"a": a}, filename="/no/such/file",
+            engine=self.engine)
+
+    @unittest.skipIf(IS_PY2, "Skip IO errors for py2")
+    def test_file_is_a_directory(self):
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            exception = IsADirectoryError
+            if IS_WINDOWS:
+                exception = PermissionError
+            self.assertRaises(
+                exception, kas.dump, filename=tmp_dir, data={"a": []},
+                engine=self.engine)
+            self.assertRaises(
+                exception, kas.load, filename=tmp_dir, engine=self.engine)
+        finally:
+            os.rmdir(tmp_dir)
+
+
+class TestInterfacePyEngine(InterfaceMixin, unittest.TestCase):
+    engine = kas.PY_ENGINE
+
+
+class TestInterfaceCEngine(InterfaceMixin, unittest.TestCase):
+    engine = kas.C_ENGINE
 
 
 class TestEngines(unittest.TestCase):

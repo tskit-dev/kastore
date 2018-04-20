@@ -23,7 +23,7 @@ static void
 handle_library_error(int err)
 {
     if (err == KAS_ERR_IO) {
-        PyErr_SetFromErrno(PyExc_ValueError);
+        PyErr_SetFromErrno(PyExc_OSError);
     } else {
         PyErr_Format(PyExc_ValueError, "Error occured: %d", err);
     }

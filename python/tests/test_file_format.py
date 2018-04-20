@@ -52,14 +52,15 @@ class FormatMixin(object):
             with open(self.temp_file, "rb") as f:
                 contents = f.read()
             self.assertEqual(contents[0:8], store.MAGIC)
-            major, minor, num_items = struct.unpack("<HHI", contents[8:16])
+            major, minor, num_items, size = struct.unpack("<HHIQ", contents[8:24])
             self.assertEqual(major, store.VERSION_MAJOR)
             self.assertEqual(minor, store.VERSION_MINOR)
             self.assertEqual(num_items, n)
-            trailer = contents[16: store.HEADER_SIZE]
+            self.assertEqual(size, len(contents))
+            trailer = contents[24: store.HEADER_SIZE]
             # The remainder should be zeros.
             self.assertEqual(
-                trailer, bytearray([0 for _ in range(store.HEADER_SIZE - 16)]))
+                trailer, bytearray([0 for _ in range(store.HEADER_SIZE - 24)]))
 
     def test_zero_items(self):
         kas.dump({}, self.temp_file, engine=self.engine)

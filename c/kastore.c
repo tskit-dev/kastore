@@ -2,8 +2,55 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <errno.h>
 
 #include "kastore.h"
+
+const char *
+kas_strerror(int err)
+{
+    const char *ret = "Unknown error";
+
+    switch (err) {
+        case KAS_ERR_GENERIC:
+            ret = "Generic error; please file a bug report";
+            break;
+        case KAS_ERR_IO:
+            if (errno != 0) {
+                ret = strerror(errno);
+            }  else {
+                ret = "I/O error with errno unset. Please file a bug report";
+            }
+            break;
+        case KAS_ERR_BAD_MODE:
+            ret = "Bad open mode; must be \"r\" or \"w\"";
+            break;
+        case KAS_ERR_NO_MEMORY:
+            ret = "Out of memory";
+            break;
+        case KAS_ERR_BAD_FILE_FORMAT:
+            ret = "File not in KAS format";
+            break;
+        case KAS_ERR_VERSION_TOO_OLD:
+            ret = "File format version is too old. Please upgrade using "
+                "'kas upgrade <filename>'";
+            break;
+        case KAS_ERR_VERSION_TOO_NEW:
+            ret = "File format version is too new. Please upgrade your "
+                "kastore library version";
+            break;
+        case KAS_ERR_BAD_TYPE:
+            ret = "Unknown data type";
+            break;
+        case KAS_ERR_DUPLICATE_KEY:
+            ret = "Duplicate key provided";
+            break;
+        case KAS_ERR_KEY_NOT_FOUND:
+            ret = "Key not found.";
+            break;
+    }
+    return ret;
+}
 
 static size_t
 type_size(int type)
@@ -49,12 +96,14 @@ kastore_write_header(kastore_t *self)
     uint16_t version_major = KAS_FILE_VERSION_MAJOR;
     uint16_t version_minor = KAS_FILE_VERSION_MINOR;
     uint32_t num_items = (uint32_t) self->num_items;
+    uint64_t file_size = (uint64_t) self->file_size;
 
     memset(header, 0, sizeof(header));
     memcpy(header, KAS_MAGIC, 8);
     memcpy(header + 8, &version_major, 2);
     memcpy(header + 10, &version_minor, 2);
     memcpy(header + 12, &num_items, 4);
+    memcpy(header + 16, &file_size, 8);
     /* Rest of header is reserved */
     if (fwrite(header, KAS_HEADER_SIZE, 1, self->file) != 1) {
         ret = KAS_ERR_IO;
@@ -68,15 +117,17 @@ static int
 kastore_read_header(kastore_t *self)
 {
     int ret = 0;
-    char *header;
+    char header[KAS_HEADER_SIZE];
     uint16_t version_major, version_minor;
     uint32_t num_items;
+    uint64_t file_size;
+    size_t count;
 
-    if (self->file_size < KAS_HEADER_SIZE) {
-        ret = KAS_ERR_BAD_FILE_FORMAT;
+    count = fread(header, KAS_HEADER_SIZE, 1, self->file);
+    if (count == 0) {
+        ret = kastore_get_read_io_error(self);
         goto out;
     }
-    header = self->read_buffer;
     if (strncmp(header, KAS_MAGIC, 8) != 0) {
         ret = KAS_ERR_BAD_FILE_FORMAT;
         goto out;
@@ -84,6 +135,7 @@ kastore_read_header(kastore_t *self)
     memcpy(&version_major, header + 8, 2);
     memcpy(&version_minor, header + 10, 2);
     memcpy(&num_items, header + 12, 4);
+    memcpy(&file_size, header + 16, 8);
     self->file_version[0] = (int) version_major;
     self->file_version[1] = (int) version_minor;
     if (self->file_version[0] < KAS_FILE_VERSION_MAJOR) {
@@ -94,6 +146,7 @@ kastore_read_header(kastore_t *self)
         goto out;
     }
     self->num_items = num_items;
+    self->file_size = file_size;
 out:
     return ret;
 }
@@ -116,6 +169,7 @@ kastore_pack_items(kastore_t *self)
         self->items[j].array_start = offset;
         offset += self->items[j].array_len * type_size(self->items[j].type);
     }
+    self->file_size = offset;
     return ret;
 }
 
@@ -230,20 +284,8 @@ kastore_read_file(kastore_t *self)
 {
     int ret = 0;
     int err;
-    long end;
     size_t count;
 
-    err = fseek(self->file, 0, SEEK_END);
-    if (err != 0) {
-        ret = KAS_ERR_IO;
-        goto out;
-    }
-    end = ftell(self->file);
-    if (end == -1) {
-        ret = KAS_ERR_IO;
-        goto out;
-    }
-    self->file_size = (size_t) end;
     self->read_buffer = malloc(self->file_size);
     if (self->read_buffer == NULL) {
         ret = KAS_ERR_NO_MEMORY;
@@ -269,11 +311,11 @@ kastore_write_file(kastore_t *self)
     int ret = 0;
 
     qsort(self->items, self->num_items, sizeof(kaitem_t), compare_items);
-    ret = kastore_write_header(self);
+    ret = kastore_pack_items(self);
     if (ret != 0) {
         goto out;
     }
-    ret = kastore_pack_items(self);
+    ret = kastore_write_header(self);
     if (ret != 0) {
         goto out;
     }
@@ -294,11 +336,11 @@ kastore_read(kastore_t *self)
 {
     int ret = 0;
 
-    ret = kastore_read_file(self);
+    ret = kastore_read_header(self);
     if (ret != 0) {
         goto out;
     }
-    ret = kastore_read_header(self);
+    ret = kastore_read_file(self);
     if (ret != 0) {
         goto out;
     }
