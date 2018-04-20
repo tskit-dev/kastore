@@ -19,7 +19,7 @@ kas_strerror(int err)
             if (errno != 0) {
                 ret = strerror(errno);
             }  else {
-                ret = "I/O error with errno unset. Please file a bug report.";
+                ret = "I/O error with errno unset. Please file a bug report";
             }
             break;
         case KAS_ERR_BAD_MODE:
@@ -28,16 +28,27 @@ kas_strerror(int err)
         case KAS_ERR_NO_MEMORY:
             ret = "Out of memory";
             break;
+        case KAS_ERR_BAD_FILE_FORMAT:
+            ret = "File not in KAS format";
+            break;
+        case KAS_ERR_VERSION_TOO_OLD:
+            ret = "File format version is too old. Please upgrade using "
+                "'kas upgrade <filename>'";
+            break;
+        case KAS_ERR_VERSION_TOO_NEW:
+            ret = "File format version is too new. Please upgrade your "
+                "kastore library version";
+            break;
+        case KAS_ERR_BAD_TYPE:
+            ret = "Unknown data type";
+            break;
+        case KAS_ERR_DUPLICATE_KEY:
+            ret = "Duplicate key provided";
+            break;
+        case KAS_ERR_KEY_NOT_FOUND:
+            ret = "Key not found.";
+            break;
     }
-
-/* #define KAS_ERR_BAD_FILE_FORMAT                       -5 */
-/* #define KAS_ERR_VERSION_TOO_OLD                       -6 */
-/* #define KAS_ERR_VERSION_TOO_NEW                       -7 */
-/* #define KAS_ERR_BAD_TYPE                              -8 */
-/* #define KAS_ERR_EMPTY_KEY                             -9 */
-/* #define KAS_ERR_DUPLICATE_KEY                         -10 */
-/* #define KAS_ERR_KEY_NOT_FOUND                         -11 */
-
     return ret;
 }
 

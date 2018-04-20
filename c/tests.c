@@ -69,12 +69,27 @@ test_open_io_errors(void)
     CU_ASSERT_EQUAL_FATAL(errno, EACCES);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    /* Reading /dev/null returns 0 bytes */
+    ret = kastore_open(&store, "/dev/null", "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_FILE_FORMAT);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
 }
 
 static void
 test_strerror(void)
 {
-    printf("FINISH strerror and WRITE TESTS\n");
+    const int max_err = 100;  /* arbitrary */
+    int err;
+    const char *str;
+
+    for (err = 1; err < max_err ; err++) {
+        str = kas_strerror(err);
+        CU_ASSERT_NOT_EQUAL_FATAL(str, NULL);
+        CU_ASSERT(strlen(str) > 0);
+    }
 }
 
 static void
