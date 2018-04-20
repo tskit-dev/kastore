@@ -18,13 +18,16 @@ jobs:
             cd python 
             python setup.py build_ext --inplace
       - run:
-          name: Run Python tests 
+          name: Lint Python
           command: |
             cd python
             flake8 --max-line-length 89 kastore setup.py tests
-            nosetests -v --with-coverage --cover-package kastore \
+      - run:
+          name: Run Python tests 
+          command: |
+            PYTHONPATH=python nosetests -v --with-coverage --cover-package kastore \
               --cover-branches --cover-erase --cover-xml \
-              --cover-inclusive tests
+              --cover-inclusive python/tests
             python3 -m codecov -F python
       - run:
           name: Compile C
