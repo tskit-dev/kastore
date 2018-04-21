@@ -533,7 +533,7 @@ kastore_print_state(kastore_t *self, FILE *out)
     fprintf(out, "============================\n");
     for (j = 0; j < self->num_items; j++) {
         item = self->items + j;
-        printf("%.*s: type=%d, key_start=%zu, key_len=%zu, array_start=%zu, array_len=%zu\n",
+        fprintf(out, "%.*s: type=%d, key_start=%zu, key_len=%zu, array_start=%zu, array_len=%zu\n",
                 (int) item->key_len, item->key, item->type, item->key_start, item->key_len,
                 item->array_start, item->array_len);
 

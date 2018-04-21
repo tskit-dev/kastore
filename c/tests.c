@@ -86,7 +86,7 @@ test_strerror(void)
     const char *str;
 
     for (err = 1; err < max_err ; err++) {
-        str = kas_strerror(err);
+        str = kas_strerror(-err);
         CU_ASSERT_NOT_EQUAL_FATAL(str, NULL);
         CU_ASSERT(strlen(str) > 0);
     }
@@ -138,6 +138,7 @@ verify_key_round_trip(const char **keys, size_t num_keys)
 
     ret = kastore_open(&store, _tmp_file_name, "r", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
+    kastore_print_state(&store, _devnull);
 
     CU_ASSERT_EQUAL(store.num_items, num_keys);
     for (j = 0; j < num_keys; j++) {
