@@ -1,3 +1,11 @@
+#ifdef __unix__
+#define KAS_SUPPORT_MMAP 1
+#define _POSIX_C_SOURCE 1
+#include <sys/mman.h>
+#else
+#define KAS_SUPPORT_MMAP 0
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -46,7 +54,10 @@ kas_strerror(int err)
             ret = "Duplicate key provided";
             break;
         case KAS_ERR_KEY_NOT_FOUND:
-            ret = "Key not found.";
+            ret = "Key not found";
+            break;
+        case KAS_ERR_MMAP_NOT_SUPPORTED:
+            ret = "mmap is not supported on this platform";
             break;
     }
     return ret;
@@ -323,6 +334,31 @@ out:
     return ret;
 }
 
+#if KAS_SUPPORT_MMAP
+static int
+kastore_mmap_file(kastore_t *self)
+{
+    int ret = 0;
+    void *p = mmap(NULL, self->file_size, PROT_READ,  MAP_PRIVATE,
+            fileno(self->file), 0);
+    if (p == MAP_FAILED) {
+        ret = KAS_ERR_IO;
+        goto out;
+    }
+    self->read_buffer = p;
+out:
+    return ret;
+}
+
+static void
+kastore_munmap_file(kastore_t *self)
+{
+    if (self->read_buffer != NULL) {
+        munmap(self->read_buffer, self->file_size);
+    }
+}
+#endif
+
 static int
 kastore_read_file(kastore_t *self)
 {
@@ -384,9 +420,21 @@ kastore_read(kastore_t *self)
     if (ret != 0) {
         goto out;
     }
-    ret = kastore_read_file(self);
-    if (ret != 0) {
+    if (self->flags & KAS_READ_MMAP) {
+#if KAS_SUPPORT_MMAP
+        ret = kastore_mmap_file(self);
+        if (ret != 0) {
+            goto out;
+        }
+#else
+        ret = KAS_ERR_MMAP_NOT_SUPPORTED;
         goto out;
+#endif
+    } else {
+        ret = kastore_read_file(self);
+        if (ret != 0) {
+            goto out;
+        }
     }
     if (self->num_items > 0) {
         self->items = calloc(self->num_items, sizeof(*self->items));
@@ -462,7 +510,13 @@ kastore_close(kastore_t *self)
         }
     }
     kas_safe_free(self->items);
-    kas_safe_free(self->read_buffer);
+    if (self->flags & KAS_READ_MMAP) {
+#if KAS_SUPPORT_MMAP
+        kastore_munmap_file(self);
+#endif
+    } else {
+        kas_safe_free(self->read_buffer);
+    }
     if (self->file != NULL) {
         err = fclose(self->file);
         if (err != 0) {

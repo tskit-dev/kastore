@@ -16,8 +16,10 @@
 #define KAS_ERR_EMPTY_KEY                             -9
 #define KAS_ERR_DUPLICATE_KEY                         -10
 #define KAS_ERR_KEY_NOT_FOUND                         -11
+#define KAS_ERR_MMAP_NOT_SUPPORTED                    -12
 
 /* Flags for open */
+#define KAS_READ_MMAP     1
 
 #define KAS_FILE_VERSION_MAJOR  1
 #define KAS_FILE_VERSION_MINOR  0
