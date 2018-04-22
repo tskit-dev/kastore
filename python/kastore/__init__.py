@@ -2,6 +2,9 @@ from __future__ import print_function
 from __future__ import division
 
 from . import store
+from . exceptions import FileFormatError
+from . exceptions import VersionTooOldError
+from . exceptions import VersionTooNewError
 import _kastore
 
 PY_ENGINE = "python"
@@ -16,7 +19,20 @@ def load(filename, key_encoding="utf-8", engine=PY_ENGINE):
     if engine == PY_ENGINE:
         return store.load(filename, key_encoding)
     elif engine == C_ENGINE:
-        return _kastore.load(filename)
+        try:
+            return _kastore.load(filename)
+        except _kastore.FileFormatError as e:
+            # Note in Python 3 we should use "raise X from e" to designate
+            # that the low-level exception is the cause of the high-level
+            # exception. We can't do that in Python 2 though, and it's not
+            # worth having separate code paths. Same for all the other
+            # exceptions we're chaining here.
+            raise FileFormatError(str(e))
+        except _kastore.VersionTooOldError as e:
+            raise VersionTooOldError()
+        except _kastore.VersionTooNewError as e:
+            raise VersionTooNewError()
+
     else:
         _raise_unknown_engine()
 

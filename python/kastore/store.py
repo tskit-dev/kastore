@@ -23,6 +23,8 @@ import logging
 import numpy as np
 import six
 
+from . import exceptions
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,8 +36,8 @@ MAGIC = bytearray([137, 75, 65, 83, 13, 10, 26, 10])
 HEADER_SIZE = 64
 ITEM_DESCRIPTOR_SIZE = 64
 
-VERSION_MAJOR = 0
-VERSION_MINOR = 1
+VERSION_MAJOR = 1
+VERSION_MINOR = 0
 
 INT8 = 0
 UINT8 = 1
@@ -215,13 +217,17 @@ def _load(fileobj, key_encoding):
     """
     header_size = 64
     header = fileobj.read(header_size)
+    if len(header) != header_size:
+        raise exceptions.FileFormatError("Truncated header")
     if header[0:8] != MAGIC:
-        raise ValueError("Incorrect file format")
+        raise exceptions.FileFormatError("Magic number mismatch")
     version_major = struct.unpack("<H", header[8:10])[0]
     version_minor = struct.unpack("<H", header[10:12])[0]
     logger.debug("Loading file version {}.{}".format(version_major, version_minor))
-    if version_major != VERSION_MAJOR:
-        raise ValueError("Incompatible major version")
+    if version_major < VERSION_MAJOR:
+        raise exceptions.VersionTooOldError()
+    elif version_major > VERSION_MAJOR:
+        raise exceptions.VersionTooNewError()
     num_items, file_size = struct.unpack("<IQ", header[12:24])
     logger.debug("Loading {} items from {} bytes".format(num_items, file_size))
 
@@ -253,5 +259,5 @@ def _load(fileobj, key_encoding):
         items[descriptor.key] = descriptor.array
         logger.debug("Loaded '{}'".format(descriptor.key))
     if fileobj.tell() != file_size:
-        print("DIFF", fileobj.tell(), file_size)
+        raise exceptions.FileFormatError("Bad file size in header")
     return items

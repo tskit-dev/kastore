@@ -19,8 +19,8 @@
 
 /* Flags for open */
 
-#define KAS_FILE_VERSION_MAJOR  0
-#define KAS_FILE_VERSION_MINOR  1
+#define KAS_FILE_VERSION_MAJOR  1
+#define KAS_FILE_VERSION_MINOR  0
 
 #define KAS_INT8          0
 #define KAS_UINT8         1

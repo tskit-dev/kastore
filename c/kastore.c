@@ -82,7 +82,7 @@ kastore_get_read_io_error(kastore_t *self)
 {
     int ret = KAS_ERR_IO;
 
-    if (feof(self->file)) {
+    if (feof(self->file) || errno == 0) {
         ret = KAS_ERR_BAD_FILE_FORMAT;
     }
     return ret;
@@ -147,6 +147,10 @@ kastore_read_header(kastore_t *self)
     }
     self->num_items = num_items;
     self->file_size = file_size;
+    if (self->file_size < KAS_HEADER_SIZE) {
+        ret = KAS_ERR_BAD_FILE_FORMAT;
+        goto out;
+    }
 out:
     return ret;
 }
@@ -240,7 +244,7 @@ kastore_read_descriptors(kastore_t *self)
         self->items[j].key_start = (size_t) key_start;
         self->items[j].key_len = (size_t) key_len;
         self->items[j].key = self->read_buffer + key_start;
-        if (array_start + array_len > self->file_size) {
+        if (array_start + array_len * type_size(type) > self->file_size) {
             goto out;
         }
         self->items[j].array_start = (size_t) array_start;
@@ -528,6 +532,7 @@ kastore_print_state(kastore_t *self, FILE *out)
     fprintf(out, "file_version = %d.%d\n", self->file_version[0], self->file_version[1]);
     fprintf(out, "mode = %d\n", self->mode);
     fprintf(out, "num_items = %zu\n", self->num_items);
+    fprintf(out, "file_size = %zu\n", self->file_size);
     fprintf(out, "filename = '%s'\n", self->filename);
     fprintf(out, "file = '%p'\n", (void *) self->file);
     fprintf(out, "============================\n");

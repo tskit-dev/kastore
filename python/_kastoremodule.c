@@ -17,15 +17,29 @@
 #define MODULE_DOC \
 "C interface for kastore."
 
-/* static PyObject *TsinfLibraryError; */
+static PyObject *_kastore_FileFormatError;
+static PyObject *_kastore_VersionTooOldError;
+static PyObject *_kastore_VersionTooNewError;
 
 static void
 handle_library_error(int err)
 {
-    if (err == KAS_ERR_IO) {
-        PyErr_SetFromErrno(PyExc_OSError);
-    } else {
-        PyErr_Format(PyExc_ValueError, "Error occured: %d", err);
+    switch (err) {
+        case KAS_ERR_IO:
+            PyErr_SetFromErrno(PyExc_OSError);
+            break;
+        case KAS_ERR_BAD_FILE_FORMAT:
+            PyErr_Format(_kastore_FileFormatError, "Bad file format");
+            break;
+        case KAS_ERR_VERSION_TOO_OLD:
+            PyErr_SetNone(_kastore_VersionTooOldError);
+            break;
+        case KAS_ERR_VERSION_TOO_NEW:
+            PyErr_SetNone(_kastore_VersionTooNewError);
+            break;
+        default:
+            PyErr_Format(PyExc_ValueError, "Error occured: %d: %s",
+                    err, kas_strerror(err));
     }
 }
 
@@ -326,9 +340,15 @@ init_kastore(void)
     /* Initialise numpy */
     import_array();
 
-    /* TsinfLibraryError = PyErr_NewException("_kastore.LibraryError", NULL, NULL); */
-    /* Py_INCREF(TsinfLibraryError); */
-    /* PyModule_AddObject(module, "LibraryError", TsinfLibraryError); */
+    _kastore_FileFormatError = PyErr_NewException("_kastore.FileFormatError", NULL, NULL);
+    Py_INCREF(_kastore_FileFormatError);
+    PyModule_AddObject(module, "FileFormatError", _kastore_FileFormatError);
+    _kastore_VersionTooOldError = PyErr_NewException("_kastore.VersionTooOldError", NULL, NULL);
+    Py_INCREF(_kastore_VersionTooOldError);
+    PyModule_AddObject(module, "VersionTooOldError", _kastore_VersionTooOldError);
+    _kastore_VersionTooNewError = PyErr_NewException("_kastore.VersionTooNewError", NULL, NULL);
+    Py_INCREF(_kastore_VersionTooNewError);
+    PyModule_AddObject(module, "VersionTooNewError", _kastore_VersionTooNewError);
 
 #if PY_MAJOR_VERSION >= 3
     return module;
