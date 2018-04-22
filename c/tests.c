@@ -85,6 +85,8 @@ test_strerror(void)
     int err;
     const char *str;
 
+    /* Make sure the errno=0 codepath for IO errors is exercised */
+    errno = 0;
     for (err = 1; err < max_err ; err++) {
         str = kas_strerror(-err);
         CU_ASSERT_NOT_EQUAL_FATAL(str, NULL);
@@ -307,6 +309,18 @@ test_simple_round_trip(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 }
 
+static void
+test_bad_header(void)
+{
+    int ret;
+    kastore_t store;
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
 static int
 kastore_suite_init(void)
 {
@@ -372,6 +386,7 @@ main(int argc, char **argv)
         {"test_missing_key", test_missing_key},
         {"test_bad_types", test_bad_types},
         {"test_simple_round_trip", test_simple_round_trip},
+        {"test_bad_header", test_bad_header},
         CU_TEST_INFO_NULL,
     };
 

@@ -114,8 +114,12 @@ class FormatMixin(object):
             unpacked_key = contents[d.key_start: d.key_start + d.key_len]
             self.assertEqual(key.encode("utf8"), unpacked_key)
             offset += d.key_len
-        # Arrays should be packed sequentially immediately after the keys.
+        # Arrays should be packed sequentially immediately after the keys on
+        # 8 byte boundaries
         for d, key in zip(descriptors, sorted_keys):
+            remainder = offset % 8
+            if remainder != 0:
+                offset += 8 - remainder
             self.assertEqual(d.array_start, offset)
             nbytes = d.array_len * store.type_size(d.type)
             array = np.frombuffer(
@@ -147,3 +151,120 @@ class TestFormatPyEngine(FormatMixin, unittest.TestCase):
 
 class TestFormatCEngine(FormatMixin, unittest.TestCase):
     engine = kas.C_ENGINE
+
+
+class TestAlignedPacking(unittest.TestCase):
+    """
+    Tests that we are correctly computing alignments for the arrays.
+    """
+    def test_descriptor_str(self):
+        items = {"a": np.array([1], dtype=np.int8)}
+        descriptors, file_size = store.pack_items(items)
+        self.assertGreater(len(str(descriptors[0])), 0)
+
+    def test_single_key_1(self):
+        items = {"a": np.array([1], dtype=np.int8)}
+        descriptors, file_size = store.pack_items(items)
+        d = descriptors[0]
+        self.assertEqual(d.key_start, 128)
+        self.assertEqual(d.key_len, 1)
+        self.assertEqual(d.array_start, 136)
+        self.assertEqual(d.array_len, 1)
+
+    def test_single_key_7(self):
+        items = {"aaaaaaa": np.array([1], dtype=np.int8)}
+        descriptors, file_size = store.pack_items(items)
+        d = descriptors[0]
+        self.assertEqual(d.key_start, 128)
+        self.assertEqual(d.key_len, 7)
+        self.assertEqual(d.array_start, 136)
+        self.assertEqual(d.array_len, 1)
+
+    def test_single_key_8(self):
+        items = {"aaaaaaaa": np.array([1], dtype=np.int8)}
+        descriptors, file_size = store.pack_items(items)
+        d = descriptors[0]
+        self.assertEqual(d.key_start, 128)
+        self.assertEqual(d.key_len, 8)
+        self.assertEqual(d.array_start, 136)
+        self.assertEqual(d.array_len, 1)
+
+    def test_two_keys_array_len1(self):
+        a = np.array([1], dtype=np.int8)
+        items = {"a": a, "b": a}
+        descriptors, file_size = store.pack_items(items)
+        d = descriptors[0]
+        self.assertEqual(d.key_start, 192)
+        self.assertEqual(d.key_len, 1)
+        self.assertEqual(d.array_start, 200)
+        self.assertEqual(d.array_len, 1)
+        d = descriptors[1]
+        self.assertEqual(d.key_start, 193)
+        self.assertEqual(d.key_len, 1)
+        self.assertEqual(d.array_start, 208)
+        self.assertEqual(d.array_len, 1)
+
+    def test_two_keys_array_len8(self):
+        a = np.array([1], dtype=np.int64)
+        items = {"a": a, "b": a}
+        descriptors, file_size = store.pack_items(items)
+        d = descriptors[0]
+        self.assertEqual(d.key_start, 192)
+        self.assertEqual(d.key_len, 1)
+        self.assertEqual(d.array_start, 200)
+        self.assertEqual(d.array_len, 1)
+        d = descriptors[1]
+        self.assertEqual(d.key_start, 193)
+        self.assertEqual(d.key_len, 1)
+        self.assertEqual(d.array_start, 208)
+        self.assertEqual(d.array_len, 1)
+
+    def test_two_keys_array_len4(self):
+        a = np.array([1], dtype=np.int32)
+        items = {"a": a, "b": a}
+        descriptors, file_size = store.pack_items(items)
+        d = descriptors[0]
+        self.assertEqual(d.key_start, 192)
+        self.assertEqual(d.key_len, 1)
+        self.assertEqual(d.array_start, 200)
+        self.assertEqual(d.array_len, 1)
+        d = descriptors[1]
+        self.assertEqual(d.key_start, 193)
+        self.assertEqual(d.key_len, 1)
+        self.assertEqual(d.array_start, 208)
+        self.assertEqual(d.array_len, 1)
+
+
+class TestEnginesProduceIdenticalFiles(unittest.TestCase):
+    """
+    Ensure that the two engines produces identical files.
+    """
+
+    def setUp(self):
+        fd, self.temp_file = tempfile.mkstemp(suffix=".kas", prefix="kas_identity_test")
+        os.close(fd)
+
+    def tearDown(self):
+        os.unlink(self.temp_file)
+
+    def verify(self, data):
+        kas.dump(data, self.temp_file, engine=kas.C_ENGINE)
+        with open(self.temp_file, "rb") as f:
+            c_file = f.read()
+        kas.dump(data, self.temp_file, engine=kas.PY_ENGINE)
+        with open(self.temp_file, "rb") as f:
+            py_file = f.read()
+        self.assertEqual(c_file, py_file)
+
+    def test_empty(self):
+        self.verify({})
+
+    def test_one_key_empty_array(self):
+        self.verify({"a": []})
+
+    def test_many_keys_empty_arrays(self):
+        self.verify({"a" * (j + 1): [] for j in range(10)})
+
+    def test_many_keys_nonempty_arrays(self):
+        for dtype in [np.int8, np.uint8, np.uint32, np.float64]:
+            self.verify({"a" * (j + 1): np.arange(j, dtype=dtype) for j in range(10)})

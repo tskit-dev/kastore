@@ -19,8 +19,8 @@
 
 /* Flags for open */
 
-#define KAS_FILE_VERSION_MAJOR  0
-#define KAS_FILE_VERSION_MINOR  1
+#define KAS_FILE_VERSION_MAJOR  1
+#define KAS_FILE_VERSION_MINOR  0
 
 #define KAS_INT8          0
 #define KAS_UINT8         1
@@ -38,6 +38,7 @@
 #define KAS_HEADER_SIZE             64
 #define KAS_ITEM_DESCRIPTOR_SIZE    64
 #define KAS_MAGIC                   "\211KAS\r\n\032\n"
+#define KAS_ARRAY_ALIGN             8
 
 typedef struct {
     int type;

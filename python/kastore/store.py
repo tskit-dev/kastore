@@ -8,7 +8,7 @@ The file format layout is as follows.
 +===================================+
 + Item descriptors (n * 64 bytes)
 +===================================+
-+ Keys densely.
++ Keys packed densely.
 +===================================+
 + Arrays packed densely.
 +===================================+
@@ -23,6 +23,8 @@ import logging
 import numpy as np
 import six
 
+from . import exceptions
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,9 +35,12 @@ logger = logging.getLogger(__name__)
 MAGIC = bytearray([137, 75, 65, 83, 13, 10, 26, 10])
 HEADER_SIZE = 64
 ITEM_DESCRIPTOR_SIZE = 64
+# Arrays must be stored with the start aligned on 8 byte boundaries to
+# allow for aligned access when using mmap.
+ARRAY_ALIGN = 8
 
-VERSION_MAJOR = 0
-VERSION_MINOR = 1
+VERSION_MAJOR = 1
+VERSION_MINOR = 0
 
 INT8 = 0
 UINT8 = 1
@@ -147,14 +152,22 @@ def _dump(arrays, fileobj, key_encoding):
     for key, array in arrays.items():
         if len(key) == 0:
             raise ValueError("Empty keys not supported")
+    descriptors, file_size = pack_items(arrays, key_encoding)
+    write_file(fileobj, descriptors, file_size)
 
+
+def pack_items(arrays, key_encoding="utf-8"):
+    """
+    Packs the specified items by computing the relevant file offsets
+    and return the list of ItemDescriptors and the overall size of the
+    file.
+    """
     num_items = len(arrays)
-    header_size = HEADER_SIZE
     # We store the keys in sorted order in the key block.
     sorted_keys = sorted(arrays.keys())
     descriptor_block_size = num_items * ItemDescriptor.size
     # First pack the keys and arrays to determine their locations.
-    offset = header_size + descriptor_block_size
+    offset = HEADER_SIZE + descriptor_block_size
     descriptors = []
     for key in sorted_keys:
         # Normally we wouldn't bother with this in Python, but we want to
@@ -172,15 +185,24 @@ def _dump(arrays, fileobj, key_encoding):
         descriptor.key_len = len(encoded_key)
         offset += descriptor.key_len
         descriptors.append(descriptor)
-
-    # Now pack the arrays in densely after the keys.
+    # Now pack the arrays in densely after the keys 8 byte aligned
     for descriptor in descriptors:
+        remainder = (offset % ARRAY_ALIGN)
+        if remainder != 0:
+            offset += ARRAY_ALIGN - remainder
         descriptor.array_start = offset
         descriptor.array_len = descriptor.array.shape[0]
         offset += descriptor.array_len * type_size(descriptor.type)
-    file_size = offset
+    return descriptors, offset
 
-    header = bytearray(header_size)
+
+def write_file(fileobj, descriptors, file_size):
+    """
+    Writes the specified list of ItemDescriptors defining the file
+    packing to the specified opened file object.
+    """
+    header = bytearray(HEADER_SIZE)
+    num_items = len(descriptors)
     header[0:8] = MAGIC
     header[8:10] = struct.pack("<I", VERSION_MAJOR)
     header[10:12] = struct.pack("<H", VERSION_MINOR)
@@ -188,20 +210,26 @@ def _dump(arrays, fileobj, key_encoding):
     header[16:24] = struct.pack("<Q", file_size)
     # The rest of the header is reserved.
     fileobj.write(header)
+    assert fileobj.tell() == HEADER_SIZE
 
-    assert fileobj.tell() == header_size
     # Now write the descriptors.
     for descriptor in descriptors:
         fileobj.write(descriptor.pack())
-    assert fileobj.tell() == header_size + descriptor_block_size
+    offset = HEADER_SIZE + num_items * ItemDescriptor.size
+    assert fileobj.tell() == offset
     # Write the keys and arrays
     for descriptor in descriptors:
-        assert fileobj.tell() == descriptor.key_start
         fileobj.write(descriptor.key)
+        offset += descriptor.key_len
+    assert fileobj.tell() == offset
     for descriptor in descriptors:
-        assert fileobj.tell() == descriptor.array_start
-        fileobj.write(descriptor.array.data)
-    assert fileobj.tell() == file_size
+        # Because of the alignment requirements for array storage we
+        # need to add in some padding between arrays.
+        padding = descriptor.array_start - offset
+        fileobj.write(b'\0' * padding)
+        data = bytes(descriptor.array.data)
+        fileobj.write(data)
+        offset = descriptor.array_start + len(data)
 
 
 def load(filename, key_encoding="utf-8"):
@@ -213,15 +241,19 @@ def _load(fileobj, key_encoding):
     """
     Reads arrays from the specified file and returns the resulting mapping.
     """
-    header_size = 64
-    header = fileobj.read(header_size)
+    header = fileobj.read(HEADER_SIZE)
+    if len(header) != HEADER_SIZE:
+        raise exceptions.FileFormatError("Truncated header")
     if header[0:8] != MAGIC:
-        raise ValueError("Incorrect file format")
+        raise exceptions.FileFormatError("Magic number mismatch")
     version_major = struct.unpack("<H", header[8:10])[0]
+
     version_minor = struct.unpack("<H", header[10:12])[0]
     logger.debug("Loading file version {}.{}".format(version_major, version_minor))
-    if version_major != VERSION_MAJOR:
-        raise ValueError("Incompatible major version")
+    if version_major < VERSION_MAJOR:
+        raise exceptions.VersionTooOldError()
+    elif version_major > VERSION_MAJOR:
+        raise exceptions.VersionTooNewError()
     num_items, file_size = struct.unpack("<IQ", header[12:24])
     logger.debug("Loading {} items from {} bytes".format(num_items, file_size))
 
@@ -236,22 +268,38 @@ def _load(fileobj, key_encoding):
         descriptors.append(descriptor)
         offset += ItemDescriptor.size
 
+    offset += HEADER_SIZE
     # Load the keys first, so that we do sequential IOs within the key block.
     for descriptor in descriptors:
+        if descriptor.key_start != offset:
+            raise exceptions.FileFormatError("Keys not packed sequentially")
         fileobj.seek(descriptor.key_start)
-        assert fileobj.tell() == descriptor.key_start
         descriptor.key = fileobj.read(descriptor.key_len).decode(key_encoding)
+        offset += descriptor.key_len
 
     # Now load in the arrays.
     items = {}
     for descriptor in descriptors:
         items[descriptor.key] = descriptor.array
+        remainder = offset % ARRAY_ALIGN
+        if remainder != 0:
+            offset += ARRAY_ALIGN - remainder
+        if descriptor.array_start % ARRAY_ALIGN != 0:
+            raise exceptions.FileFormatError("Arrays must be 8 byte aligned")
+        if descriptor.array_start != offset:
+            raise exceptions.FileFormatError(
+                "Arrays must sequentially packed and 8 byte aligned")
         fileobj.seek(descriptor.array_start)
-        dtype = type_to_np_dtype_map[descriptor.type]
+        try:
+            dtype = type_to_np_dtype_map[descriptor.type]
+        except KeyError:
+            raise exceptions.FileFormatError("Unknown data type")
         data = fileobj.read(descriptor.array_len * type_size(descriptor.type))
         descriptor.array = np.frombuffer(data, dtype=dtype)
         items[descriptor.key] = descriptor.array
         logger.debug("Loaded '{}'".format(descriptor.key))
+        offset += descriptor.array_len * type_size(descriptor.type)
+
     if fileobj.tell() != file_size:
-        print("DIFF", fileobj.tell(), file_size)
+        raise exceptions.FileFormatError("Bad file size in header")
     return items
