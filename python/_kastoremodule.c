@@ -31,6 +31,9 @@ handle_library_error(int err)
         case KAS_ERR_BAD_FILE_FORMAT:
             PyErr_Format(_kastore_FileFormatError, "Bad file format");
             break;
+        case KAS_ERR_BAD_TYPE:
+            PyErr_Format(_kastore_FileFormatError, "Unknown data type");
+            break;
         case KAS_ERR_VERSION_TOO_OLD:
             PyErr_SetNone(_kastore_VersionTooOldError);
             break;

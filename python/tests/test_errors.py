@@ -173,6 +173,59 @@ class MalformedFilesMixin(FileFormatsMixin):
                 self.assertRaises(
                     kas.FileFormatError, kas.load, self.temp_file, engine=self.engine)
 
+    def test_bad_item_types(self):
+        items = {"a": []}
+        descriptors, file_size = store.pack_items(items)
+        num_types = len(store.np_dtype_to_type_map)
+        for bad_type in [num_types + 1, 2 * num_types]:
+            with open(self.temp_file, "wb") as f:
+                descriptors[0].type = bad_type
+                store.write_file(f, descriptors, file_size)
+            self.assertRaises(
+                kas.FileFormatError, kas.load, self.temp_file, engine=self.engine)
+
+    def test_bad_key_initial_offsets(self):
+        items = {"a": np.arange(100)}
+        # First key offset must be at header_size + n * (descriptor_size)
+        for offset in [-1, +1, 2, 100]:
+            # First key offset must be at header_size + n * (descriptor_size)
+            descriptors, file_size = store.pack_items(items)
+            descriptors[0].key_start += offset
+            with open(self.temp_file, "wb") as f:
+                store.write_file(f, descriptors, file_size)
+            self.assertRaises(
+                kas.FileFormatError, kas.load, self.temp_file, engine=self.engine)
+
+    def test_bad_key_non_sequential(self):
+        items = {"a": np.arange(100), "b": []}
+        # Keys must be packed sequentially.
+        for offset in [-1, +1, 2, 100]:
+            descriptors, file_size = store.pack_items(items)
+            descriptors[1].key_start += offset
+            self.assertRaises(
+                kas.FileFormatError, kas.load, self.temp_file, engine=self.engine)
+
+    def test_bad_array_initial_offset(self):
+        items = {"a": np.arange(100)}
+        for offset in [-1, +1, 2, 8, 16, 100]:
+            # First key offset must be at header_size + n * (descriptor_size)
+            descriptors, file_size = store.pack_items(items)
+            descriptors[0].array_start += offset
+            with open(self.temp_file, "wb") as f:
+                store.write_file(f, descriptors, file_size)
+            self.assertRaises(
+                kas.FileFormatError, kas.load, self.temp_file, engine=self.engine)
+
+    def test_bad_array_non_sequential(self):
+        items = {"a": np.arange(100), "b": []}
+        for offset in [-1, 1, 2, -8, 8, 100]:
+            descriptors, file_size = store.pack_items(items)
+            descriptors[1].array_start += offset
+            with open(self.temp_file, "wb") as f:
+                store.write_file(f, descriptors, file_size)
+            self.assertRaises(
+                kas.FileFormatError, kas.load, self.temp_file, engine=self.engine)
+
 
 class TestMalformedFilesPyEngine(MalformedFilesMixin, unittest.TestCase):
     engine = kas.PY_ENGINE

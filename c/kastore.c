@@ -160,7 +160,7 @@ static int
 kastore_pack_items(kastore_t *self)
 {
     int ret = 0;
-    size_t j, offset;
+    size_t j, offset, remainder;
 
     /* Pack the keys */
     offset = KAS_HEADER_SIZE + self->num_items * KAS_ITEM_DESCRIPTOR_SIZE;
@@ -170,6 +170,10 @@ kastore_pack_items(kastore_t *self)
     }
     /* Pack the arrays */
     for (j = 0; j < self->num_items; j++) {
+        remainder = offset % KAS_ARRAY_ALIGN;
+        if (remainder != 0) {
+            offset += KAS_ARRAY_ALIGN - remainder;
+        }
         self->items[j].array_start = offset;
         offset += self->items[j].array_len * type_size(self->items[j].type);
     }
@@ -217,7 +221,7 @@ kastore_read_descriptors(kastore_t *self)
     uint8_t type;
     uint64_t key_start, key_len, array_start, array_len;
     char *descriptor;
-    size_t descriptor_offset;
+    size_t descriptor_offset, offset, remainder;
 
     descriptor_offset = KAS_HEADER_SIZE;
     if (descriptor_offset + self->num_items * KAS_ITEM_DESCRIPTOR_SIZE
@@ -251,6 +255,30 @@ kastore_read_descriptors(kastore_t *self)
         self->items[j].array_len = (size_t) array_len;
         self->items[j].array = self->read_buffer + array_start;
     }
+
+    /* Check the integrity of the key and array packing. Keys must
+     * be packed sequentially starting immediately after the descriptors. */
+    offset = KAS_HEADER_SIZE + self->num_items * KAS_ITEM_DESCRIPTOR_SIZE;
+    for (j = 0; j < self->num_items; j++) {
+        if (self->items[j].key_start != offset) {
+            ret = KAS_ERR_BAD_FILE_FORMAT;
+            goto out;
+        }
+        offset += self->items[j].key_len;
+    }
+    for (j = 0; j < self->num_items; j++) {
+        /* Arrays are 8 byte aligned and adjacent */
+        remainder = offset % KAS_ARRAY_ALIGN;
+        if (remainder != 0) {
+            offset += KAS_ARRAY_ALIGN - remainder;
+        }
+        if (self->items[j].array_start != offset) {
+            ret = KAS_ERR_BAD_FILE_FORMAT;
+            goto out;
+        }
+        offset += self->items[j].array_len * type_size(self->items[j].type);
+    }
+
     ret = 0;
 out:
     return ret;
@@ -260,24 +288,36 @@ static int
 kastore_write_data(kastore_t *self)
 {
     int ret = 0;
-    size_t j, size;
+    size_t j, size, offset, padding;
+    char pad[KAS_ARRAY_ALIGN] = {0, 0, 0, 0, 0, 0, 0};
+
+    offset = KAS_HEADER_SIZE + self->num_items * KAS_ITEM_DESCRIPTOR_SIZE;
 
     /* Write the keys. */
     for (j = 0; j < self->num_items; j++) {
         assert(ftell(self->file) == (long) self->items[j].key_start);
+        assert(offset == self->items[j].key_start);
         if (fwrite(self->items[j].key, self->items[j].key_len, 1, self->file) != 1) {
             ret = KAS_ERR_IO;
             goto out;
         }
+        offset += self->items[j].key_len;
     }
     /* Write the arrays. */
     for (j = 0; j < self->num_items; j++) {
+        padding = self->items[j].array_start - offset;
+        assert(padding < KAS_ARRAY_ALIGN);
+        if (padding > 0 && fwrite(pad, padding, 1, self->file) != 1) {
+            ret = KAS_ERR_IO;
+            goto out;
+        }
         assert(ftell(self->file) == (long) self->items[j].array_start);
         size = self->items[j].array_len * type_size(self->items[j].type);
         if (size > 0 && fwrite(self->items[j].array, size, 1, self->file) != 1) {
             ret = KAS_ERR_IO;
             goto out;
         }
+        offset = self->items[j].array_start + size;
     }
 out:
     return ret;
