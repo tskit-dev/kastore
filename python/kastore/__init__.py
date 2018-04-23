@@ -15,12 +15,12 @@ def _raise_unknown_engine():
     raise ValueError("unknown engine")
 
 
-def load(filename, key_encoding="utf-8", engine=PY_ENGINE):
+def load(filename, use_mmap=True, key_encoding="utf-8", engine=PY_ENGINE):
     if engine == PY_ENGINE:
         return store.load(filename, key_encoding)
     elif engine == C_ENGINE:
         try:
-            return _kastore.load(filename)
+            return _kastore.load(filename, use_mmap=use_mmap)
         except _kastore.FileFormatError as e:
             # Note in Python 3 we should use "raise X from e" to designate
             # that the low-level exception is the cause of the high-level

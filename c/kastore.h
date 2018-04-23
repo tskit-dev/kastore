@@ -16,26 +16,25 @@
 #define KAS_ERR_EMPTY_KEY                             -9
 #define KAS_ERR_DUPLICATE_KEY                         -10
 #define KAS_ERR_KEY_NOT_FOUND                         -11
-#define KAS_ERR_MMAP_NOT_SUPPORTED                    -12
 
 /* Flags for open */
-#define KAS_READ_MMAP     1
+#define KAS_NO_MMAP             1
 
 #define KAS_FILE_VERSION_MAJOR  1
 #define KAS_FILE_VERSION_MINOR  0
 
-#define KAS_INT8          0
-#define KAS_UINT8         1
-#define KAS_INT32         2
-#define KAS_UINT32        3
-#define KAS_INT64         4
-#define KAS_UINT64        5
-#define KAS_FLOAT32       6
-#define KAS_FLOAT64       7
-#define KAS_NUM_TYPES     8
+#define KAS_INT8                0
+#define KAS_UINT8               1
+#define KAS_INT32               2
+#define KAS_UINT32              3
+#define KAS_INT64               4
+#define KAS_UINT64              5
+#define KAS_FLOAT32             6
+#define KAS_FLOAT64             7
+#define KAS_NUM_TYPES           8
 
-#define KAS_READ          1
-#define KAS_WRITE         2
+#define KAS_READ                1
+#define KAS_WRITE               2
 
 #define KAS_HEADER_SIZE             64
 #define KAS_ITEM_DESCRIPTOR_SIZE    64

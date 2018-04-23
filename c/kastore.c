@@ -1,9 +1,7 @@
 #ifdef __unix__
-#define KAS_SUPPORT_MMAP 1
 #define _POSIX_C_SOURCE 1
 #include <sys/mman.h>
-#else
-#define KAS_SUPPORT_MMAP 0
+#include <sys/stat.h>
 #endif
 
 #include <stdio.h>
@@ -55,9 +53,6 @@ kas_strerror(int err)
             break;
         case KAS_ERR_KEY_NOT_FOUND:
             ret = "Key not found";
-            break;
-        case KAS_ERR_MMAP_NOT_SUPPORTED:
-            ret = "mmap is not supported on this platform";
             break;
     }
     return ret;
@@ -334,12 +329,23 @@ out:
     return ret;
 }
 
-#if KAS_SUPPORT_MMAP
+#if __unix__
 static int
 kastore_mmap_file(kastore_t *self)
 {
     int ret = 0;
-    void *p = mmap(NULL, self->file_size, PROT_READ,  MAP_PRIVATE,
+    void *p;
+    struct stat st;
+
+    if (stat(self->filename, &st) != 0) {
+        ret = KAS_ERR_IO;
+        goto out;
+    }
+    if (self->file_size != (size_t) st.st_size) {
+        ret = KAS_ERR_BAD_FILE_FORMAT;
+        goto out;
+    }
+    p = mmap(NULL, self->file_size, PROT_READ,  MAP_PRIVATE,
             fileno(self->file), 0);
     if (p == MAP_FAILED) {
         ret = KAS_ERR_IO;
@@ -420,15 +426,15 @@ kastore_read(kastore_t *self)
     if (ret != 0) {
         goto out;
     }
-    if (self->flags & KAS_READ_MMAP) {
-#if KAS_SUPPORT_MMAP
+#ifdef __unix__
+    if (!self->flags & KAS_NO_MMAP) {
         ret = kastore_mmap_file(self);
         if (ret != 0) {
             goto out;
         }
 #else
-        ret = KAS_ERR_MMAP_NOT_SUPPORTED;
-        goto out;
+    /* On windows we silently ignore MMAP */
+    if (0) {
 #endif
     } else {
         ret = kastore_read_file(self);
@@ -436,6 +442,7 @@ kastore_read(kastore_t *self)
             goto out;
         }
     }
+
     if (self->num_items > 0) {
         self->items = calloc(self->num_items, sizeof(*self->items));
         if (self->items == NULL) {
@@ -510,13 +517,16 @@ kastore_close(kastore_t *self)
         }
     }
     kas_safe_free(self->items);
-    if (self->flags & KAS_READ_MMAP) {
-#if KAS_SUPPORT_MMAP
+#if __unix__
+    if (! (self->flags & KAS_NO_MMAP)) {
         kastore_munmap_file(self);
-#endif
     } else {
         kas_safe_free(self->read_buffer);
     }
+#else
+    /* On windows we must have alloced the read buffer. */
+    kas_safe_free(self->read_buffer);
+#endif
     if (self->file != NULL) {
         err = fclose(self->file);
         if (err != 0) {

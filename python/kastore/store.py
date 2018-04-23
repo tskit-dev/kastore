@@ -232,7 +232,7 @@ def write_file(fileobj, descriptors, file_size):
         offset = descriptor.array_start + len(data)
 
 
-def load(filename, key_encoding="utf-8"):
+def load(filename, use_mmap=True, key_encoding="utf-8"):
     with open(filename, "rb") as f:
         return _load(f, key_encoding)
 

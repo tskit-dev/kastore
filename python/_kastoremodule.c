@@ -227,15 +227,20 @@ kastore_load(PyObject *self, PyObject *args, PyObject *kwds)
     char *filename;
     kastore_t store;
     PyObject *data = NULL;
-    static char *kwlist[] = {"filename", NULL};
+    static char *kwlist[] = {"filename", "use_mmap", NULL};
+    int use_mmap = 1;
+    int flags;
 
     memset(&store, 0, sizeof(store));
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s:load", kwlist,
-                &filename)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|i:load", kwlist,
+                &filename, &use_mmap)) {
         goto out;
     }
-    err = kastore_open(&store, filename, "r", 0);
+    if (! use_mmap) {
+        flags = KAS_NO_MMAP;
+    }
+    err = kastore_open(&store, filename, "r", flags);
     if (err != 0) {
         handle_library_error(err);
         goto out;

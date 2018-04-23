@@ -228,10 +228,22 @@ class MalformedFilesMixin(FileFormatsMixin):
 
 
 class TestMalformedFilesPyEngine(MalformedFilesMixin, unittest.TestCase):
+    use_mmap = True
     engine = kas.PY_ENGINE
 
 
 class TestMalformedFilesCEngine(MalformedFilesMixin, unittest.TestCase):
+    use_mmap = True
+    engine = kas.C_ENGINE
+
+
+class TestMalformedFilesPyEngineNoMmap(MalformedFilesMixin, unittest.TestCase):
+    use_mmap = False
+    engine = kas.PY_ENGINE
+
+
+class TestMalformedFilesCEngineNoMmap(MalformedFilesMixin, unittest.TestCase):
+    use_mmap = False
     engine = kas.C_ENGINE
 
 
@@ -248,7 +260,7 @@ class FileVersionsMixin(FileFormatsMixin):
         self.assertEqual(len(buff), before_len)
         with open(self.temp_file, 'wb') as f:
             f.write(buff)
-        kas.load(self.temp_file, engine=self.engine)
+        kas.load(self.temp_file, engine=self.engine, use_mmap=self.use_mmap)
 
     def test_major_version_too_old(self):
         self.assertRaises(
@@ -263,7 +275,19 @@ class FileVersionsMixin(FileFormatsMixin):
 
 class TestFileVersionsPyEngine(FileVersionsMixin, unittest.TestCase):
     engine = kas.PY_ENGINE
+    use_mmap = True
+
+
+class TestFileVersionsPyEngineNoMmap(FileVersionsMixin, unittest.TestCase):
+    engine = kas.PY_ENGINE
+    use_mmap = False
 
 
 class TestFileVersionsCEngine(FileVersionsMixin, unittest.TestCase):
     engine = kas.C_ENGINE
+    use_mmap = True
+
+
+class TestFileVersionsCEngineNoMmap(FileVersionsMixin, unittest.TestCase):
+    engine = kas.C_ENGINE
+    use_mmap = False

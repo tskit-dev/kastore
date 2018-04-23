@@ -60,13 +60,14 @@ class TestRoundTrip(unittest.TestCase):
 
     def verify(self, data):
         for engine in [kas.C_ENGINE, kas.PY_ENGINE]:
-            kas.dump(data, self.temp_file, engine=engine)
-            new_data = kas.load(self.temp_file, engine=engine)
-            self.assertEqual(sorted(new_data.keys()), sorted(data.keys()))
-            for key, source_array in data.items():
-                dest_array = new_data[key]
-                # Numpy's testing assert_equal will deal correctly with NaNs.
-                np.testing.assert_equal(source_array, dest_array)
+            for use_mmap in [True, False]:
+                kas.dump(data, self.temp_file, engine=engine)
+                new_data = kas.load(self.temp_file, use_mmap=use_mmap, engine=engine)
+                self.assertEqual(sorted(new_data.keys()), sorted(data.keys()))
+                for key, source_array in data.items():
+                    dest_array = new_data[key]
+                    # Numpy's testing assert_equal will deal correctly with NaNs.
+                    np.testing.assert_equal(source_array, dest_array)
 
 
 class TestRoundTripSimple(TestRoundTrip):
