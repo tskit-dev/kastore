@@ -83,6 +83,13 @@ class TestRoundTripSimple(TestRoundTrip):
             data[six.text_type(j)] = j + np.zeros(j, dtype=np.uint32)
         self.verify(data)
 
+    def test_all_dtypes(self):
+        dtypes = [
+            "int8", "uint8", "uint32", "int32", "uint64", "int64", "float32", "float64"]
+        for n in range(10):
+            data = {dtype: np.arange(n, dtype=dtype) for dtype in dtypes}
+            self.verify(data)
+
 
 class TestRoundTripKeys(TestRoundTrip):
     """

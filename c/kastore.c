@@ -61,7 +61,7 @@ kas_strerror(int err)
 static size_t
 type_size(int type)
 {
-    const size_t type_size_map[] = {1, 1, 4, 4, 8, 8, 8, 8};
+    const size_t type_size_map[] = {1, 1, 4, 4, 8, 8, 4, 8};
     assert(type < KAS_NUM_TYPES);
     return type_size_map[type];
 }
@@ -555,8 +555,6 @@ kastore_get(kastore_t *self, const char *key, size_t key_len,
     item = bsearch(&search, self->items, self->num_items, sizeof(kaitem_t),
             compare_items);
     if (item == NULL) {
-        goto out;
-    } else if (item->key_len != key_len) {
         goto out;
     }
     *array = item->array;
