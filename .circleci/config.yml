@@ -16,7 +16,8 @@ jobs:
           name: Compile Python
           command: |
             cd python 
-            CFLAGS=--coverage python setup.py build_ext --inplace
+            CFLAGS="--coverage -Wall -Wextra -Werror -Wno-unused-parameter" \
+              python setup.py build_ext --inplace
       - run:
           name: Lint Python
           command: |

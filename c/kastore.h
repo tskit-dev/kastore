@@ -1,6 +1,14 @@
 #ifndef KASTORE_H
 #define KASTORE_H
 
+#ifdef __GNUC__
+    #define KAS_WARN_UNUSED __attribute__ ((warn_unused_result))
+    #define KAS_UNUSED(x) KAS_UNUSED_ ## x __attribute__((__unused__))
+#else
+    #define KAS_WARN_UNUSED
+    #define KAS_UNUSED(x) KAS_UNUSED_ ## x
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -82,7 +90,6 @@ do {\
         pointer = NULL;\
     }\
 } while (0)
-
 
 
 #endif
