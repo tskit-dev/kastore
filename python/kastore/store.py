@@ -232,7 +232,7 @@ def write_file(fileobj, descriptors, file_size):
         offset = descriptor.array_start + len(data)
 
 
-def load(filename, key_encoding="utf-8"):
+def load(filename, use_mmap=True, key_encoding="utf-8"):
     with open(filename, "rb") as f:
         return _load(f, key_encoding)
 
@@ -259,6 +259,8 @@ def _load(fileobj, key_encoding):
 
     descriptor_block_size = num_items * ItemDescriptor.size
     descriptor_block = fileobj.read(descriptor_block_size)
+    if len(descriptor_block) != descriptor_block_size:
+        raise exceptions.FileFormatError("Truncated file")
 
     offset = 0
     descriptors = []
@@ -267,6 +269,18 @@ def _load(fileobj, key_encoding):
             descriptor_block[offset: offset + ItemDescriptor.size])
         descriptors.append(descriptor)
         offset += ItemDescriptor.size
+        # Check the type.
+        num_types = len(np_dtype_to_type_map)
+        if descriptor.type >= num_types:
+            raise exceptions.FileFormatError("Unknown type")
+        # Check the descriptor addresses are within the file.
+        if descriptor.key_start + descriptor.key_len > file_size:
+            raise exceptions.FileFormatError("Key address outside file")
+        array_end = (
+            descriptor.array_start +
+            type_size(descriptor.type) * descriptor.array_len)
+        if array_end > file_size:
+            raise exceptions.FileFormatError("Array address outside file")
 
     offset += HEADER_SIZE
     # Load the keys first, so that we do sequential IOs within the key block.

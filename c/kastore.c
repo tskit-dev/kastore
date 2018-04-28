@@ -1,3 +1,9 @@
+#ifdef __unix__
+#define _POSIX_C_SOURCE 1
+#include <sys/mman.h>
+#include <sys/stat.h>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -46,7 +52,7 @@ kas_strerror(int err)
             ret = "Duplicate key provided";
             break;
         case KAS_ERR_KEY_NOT_FOUND:
-            ret = "Key not found.";
+            ret = "Key not found";
             break;
     }
     return ret;
@@ -55,7 +61,7 @@ kas_strerror(int err)
 static size_t
 type_size(int type)
 {
-    const size_t type_size_map[] = {1, 1, 4, 4, 8, 8, 8, 8};
+    const size_t type_size_map[] = {1, 1, 4, 4, 8, 8, 4, 8};
     assert(type < KAS_NUM_TYPES);
     return type_size_map[type];
 }
@@ -323,6 +329,42 @@ out:
     return ret;
 }
 
+#if __unix__
+static int
+kastore_mmap_file(kastore_t *self)
+{
+    int ret = 0;
+    void *p;
+    struct stat st;
+
+    if (stat(self->filename, &st) != 0) {
+        ret = KAS_ERR_IO;
+        goto out;
+    }
+    if (self->file_size != (size_t) st.st_size) {
+        ret = KAS_ERR_BAD_FILE_FORMAT;
+        goto out;
+    }
+    p = mmap(NULL, self->file_size, PROT_READ,  MAP_PRIVATE,
+            fileno(self->file), 0);
+    if (p == MAP_FAILED) {
+        ret = KAS_ERR_IO;
+        goto out;
+    }
+    self->read_buffer = p;
+out:
+    return ret;
+}
+
+static void
+kastore_munmap_file(kastore_t *self)
+{
+    if (self->read_buffer != NULL) {
+        munmap(self->read_buffer, self->file_size);
+    }
+}
+#endif
+
 static int
 kastore_read_file(kastore_t *self)
 {
@@ -384,10 +426,23 @@ kastore_read(kastore_t *self)
     if (ret != 0) {
         goto out;
     }
-    ret = kastore_read_file(self);
-    if (ret != 0) {
-        goto out;
+#ifdef __unix__
+    if (!self->flags & KAS_NO_MMAP) {
+        ret = kastore_mmap_file(self);
+        if (ret != 0) {
+            goto out;
+        }
+#else
+    /* On windows we silently ignore MMAP */
+    if (0) {
+#endif
+    } else {
+        ret = kastore_read_file(self);
+        if (ret != 0) {
+            goto out;
+        }
     }
+
     if (self->num_items > 0) {
         self->items = calloc(self->num_items, sizeof(*self->items));
         if (self->items == NULL) {
@@ -462,7 +517,16 @@ kastore_close(kastore_t *self)
         }
     }
     kas_safe_free(self->items);
+#if __unix__
+    if (! (self->flags & KAS_NO_MMAP)) {
+        kastore_munmap_file(self);
+    } else {
+        kas_safe_free(self->read_buffer);
+    }
+#else
+    /* On windows we must have alloced the read buffer. */
     kas_safe_free(self->read_buffer);
+#endif
     if (self->file != NULL) {
         err = fclose(self->file);
         if (err != 0) {
@@ -491,8 +555,6 @@ kastore_get(kastore_t *self, const char *key, size_t key_len,
     item = bsearch(&search, self->items, self->num_items, sizeof(kaitem_t),
             compare_items);
     if (item == NULL) {
-        goto out;
-    } else if (item->key_len != key_len) {
         goto out;
     }
     *array = item->array;

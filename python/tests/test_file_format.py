@@ -268,3 +268,24 @@ class TestEnginesProduceIdenticalFiles(unittest.TestCase):
     def test_many_keys_nonempty_arrays(self):
         for dtype in [np.int8, np.uint8, np.uint32, np.float64]:
             self.verify({"a" * (j + 1): np.arange(j, dtype=dtype) for j in range(10)})
+
+    def verify_all_dtypes(self, n):
+        dtypes = [
+            "int8", "uint8", "uint32", "int32", "uint64", "int64", "float32", "float64"]
+        data = {dtype: np.arange(n, dtype=dtype) for dtype in dtypes}
+        self.verify(data)
+
+    def test_all_dtypes_0_elements(self):
+        self.verify_all_dtypes(0)
+
+    def test_all_dtypes_1_elements(self):
+        self.verify_all_dtypes(1)
+
+    def test_all_dtypes_2_elements(self):
+        self.verify_all_dtypes(2)
+
+    def test_all_dtypes_3_elements(self):
+        self.verify_all_dtypes(3)
+
+    def test_all_dtypes_4_elements(self):
+        self.verify_all_dtypes(4)

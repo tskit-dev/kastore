@@ -60,13 +60,14 @@ class TestRoundTrip(unittest.TestCase):
 
     def verify(self, data):
         for engine in [kas.C_ENGINE, kas.PY_ENGINE]:
-            kas.dump(data, self.temp_file, engine=engine)
-            new_data = kas.load(self.temp_file, engine=engine)
-            self.assertEqual(sorted(new_data.keys()), sorted(data.keys()))
-            for key, source_array in data.items():
-                dest_array = new_data[key]
-                # Numpy's testing assert_equal will deal correctly with NaNs.
-                np.testing.assert_equal(source_array, dest_array)
+            for use_mmap in [True, False]:
+                kas.dump(data, self.temp_file, engine=engine)
+                new_data = kas.load(self.temp_file, use_mmap=use_mmap, engine=engine)
+                self.assertEqual(sorted(new_data.keys()), sorted(data.keys()))
+                for key, source_array in data.items():
+                    dest_array = new_data[key]
+                    # Numpy's testing assert_equal will deal correctly with NaNs.
+                    np.testing.assert_equal(source_array, dest_array)
 
 
 class TestRoundTripSimple(TestRoundTrip):
@@ -81,6 +82,13 @@ class TestRoundTripSimple(TestRoundTrip):
         for j in range(1):
             data[six.text_type(j)] = j + np.zeros(j, dtype=np.uint32)
         self.verify(data)
+
+    def test_all_dtypes(self):
+        dtypes = [
+            "int8", "uint8", "uint32", "int32", "uint64", "int64", "float32", "float64"]
+        for n in range(10):
+            data = {dtype: np.arange(n, dtype=dtype) for dtype in dtypes}
+            self.verify(data)
 
 
 class TestRoundTripKeys(TestRoundTrip):
