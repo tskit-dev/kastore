@@ -83,7 +83,7 @@ compare_items(const void *a, const void *b) {
  * ended unexpectedly or an IO error occured. If the file ends unexpectedly
  * this is a file format error.
  */
-static int
+static int KAS_WARN_UNUSED
 kastore_get_read_io_error(kastore_t *self)
 {
     int ret = KAS_ERR_IO;
@@ -94,7 +94,7 @@ kastore_get_read_io_error(kastore_t *self)
     return ret;
 }
 
-static int
+static int KAS_WARN_UNUSED
 kastore_write_header(kastore_t *self)
 {
     int ret = 0;
@@ -119,7 +119,7 @@ out:
     return ret;
 }
 
-static int
+static int KAS_WARN_UNUSED
 kastore_read_header(kastore_t *self)
 {
     int ret = 0;
@@ -162,7 +162,7 @@ out:
 }
 
 /* Compute the locations of the keys and arrays in the file. */
-static int
+static int KAS_WARN_UNUSED
 kastore_pack_items(kastore_t *self)
 {
     int ret = 0;
@@ -187,7 +187,7 @@ kastore_pack_items(kastore_t *self)
     return ret;
 }
 
-static int
+static int KAS_WARN_UNUSED
 kastore_write_descriptors(kastore_t *self)
 {
     int ret = 0;
@@ -219,7 +219,7 @@ out:
     return ret;
 }
 
-static int
+static int KAS_WARN_UNUSED
 kastore_read_descriptors(kastore_t *self)
 {
     int ret = KAS_ERR_BAD_FILE_FORMAT;
@@ -290,7 +290,7 @@ out:
     return ret;
 }
 
-static int
+static int KAS_WARN_UNUSED
 kastore_write_data(kastore_t *self)
 {
     int ret = 0;
@@ -330,7 +330,7 @@ out:
 }
 
 #if __unix__
-static int
+static int KAS_WARN_UNUSED
 kastore_mmap_file(kastore_t *self)
 {
     int ret = 0;
@@ -365,7 +365,7 @@ kastore_munmap_file(kastore_t *self)
 }
 #endif
 
-static int
+static int KAS_WARN_UNUSED
 kastore_read_file(kastore_t *self)
 {
     int ret = 0;
@@ -391,7 +391,7 @@ out:
     return ret;
 }
 
-static int
+static int KAS_WARN_UNUSED
 kastore_write_file(kastore_t *self)
 {
     int ret = 0;
@@ -417,7 +417,7 @@ out:
     return ret;
 }
 
-static int
+static int KAS_WARN_UNUSED
 kastore_read(kastore_t *self)
 {
     int ret = 0;
@@ -458,7 +458,7 @@ out:
     return ret;
 }
 
-int
+int KAS_WARN_UNUSED
 kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
 {
     int ret = 0;
@@ -493,7 +493,7 @@ out:
     return ret;
 }
 
-int
+int KAS_WARN_UNUSED
 kastore_close(kastore_t *self)
 {
     int ret = 0;
@@ -537,7 +537,7 @@ kastore_close(kastore_t *self)
     return ret;
 }
 
-int
+int KAS_WARN_UNUSED
 kastore_get(kastore_t *self, const char *key, size_t key_len,
         const void **array, size_t *array_len, int *type)
 {
@@ -566,9 +566,10 @@ out:
     return ret;
 }
 
-int
+int KAS_WARN_UNUSED
 kastore_put(kastore_t *self, const char *key, size_t key_len,
-       const void *array, size_t array_len, int type, int flags)
+       const void *array, size_t array_len, int type,
+       int KAS_UNUSED(flags))
 {
     int ret = 0;
     kaitem_t *new_item;
