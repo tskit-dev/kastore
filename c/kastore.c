@@ -567,6 +567,13 @@ out:
 }
 
 int KAS_WARN_UNUSED
+kastore_gets(kastore_t *self, const char *key, const void **array,
+        size_t *array_len, int *type)
+{
+    return kastore_get(self, key, strlen(key), array, array_len, type);
+}
+
+int KAS_WARN_UNUSED
 kastore_put(kastore_t *self, const char *key, size_t key_len,
        const void *array, size_t array_len, int type,
        int KAS_UNUSED(flags))
@@ -622,6 +629,13 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     }
 out:
     return ret;
+}
+
+int KAS_WARN_UNUSED
+kastore_puts(kastore_t *self, const char *key,
+       const void *array, size_t array_len, int type, int flags)
+{
+    return kastore_put(self, key, strlen(key), array, array_len, type, flags);
 }
 
 void

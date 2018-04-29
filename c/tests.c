@@ -104,13 +104,13 @@ test_bad_types(void)
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
-    ret = kastore_put(&store, "a", 0, array, 1, -1, 0);
+    ret = kastore_puts(&store, "a", array, 1, -1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_TYPE);
-    ret = kastore_put(&store, "a", 0, array, 1, -2, 0);
+    ret = kastore_puts(&store, "a", array, 1, -2, 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_TYPE);
-    ret = kastore_put(&store, "a", 0, array, 1, KAS_NUM_TYPES, 0);
+    ret = kastore_puts(&store, "a", array, 1, KAS_NUM_TYPES, 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_TYPE);
-    ret = kastore_put(&store, "a", 0, array, 1, KAS_NUM_TYPES + 1, 0);
+    ret = kastore_puts(&store, "a", array, 1, KAS_NUM_TYPES + 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_TYPE);
 
     ret = kastore_close(&store);
@@ -233,22 +233,22 @@ test_missing_key(void)
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_put(&store, "abc", 3, array, 4, KAS_UINT32, 0);
+    ret = kastore_puts(&store, "abc", array, 4, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_put(&store, "defg", 4, array, 2, KAS_UINT32, 0);
+    ret = kastore_puts(&store, "defg", array, 2, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_put(&store, "hijkl", 5, array, 1, KAS_UINT32, 0);
+    ret = kastore_puts(&store, "hijkl", array, 1, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
     ret = kastore_open(&store, _tmp_file_name, "r", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_get(&store, "xyz", 3, (const void **) &a, &array_len, &type);
+    ret = kastore_gets(&store, "xyz", (const void **) &a, &array_len, &type);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_KEY_NOT_FOUND);
-    ret = kastore_get(&store, "a", 1, (const void **) &a, &array_len, &type);
+    ret = kastore_gets(&store, "a", (const void **) &a, &array_len, &type);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_KEY_NOT_FOUND);
-    ret = kastore_get(&store, "defgh", 5, (const void **) &a, &array_len, &type);
+    ret = kastore_gets(&store, "defgh", (const void **) &a, &array_len, &type);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_KEY_NOT_FOUND);
 
     ret = kastore_close(&store);
@@ -270,11 +270,11 @@ test_simple_round_trip(void)
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
-    ret = kastore_put(&store, "c", 1, array, 4, KAS_UINT32, 0);
+    ret = kastore_puts(&store, "c", array, 4, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_put(&store, "b", 1, array, 2, KAS_UINT32, 0);
+    ret = kastore_puts(&store, "b", array, 2, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_put(&store, "a", 1, array, 1, KAS_UINT32, 0);
+    ret = kastore_puts(&store, "a", array, 1, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
     ret = kastore_close(&store);
@@ -285,20 +285,20 @@ test_simple_round_trip(void)
         CU_ASSERT_EQUAL_FATAL(ret, 0);
 
         CU_ASSERT_EQUAL(store.num_items, 3);
-        ret = kastore_get(&store, "a", 1, (const void **) &a, &array_len, &type);
+        ret = kastore_gets(&store, "a", (const void **) &a, &array_len, &type);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
         CU_ASSERT_EQUAL(type, KAS_UINT32);
         CU_ASSERT_EQUAL(array_len, 1);
         CU_ASSERT_EQUAL(a[0], 1);
 
-        ret = kastore_get(&store, "b", 1, (const void **) &a, &array_len, &type);
+        ret = kastore_gets(&store, "b", (const void **) &a, &array_len, &type);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
         CU_ASSERT_EQUAL(type, KAS_UINT32);
         CU_ASSERT_EQUAL(array_len, 2);
         CU_ASSERT_EQUAL(a[0], 1);
         CU_ASSERT_EQUAL(a[1], 2);
 
-        ret = kastore_get(&store, "c", 1, (const void **) &a, &array_len, &type);
+        ret = kastore_gets(&store, "c", (const void **) &a, &array_len, &type);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
         CU_ASSERT_EQUAL(type, KAS_UINT32);
         CU_ASSERT_EQUAL(array_len, 4);
@@ -471,7 +471,7 @@ verify_all_types_n_elements(size_t n)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
     for (j = 0; j < sizeof(keys) / sizeof(*keys); j++) {
-        ret = kastore_get(&store, keys[j], strlen(keys[j]), &a, &array_len, &type);
+        ret = kastore_gets(&store, keys[j], &a, &array_len, &type);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
         CU_ASSERT_EQUAL_FATAL(array_len, n);
         CU_ASSERT_FATAL(a != NULL);
