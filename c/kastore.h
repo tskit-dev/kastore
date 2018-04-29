@@ -73,9 +73,13 @@ typedef struct {
 
 int kastore_open(kastore_t *self, const char *filename, const char *mode, int flags);
 int kastore_close(kastore_t *self);
+int kastore_gets(kastore_t *self, const char *key,
+       const void **array, size_t *array_len, int *type);
 int kastore_get(kastore_t *self, const char *key, size_t key_len,
        const void **array, size_t *array_len, int *type);
 int kastore_put(kastore_t *self, const char *key, size_t key_len,
+       const void *array, size_t array_len, int type, int flags);
+int kastore_puts(kastore_t *self, const char *key,
        const void *array, size_t array_len, int type, int flags);
 
 const char *kas_strerror(int err);
