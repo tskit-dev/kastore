@@ -54,6 +54,12 @@ kas_strerror(int err)
         case KAS_ERR_KEY_NOT_FOUND:
             ret = "Key not found";
             break;
+        case KAS_ERR_EMPTY_KEY:
+            ret = "Keys cannot be empty";
+            break;
+        case KAS_ERR_ILLEGAL_OPERATION:
+            ret = "Cannot perform the requested operation in the current mode";
+            break;
     }
     return ret;
 }
@@ -301,7 +307,6 @@ kastore_write_data(kastore_t *self)
 
     /* Write the keys. */
     for (j = 0; j < self->num_items; j++) {
-        assert(ftell(self->file) == (long) self->items[j].key_start);
         assert(offset == self->items[j].key_start);
         if (fwrite(self->items[j].key, self->items[j].key_len, 1, self->file) != 1) {
             ret = KAS_ERR_IO;
@@ -317,7 +322,6 @@ kastore_write_data(kastore_t *self)
             ret = KAS_ERR_IO;
             goto out;
         }
-        assert(ftell(self->file) == (long) self->items[j].array_start);
         size = self->items[j].array_len * type_size(self->items[j].type);
         if (size > 0 && fwrite(self->items[j].array, size, 1, self->file) != 1) {
             ret = KAS_ERR_IO;
@@ -547,6 +551,10 @@ kastore_get(kastore_t *self, const char *key, size_t key_len,
     search.key = malloc(key_len);
     search.key_len = key_len;
 
+    if (self->mode != KAS_READ) {
+        ret = KAS_ERR_ILLEGAL_OPERATION;
+        goto out;
+    }
     if (search.key == NULL) {
         ret = KAS_ERR_NO_MEMORY;
         goto out;
@@ -583,6 +591,10 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     void *p;
     size_t j;
 
+    if (self->mode != KAS_WRITE) {
+        ret = KAS_ERR_ILLEGAL_OPERATION;
+        goto out;
+    }
     if (type < 0 || type >= KAS_NUM_TYPES) {
         ret = KAS_ERR_BAD_TYPE;
         goto out;
