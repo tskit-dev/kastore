@@ -57,6 +57,9 @@ kas_strerror(int err)
         case KAS_ERR_EMPTY_KEY:
             ret = "Keys cannot be empty";
             break;
+        case KAS_ERR_ILLEGAL_OPERATION:
+            ret = "Cannot perform the requested operation in the current mode";
+            break;
     }
     return ret;
 }
@@ -548,6 +551,10 @@ kastore_get(kastore_t *self, const char *key, size_t key_len,
     search.key = malloc(key_len);
     search.key_len = key_len;
 
+    if (self->mode != KAS_READ) {
+        ret = KAS_ERR_ILLEGAL_OPERATION;
+        goto out;
+    }
     if (search.key == NULL) {
         ret = KAS_ERR_NO_MEMORY;
         goto out;
@@ -584,6 +591,10 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     void *p;
     size_t j;
 
+    if (self->mode != KAS_WRITE) {
+        ret = KAS_ERR_ILLEGAL_OPERATION;
+        goto out;
+    }
     if (type < 0 || type >= KAS_NUM_TYPES) {
         ret = KAS_ERR_BAD_TYPE;
         goto out;

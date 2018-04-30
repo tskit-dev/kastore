@@ -24,6 +24,7 @@
 #define KAS_ERR_EMPTY_KEY                             -9
 #define KAS_ERR_DUPLICATE_KEY                         -10
 #define KAS_ERR_KEY_NOT_FOUND                         -11
+#define KAS_ERR_ILLEGAL_OPERATION                     -12
 
 /* Flags for open */
 #define KAS_NO_MMAP             1

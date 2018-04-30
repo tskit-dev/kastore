@@ -243,6 +243,45 @@ test_empty_key(void)
 }
 
 static void
+test_put_read_mode(void)
+{
+    int ret;
+    kastore_t store;
+    uint32_t array[] = {1};
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_open(&store, _tmp_file_name, "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "a", array, 1, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_ILLEGAL_OPERATION);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
+test_get_write_mode(void)
+{
+    int ret;
+    kastore_t store;
+    uint32_t *a;
+    size_t array_len;
+    int type;
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_gets(&store, "xyz", (const void **) &a, &array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_ILLEGAL_OPERATION);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
 test_missing_key(void)
 {
     int ret;
@@ -598,6 +637,8 @@ main(int argc, char **argv)
         {"test_write_errors", test_write_errors},
         {"test_strerror", test_strerror},
         {"test_empty_key", test_empty_key},
+        {"test_get_write_mode", test_get_write_mode},
+        {"test_put_read_mode", test_put_read_mode},
         {"test_different_key_length", test_different_key_length},
         {"test_different_key_length_reverse", test_different_key_length_reverse},
         {"test_mixed_keys", test_mixed_keys},
