@@ -61,6 +61,7 @@ test_open_io_errors(void)
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
+
     /* Write without permissions */
     ret = kastore_open(&store, "/noway.kas", "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
@@ -76,6 +77,26 @@ test_open_io_errors(void)
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
+}
+
+static void
+test_write_errors(void)
+{
+    int ret;
+    kastore_t store;
+    int64_t a[4] = {1, 2, 3, 4};
+
+    /* Write /dev/null should be fine */
+    ret = kastore_open(&store, "/dev/random", "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "a", a, 4, KAS_INT64, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "b", a, 4, KAS_INT64, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    /* TODO find some way to make it so we get IO errors when we flush */
 }
 
 static void
@@ -574,6 +595,7 @@ main(int argc, char **argv)
     CU_TestInfo tests[] = {
         {"test_bad_open_mode", test_bad_open_mode},
         {"test_open_io_errors", test_open_io_errors},
+        {"test_write_errors", test_write_errors},
         {"test_strerror", test_strerror},
         {"test_empty_key", test_empty_key},
         {"test_different_key_length", test_different_key_length},

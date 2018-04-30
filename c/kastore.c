@@ -304,7 +304,6 @@ kastore_write_data(kastore_t *self)
 
     /* Write the keys. */
     for (j = 0; j < self->num_items; j++) {
-        assert(ftell(self->file) == (long) self->items[j].key_start);
         assert(offset == self->items[j].key_start);
         if (fwrite(self->items[j].key, self->items[j].key_len, 1, self->file) != 1) {
             ret = KAS_ERR_IO;
@@ -320,7 +319,6 @@ kastore_write_data(kastore_t *self)
             ret = KAS_ERR_IO;
             goto out;
         }
-        assert(ftell(self->file) == (long) self->items[j].array_start);
         size = self->items[j].array_len * type_size(self->items[j].type);
         if (size > 0 && fwrite(self->items[j].array, size, 1, self->file) != 1) {
             ret = KAS_ERR_IO;
