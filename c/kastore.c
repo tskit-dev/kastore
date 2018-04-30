@@ -54,6 +54,9 @@ kas_strerror(int err)
         case KAS_ERR_KEY_NOT_FOUND:
             ret = "Key not found";
             break;
+        case KAS_ERR_EMPTY_KEY:
+            ret = "Keys cannot be empty";
+            break;
     }
     return ret;
 }
