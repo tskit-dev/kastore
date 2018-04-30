@@ -19,6 +19,7 @@ from __future__ import unicode_literals
 
 import struct
 import logging
+import mmap
 
 import numpy as np
 import six
@@ -317,3 +318,103 @@ def _load(fileobj, key_encoding):
     if fileobj.tell() != file_size:
         raise exceptions.FileFormatError("Bad file size in header")
     return items
+
+
+MODE_READ = 1
+MODE_WRITE = 2
+
+
+class Store(object):
+
+    def __init__(self, filename, mode, key_encoding="utf8"):
+        self.filename = filename
+        self.key_encoding = key_encoding
+        self._file = None
+        if mode == 'r':
+            self.mode = MODE_READ
+            self._open_read()
+        elif mode == 'w':
+            self.mode = MODE_WRITE
+        else:
+            raise ValueError("Unknown mode: {}".format(mode))
+
+    def _open_read(self):
+        self.file = open(self.filename, "rb")
+        header = self.file.read(HEADER_SIZE)
+        if len(header) != HEADER_SIZE:
+            raise exceptions.FileFormatError("Truncated header")
+        if header[0:8] != MAGIC:
+            raise exceptions.FileFormatError("Magic number mismatch")
+        version_major = struct.unpack("<H", header[8:10])[0]
+
+        version_minor = struct.unpack("<H", header[10:12])[0]
+        logger.debug("Loading file version {}.{}".format(version_major, version_minor))
+        if version_major < VERSION_MAJOR:
+            raise exceptions.VersionTooOldError()
+        elif version_major > VERSION_MAJOR:
+            raise exceptions.VersionTooNewError()
+        num_items, file_size = struct.unpack("<IQ", header[12:24])
+        logger.debug("Loading {} items from {} bytes".format(num_items, file_size))
+
+        self._mmap = mmap.mmap(self.file.fileno(), file_size, prot=mmap.PROT_READ)
+
+        descriptor_block_size = num_items * ItemDescriptor.size
+        descriptor_block = self._mmap[HEADER_SIZE: HEADER_SIZE + descriptor_block_size]
+
+        if len(descriptor_block) != descriptor_block_size:
+            raise exceptions.FileFormatError("Truncated file")
+
+        offset = 0
+        descriptors = []
+        for _ in range(num_items):
+            descriptor = ItemDescriptor.unpack(
+                descriptor_block[offset: offset + ItemDescriptor.size])
+            descriptors.append(descriptor)
+            offset += ItemDescriptor.size
+            # Check the type.
+            num_types = len(np_dtype_to_type_map)
+            if descriptor.type >= num_types:
+                raise exceptions.FileFormatError("Unknown type")
+            # Check the descriptor addresses are within the file.
+            if descriptor.key_start + descriptor.key_len > file_size:
+                raise exceptions.FileFormatError("Key address outside file")
+            array_end = (
+                descriptor.array_start +
+                type_size(descriptor.type) * descriptor.array_len)
+            if array_end > file_size:
+                raise exceptions.FileFormatError("Array address outside file")
+
+        # Read the keys.
+        offset = HEADER_SIZE + descriptor_block_size
+        for descriptor in descriptors:
+            if descriptor.key_start != offset:
+                raise exceptions.FileFormatError("Keys not packed sequentially")
+            key = self._mmap[offset: offset + descriptor.key_len]
+            descriptor.key = key.decode(self.key_encoding)
+            offset += descriptor.key_len
+
+        # Check the arrays.
+        for descriptor in descriptors:
+            remainder = offset % ARRAY_ALIGN
+            if remainder != 0:
+                offset += ARRAY_ALIGN - remainder
+            if descriptor.array_start % ARRAY_ALIGN != 0:
+                raise exceptions.FileFormatError("Arrays must be 8 byte aligned")
+            if descriptor.array_start != offset:
+                raise exceptions.FileFormatError(
+                    "Arrays must sequentially packed and 8 byte aligned")
+            if descriptor.type not in type_to_np_dtype_map:
+                raise exceptions.FileFormatError("Unknown data type")
+            offset += descriptor.array_len * type_size(descriptor.type)
+
+        # Create the mapping for descriptors.
+        self._descriptor_map = {descriptor.key: descriptor for descriptor in descriptors}
+
+    def __getitem__(self, key):
+        descriptor = self._descriptor_map[key]
+        size = type_size(descriptor.type) * descriptor.array_len
+        data = self._mmap[descriptor.array_start: descriptor.array_start + size]
+        dtype = type_to_np_dtype_map[descriptor.type]
+        array = np.frombuffer(data, dtype=dtype)
+        logger.debug("Loaded '{}'".format(descriptor.key))
+        return array
