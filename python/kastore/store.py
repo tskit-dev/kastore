@@ -10,7 +10,8 @@ The file format layout is as follows.
 +===================================+
 + Keys packed densely.
 +===================================+
-+ Arrays packed densely.
++ Arrays packed densely starting on
++ 8 byte bounaries.
 +===================================+
 """
 from __future__ import print_function
@@ -20,6 +21,12 @@ from __future__ import unicode_literals
 import struct
 import logging
 import mmap
+import os
+try:
+    from collections.abc import Mapping
+except ImportError:
+    # Handle Python 2.7 case.
+    from collections import Mapping
 
 import numpy as np
 import six
@@ -234,113 +241,46 @@ def write_file(fileobj, descriptors, file_size):
 
 
 def load(filename, use_mmap=True, key_encoding="utf-8"):
-    with open(filename, "rb") as f:
-        return _load(f, key_encoding)
+    return Store(filename, use_mmap, key_encoding)
 
 
-def _load(fileobj, key_encoding):
+class ValueInfo(object):
     """
-    Reads arrays from the specified file and returns the resulting mapping.
+    Simple class encapsulating information about a store array.
     """
-    header = fileobj.read(HEADER_SIZE)
-    if len(header) != HEADER_SIZE:
-        raise exceptions.FileFormatError("Truncated header")
-    if header[0:8] != MAGIC:
-        raise exceptions.FileFormatError("Magic number mismatch")
-    version_major = struct.unpack("<H", header[8:10])[0]
+    def __init__(self, dtype, size):
+        self.dtype = dtype
+        self.size = size
 
-    version_minor = struct.unpack("<H", header[10:12])[0]
-    logger.debug("Loading file version {}.{}".format(version_major, version_minor))
-    if version_major < VERSION_MAJOR:
-        raise exceptions.VersionTooOldError()
-    elif version_major > VERSION_MAJOR:
-        raise exceptions.VersionTooNewError()
-    num_items, file_size = struct.unpack("<IQ", header[12:24])
-    logger.debug("Loading {} items from {} bytes".format(num_items, file_size))
-
-    descriptor_block_size = num_items * ItemDescriptor.size
-    descriptor_block = fileobj.read(descriptor_block_size)
-    if len(descriptor_block) != descriptor_block_size:
-        raise exceptions.FileFormatError("Truncated file")
-
-    offset = 0
-    descriptors = []
-    for _ in range(num_items):
-        descriptor = ItemDescriptor.unpack(
-            descriptor_block[offset: offset + ItemDescriptor.size])
-        descriptors.append(descriptor)
-        offset += ItemDescriptor.size
-        # Check the type.
-        num_types = len(np_dtype_to_type_map)
-        if descriptor.type >= num_types:
-            raise exceptions.FileFormatError("Unknown type")
-        # Check the descriptor addresses are within the file.
-        if descriptor.key_start + descriptor.key_len > file_size:
-            raise exceptions.FileFormatError("Key address outside file")
-        array_end = (
-            descriptor.array_start +
-            type_size(descriptor.type) * descriptor.array_len)
-        if array_end > file_size:
-            raise exceptions.FileFormatError("Array address outside file")
-
-    offset += HEADER_SIZE
-    # Load the keys first, so that we do sequential IOs within the key block.
-    for descriptor in descriptors:
-        if descriptor.key_start != offset:
-            raise exceptions.FileFormatError("Keys not packed sequentially")
-        fileobj.seek(descriptor.key_start)
-        descriptor.key = fileobj.read(descriptor.key_len).decode(key_encoding)
-        offset += descriptor.key_len
-
-    # Now load in the arrays.
-    items = {}
-    for descriptor in descriptors:
-        items[descriptor.key] = descriptor.array
-        remainder = offset % ARRAY_ALIGN
-        if remainder != 0:
-            offset += ARRAY_ALIGN - remainder
-        if descriptor.array_start % ARRAY_ALIGN != 0:
-            raise exceptions.FileFormatError("Arrays must be 8 byte aligned")
-        if descriptor.array_start != offset:
-            raise exceptions.FileFormatError(
-                "Arrays must sequentially packed and 8 byte aligned")
-        fileobj.seek(descriptor.array_start)
-        try:
-            dtype = type_to_np_dtype_map[descriptor.type]
-        except KeyError:
-            raise exceptions.FileFormatError("Unknown data type")
-        data = fileobj.read(descriptor.array_len * type_size(descriptor.type))
-        descriptor.array = np.frombuffer(data, dtype=dtype)
-        items[descriptor.key] = descriptor.array
-        logger.debug("Loaded '{}'".format(descriptor.key))
-        offset += descriptor.array_len * type_size(descriptor.type)
-
-    if fileobj.tell() != file_size:
-        raise exceptions.FileFormatError("Bad file size in header")
-    return items
+    def __str__(self):
+        return "dtype={} size={}".format(self.dtype, self.size)
 
 
-MODE_READ = 1
-MODE_WRITE = 2
-
-
-class Store(object):
-
-    def __init__(self, filename, mode, key_encoding="utf8"):
+class Store(Mapping):
+    """
+    Dictionary-like object giving dynamic access to the data in a kastore.
+    """
+    def __init__(self, filename, use_mmap=True, key_encoding="utf8"):
         self.filename = filename
         self.key_encoding = key_encoding
+        self._descriptor_map = None
+        # Make sure _file and _buffer are defined so that we can access them in
+        # the destructor below.
         self._file = None
-        if mode == 'r':
-            self.mode = MODE_READ
-            self._open_read()
-        elif mode == 'w':
-            self.mode = MODE_WRITE
+        self._buffer = None
+        self._use_mmap = use_mmap
+        self._file = open(self.filename, "rb")
+        self._file_size = os.fstat(self._file.fileno()).st_size
+        if self._file_size == 0:
+            raise exceptions.FileFormatError("Empty file")
+        if use_mmap:
+            self._buffer = mmap.mmap(self._file.fileno(), 0, access=mmap.ACCESS_READ)
         else:
-            raise ValueError("Unknown mode: {}".format(mode))
+            self._buffer = self._file.read()
+        self._read_file()
 
-    def _open_read(self):
-        self.file = open(self.filename, "rb")
-        header = self.file.read(HEADER_SIZE)
+    def _read_file(self):
+        header = self._buffer[:HEADER_SIZE]
         if len(header) != HEADER_SIZE:
             raise exceptions.FileFormatError("Truncated header")
         if header[0:8] != MAGIC:
@@ -355,11 +295,11 @@ class Store(object):
             raise exceptions.VersionTooNewError()
         num_items, file_size = struct.unpack("<IQ", header[12:24])
         logger.debug("Loading {} items from {} bytes".format(num_items, file_size))
-
-        self._mmap = mmap.mmap(self.file.fileno(), file_size, prot=mmap.PROT_READ)
+        if self._file_size != file_size:
+            raise exceptions.FileFormatError("Bad file size in header")
 
         descriptor_block_size = num_items * ItemDescriptor.size
-        descriptor_block = self._mmap[HEADER_SIZE: HEADER_SIZE + descriptor_block_size]
+        descriptor_block = self._buffer[HEADER_SIZE: HEADER_SIZE + descriptor_block_size]
 
         if len(descriptor_block) != descriptor_block_size:
             raise exceptions.FileFormatError("Truncated file")
@@ -389,7 +329,7 @@ class Store(object):
         for descriptor in descriptors:
             if descriptor.key_start != offset:
                 raise exceptions.FileFormatError("Keys not packed sequentially")
-            key = self._mmap[offset: offset + descriptor.key_len]
+            key = self._buffer[offset: offset + descriptor.key_len]
             descriptor.key = key.decode(self.key_encoding)
             offset += descriptor.key_len
 
@@ -413,8 +353,27 @@ class Store(object):
     def __getitem__(self, key):
         descriptor = self._descriptor_map[key]
         size = type_size(descriptor.type) * descriptor.array_len
-        data = self._mmap[descriptor.array_start: descriptor.array_start + size]
+        data = self._buffer[descriptor.array_start: descriptor.array_start + size]
         dtype = type_to_np_dtype_map[descriptor.type]
         array = np.frombuffer(data, dtype=dtype)
         logger.debug("Loaded '{}'".format(descriptor.key))
         return array
+
+    def __len__(self):
+        return len(self._descriptor_map)
+
+    def __iter__(self):
+        for key in self._descriptor_map.keys():
+            yield key
+
+    def __del__(self):
+        if self._use_mmap and self._buffer is not None:
+            self._buffer.close()
+        if self._file is not None:
+            self._file.close()
+
+    def info(self, key):
+        descriptor = self._descriptor_map[key]
+        dtype = type_to_np_dtype_map[descriptor.type]
+        size = type_size(descriptor.type) * descriptor.array_len
+        return ValueInfo(dtype, size)
