@@ -17,7 +17,7 @@ def _raise_unknown_engine():
 
 def load(filename, use_mmap=True, key_encoding="utf-8", engine=PY_ENGINE):
     if engine == PY_ENGINE:
-        return store.load(filename, key_encoding)
+        return store.load(filename, use_mmap=use_mmap, key_encoding=key_encoding)
     elif engine == C_ENGINE:
         try:
             return _kastore.load(filename, use_mmap=use_mmap)

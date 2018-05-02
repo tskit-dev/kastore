@@ -68,6 +68,8 @@ class TestRoundTrip(unittest.TestCase):
                     dest_array = new_data[key]
                     # Numpy's testing assert_equal will deal correctly with NaNs.
                     np.testing.assert_equal(source_array, dest_array)
+                # Make sure the file is closed before opening it again.
+                del new_data
 
 
 class TestRoundTripSimple(TestRoundTrip):

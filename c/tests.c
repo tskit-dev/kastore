@@ -397,7 +397,7 @@ test_empty_file(void)
 }
 
 static void
-test_bad_type(void)
+test_read_bad_types(void)
 {
     verify_bad_file("test-data/malformed/bad_type_9.kas", KAS_ERR_BAD_TYPE);
     verify_bad_file("test-data/malformed/bad_type_16.kas", KAS_ERR_BAD_TYPE);
@@ -647,7 +647,7 @@ main(int argc, char **argv)
         {"test_bad_types", test_bad_types},
         {"test_simple_round_trip", test_simple_round_trip},
         {"test_empty_file", test_empty_file},
-        {"test_bad_types", test_bad_type},
+        {"test_read_bad_types", test_read_bad_types},
         {"test_bad_filesizes", test_bad_filesizes},
         {"test_bad_magic_number", test_bad_magic_number},
         {"test_version_0", test_version_0},
