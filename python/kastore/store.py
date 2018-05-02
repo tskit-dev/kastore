@@ -241,7 +241,7 @@ def write_file(fileobj, descriptors, file_size):
 
 
 def load(filename, use_mmap=True, key_encoding="utf-8"):
-    return Store(filename, use_mmap, key_encoding)
+    return Store(filename, use_mmap=use_mmap, key_encoding=key_encoding)
 
 
 class ValueInfo(object):
@@ -273,7 +273,7 @@ class Store(Mapping):
         self._file_size = os.fstat(self._file.fileno()).st_size
         if self._file_size == 0:
             raise exceptions.FileFormatError("Empty file")
-        if use_mmap:
+        if self._use_mmap:
             self._buffer = mmap.mmap(self._file.fileno(), 0, access=mmap.ACCESS_READ)
         else:
             self._buffer = self._file.read()
@@ -281,12 +281,9 @@ class Store(Mapping):
 
     def _read_file(self):
         header = self._buffer[:HEADER_SIZE]
-        if len(header) != HEADER_SIZE:
-            raise exceptions.FileFormatError("Truncated header")
         if header[0:8] != MAGIC:
             raise exceptions.FileFormatError("Magic number mismatch")
         version_major = struct.unpack("<H", header[8:10])[0]
-
         version_minor = struct.unpack("<H", header[10:12])[0]
         logger.debug("Loading file version {}.{}".format(version_major, version_minor))
         if version_major < VERSION_MAJOR:
@@ -297,13 +294,11 @@ class Store(Mapping):
         logger.debug("Loading {} items from {} bytes".format(num_items, file_size))
         if self._file_size != file_size:
             raise exceptions.FileFormatError("Bad file size in header")
-
         descriptor_block_size = num_items * ItemDescriptor.size
         descriptor_block = self._buffer[HEADER_SIZE: HEADER_SIZE + descriptor_block_size]
 
         if len(descriptor_block) != descriptor_block_size:
             raise exceptions.FileFormatError("Truncated file")
-
         offset = 0
         descriptors = []
         for _ in range(num_items):
@@ -343,8 +338,6 @@ class Store(Mapping):
             if descriptor.array_start != offset:
                 raise exceptions.FileFormatError(
                     "Arrays must sequentially packed and 8 byte aligned")
-            if descriptor.type not in type_to_np_dtype_map:
-                raise exceptions.FileFormatError("Unknown data type")
             offset += descriptor.array_len * type_size(descriptor.type)
 
         # Create the mapping for descriptors.
