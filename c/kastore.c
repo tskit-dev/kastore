@@ -61,6 +61,9 @@ kas_strerror(int err)
         case KAS_ERR_ILLEGAL_OPERATION:
             ret = "Cannot perform the requested operation in the current mode";
             break;
+        case KAS_ERR_TYPE_MISMATCH:
+            ret = "Mismatch between requested and stored types for array";
+            break;
     }
     return ret;
 }
@@ -638,7 +641,7 @@ kastore_gets_type(kastore_t *self, const char *key, void **array, size_t *array_
         goto out;
     }
     if (type != loaded_type) {
-        ret = KAS_ERR_BAD_TYPE;
+        ret = KAS_ERR_TYPE_MISMATCH;
         goto out;
     }
 out:

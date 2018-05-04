@@ -44,7 +44,3 @@ def dump(data, filename, key_encoding="utf-8", engine=PY_ENGINE):
         _kastore.dump(data, filename)
     else:
         _raise_unknown_engine()
-
-
-def main():
-    print("Main entry point for kastore command")

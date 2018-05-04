@@ -31,7 +31,7 @@ except ImportError:
 import numpy as np
 import six
 
-from . import exceptions
+import kastore.exceptions as exceptions
 
 logger = logging.getLogger(__name__)
 

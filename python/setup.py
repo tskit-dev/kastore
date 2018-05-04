@@ -48,7 +48,7 @@ setuptools.setup(
     install_requires=['numpy'],
     entry_points={
         'console_scripts': [
-            'kastore=kastore:main',
+            'kastore=kastore.__main__:main',
         ],
     },
     project_urls={
