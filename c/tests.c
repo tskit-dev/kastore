@@ -248,6 +248,45 @@ test_mixed_keys(void)
 }
 
 static void
+test_put_copy_array(void)
+{
+    kastore_t store;
+    size_t array_len = 10;
+    size_t read_array_len;
+    uint32_t array[array_len], *read_array;
+    int ret, type;
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    memset(array, 0, sizeof(array));
+    ret = kastore_puts(&store, "a", (const void **) array, array_len, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    memset(array, 0xff, sizeof(array));
+    ret = kastore_puts(&store, "b", (const void **) array, array_len, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_open(&store, _tmp_file_name, "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    memset(array, 0, sizeof(array));
+    ret = kastore_gets(&store, "a", (const void **) &read_array, &read_array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL_FATAL(type, KAS_UINT32);
+    CU_ASSERT_EQUAL_FATAL(read_array_len, array_len);
+    CU_ASSERT_TRUE(memcmp(array, read_array, sizeof(array)) == 0);
+
+    memset(array, 0xff, sizeof(array));
+    ret = kastore_gets(&store, "b", (const void **) &read_array, &read_array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL_FATAL(type, KAS_UINT32);
+    CU_ASSERT_EQUAL_FATAL(read_array_len, array_len);
+    CU_ASSERT_TRUE(memcmp(array, read_array, sizeof(array)) == 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
 test_duplicate_key(void)
 {
     int ret;
@@ -763,6 +802,7 @@ main(int argc, char **argv)
         {"test_different_key_length", test_different_key_length},
         {"test_different_key_length_reverse", test_different_key_length_reverse},
         {"test_mixed_keys", test_mixed_keys},
+        {"test_put_copy_array", test_put_copy_array},
         {"test_duplicate_key", test_duplicate_key},
         {"test_missing_key", test_missing_key},
         {"test_bad_types", test_bad_types},
