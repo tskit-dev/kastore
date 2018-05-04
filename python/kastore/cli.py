@@ -11,7 +11,7 @@ import os
 import signal
 import sys
 
-# import kastore
+import kastore
 
 
 logger = logging.getLogger(__name__)
@@ -40,8 +40,7 @@ def get_kastore_parser():
         description="Command line utility for kastore files.")
     parser.add_argument(
         "-V", "--version", action='version',
-        # version='%(prog)s {}'.format(kastore.__version__))
-        version='%(prog)s {}'.format(0))
+        version='%(prog)s {}'.format(kastore.__version__))
     parser.add_argument(
         '--verbose', '-v', action='count', default=0,
         help="Increase verbosity.")

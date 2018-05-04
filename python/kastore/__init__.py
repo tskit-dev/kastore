@@ -1,6 +1,13 @@
 from __future__ import print_function
 from __future__ import division
 
+__version__ = "undefined"
+try:
+    from . import _version
+    __version__ = _version.version
+except ImportError:
+    pass
+
 from . import store
 from . exceptions import FileFormatError
 from . exceptions import VersionTooOldError
