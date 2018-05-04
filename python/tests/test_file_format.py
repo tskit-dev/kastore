@@ -271,7 +271,8 @@ class TestEnginesProduceIdenticalFiles(unittest.TestCase):
 
     def verify_all_dtypes(self, n):
         dtypes = [
-            "int8", "uint8", "uint32", "int32", "uint64", "int64", "float32", "float64"]
+            "int8", "uint8", "int16", "uint16", "uint32", "int32", "uint64", "int64",
+            "float32", "float64"]
         data = {dtype: np.arange(n, dtype=dtype) for dtype in dtypes}
         self.verify(data)
 

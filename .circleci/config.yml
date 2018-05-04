@@ -9,7 +9,7 @@ jobs:
           name: Install dependencies and set path
           command: |
             pip install --user -r python/requirements/development.txt
-            sudo apt-get install ninja-build libcunit1-dev valgrind
+            sudo apt-get install ninja-build libcunit1-dev valgrind clang
             pip install meson --user
             echo 'export PATH=/home/circleci/.local/bin:$PATH' >> $BASH_ENV
       - run:
@@ -33,19 +33,26 @@ jobs:
       - run:
           name: Compile C
           command: |
-            CFLAGS=--coverage meson c/ builddir && cd builddir && ninja
+            CFLAGS=--coverage meson c/ build-gcc && cd build-gcc && ninja
       - run:
           name: Run C tests
           command: |
-            ./builddir/tests
+            ./build-gcc/tests
       - run:
           name: Valgrind for C tests.
           command: |
-            valgrind --leak-check=full --error-exitcode=1 ./builddir/tests
+            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/tests
       - run:
           name: Run gcov & upload coverage.
           command: |
             gcov -pb -o ./python/build/temp.linux*/ python/_kastoremodule.c
-            find ./builddir -type f -name '*.gcno' -exec gcov -pb -o ./builddir/tests@exe {} +
+            find ./build-gcc -type f -name '*.gcno' -exec gcov -pb -o ./build-gcc/tests@exe {} +
             codecov -X gcov -F C
-
+      - run:
+          name: Compile C tests under clang
+          command: |
+            CC=clang meson c/ build-clang && cd build-clang && ninja
+      - run:
+          name: Run clang C tests
+          command: |
+            ./build-clang/tests

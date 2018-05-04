@@ -52,16 +52,20 @@ VERSION_MINOR = 0
 
 INT8 = 0
 UINT8 = 1
-INT32 = 2
-UINT32 = 3
-INT64 = 4
-UINT64 = 5
-FLOAT32 = 6
-FLOAT64 = 7
+INT16 = 2
+UINT16 = 3
+INT32 = 4
+UINT32 = 5
+INT64 = 6
+UINT64 = 7
+FLOAT32 = 8
+FLOAT64 = 9
 
 np_dtype_to_type_map = {
     "int8": INT8,
     "uint8": UINT8,
+    "int16": INT16,
+    "uint16": UINT16,
     "uint32": UINT32,
     "int32": INT32,
     "uint64": UINT64,
@@ -80,6 +84,8 @@ def type_size(ka_type):
     size_map = {
         INT8: 1,
         UINT8: 1,
+        INT16: 2,
+        UINT16: 2,
         INT32: 4,
         UINT32: 4,
         INT64: 8,
