@@ -1,0 +1,159 @@
+"""
+Test cases for the kastore CLI.
+"""
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+
+import io
+import os
+import sys
+import tempfile
+import unittest
+
+import six
+import numpy as np
+import mock
+
+import kastore as kas
+import kastore.cli as cli
+import kastore.__main__ as main
+
+
+def capture_output(func, *args, **kwargs):
+    """
+    Runs the specified function and arguments, and returns the
+    tuple (stdout, stderr) as strings.
+    """
+    stdout = sys.stdout
+    sys.stdout = io.StringIO()
+    stderr = sys.stderr
+    sys.stderr = io.StringIO()
+
+    try:
+        func(*args, **kwargs)
+        stdout_output = sys.stdout.getvalue()
+        stderr_output = sys.stderr.getvalue()
+    finally:
+        sys.stdout.close()
+        sys.stdout = stdout
+        sys.stderr.close()
+        sys.stderr = stderr
+    return stdout_output, stderr_output
+
+
+class TestMain(unittest.TestCase):
+    """
+    Simple tests for the main function.
+    """
+    def test_cli_main(self):
+        with mock.patch("argparse.ArgumentParser.parse_args") as mocked_parse:
+            cli.kastore_main()
+            mocked_parse.assert_called_once()
+
+    def test_main(self):
+        with mock.patch("argparse.ArgumentParser.parse_args") as mocked_parse:
+            main.main()
+            mocked_parse.assert_called_once()
+
+
+class TestListArgumentParser(unittest.TestCase):
+    """
+    Tests the parser to ensure it parses input values correctly.
+    """
+    def parse_args(self, args):
+        parser = cli.get_kastore_parser()
+        return parser.parse_args(args)
+
+    def test_defaults(self):
+        args = self.parse_args(["ls", "filename"])
+        self.assertEqual(args.store, "filename")
+        self.assertEqual(args.long, False)
+        self.assertEqual(args.human_readable, False)
+
+    def test_long(self):
+        args = self.parse_args(["ls", "-l", "filename"])
+        self.assertEqual(args.store, "filename")
+        self.assertEqual(args.long, True)
+        args = self.parse_args(["ls", "--long", "filename"])
+        self.assertEqual(args.store, "filename")
+        self.assertEqual(args.long, True)
+
+    def test_human_readable(self):
+        args = self.parse_args(["ls", "-H", "filename"])
+        self.assertEqual(args.store, "filename")
+        self.assertEqual(args.human_readable, True)
+        args = self.parse_args(["ls", "--human-readable", "filename"])
+        self.assertEqual(args.store, "filename")
+        self.assertEqual(args.human_readable, True)
+
+
+class TestDumpArgumentParser(unittest.TestCase):
+    """
+    Tests the parser to ensure it parses input values correctly.
+    """
+    def parse_args(self, args):
+        parser = cli.get_kastore_parser()
+        return parser.parse_args(args)
+
+    def test_defaults(self):
+        args = self.parse_args(["dump", "filename", "array"])
+        self.assertEqual(args.store, "filename")
+        self.assertEqual(args.array, "array")
+
+
+class TestOutput(unittest.TestCase):
+    """
+    Tests that the output of the various tests is good.
+    """
+    def setUp(self):
+        fd, self.temp_file = tempfile.mkstemp(prefix="htsget_cli_test_")
+        os.close(fd)
+
+    def tearDown(self):
+        os.unlink(self.temp_file)
+
+    def get_output(self, cmd):
+        parser = cli.get_kastore_parser()
+        args = parser.parse_args(cmd)
+        return capture_output(args.runner, args)
+
+    def get_example_data(self):
+        data = {
+            six.text_type("A"): np.arange(100),
+            six.text_type("B"): np.zeros(10, dtype=int)
+        }
+        return data
+
+    def test_list(self):
+        data = self.get_example_data()
+        kas.dump(data, self.temp_file)
+        stdout, stderr = self.get_output(["ls", self.temp_file])
+        self.assertEqual(len(stderr), 0)
+        self.assertEqual(stdout.splitlines(), sorted(list(data.keys())))
+
+    def test_list_long_format(self):
+        data = self.get_example_data()
+        kas.dump(data, self.temp_file)
+        stdout, stderr = self.get_output(["ls", self.temp_file, "-l"])
+        self.assertEqual(len(stderr), 0)
+        lines = stdout.splitlines()
+        self.assertEqual(len(lines), len(data))
+        # TODO weak test, check the actual output.
+
+    def test_list_long_format_human(self):
+        data = self.get_example_data()
+        kas.dump(data, self.temp_file)
+        stdout, stderr = self.get_output(["ls", self.temp_file, "-l", "-H"])
+        self.assertEqual(len(stderr), 0)
+        lines = stdout.splitlines()
+        self.assertEqual(len(lines), len(data))
+        # TODO weak test, check the actual output.
+
+    def test_dump(self):
+        data = self.get_example_data()
+        kas.dump(data, self.temp_file)
+        for key in data.keys():
+            stdout, stderr = self.get_output(["dump", self.temp_file, key])
+            self.assertEqual(len(stderr), 0)
+            self.assertEqual(stdout.splitlines(), list(map(str, data[key])))

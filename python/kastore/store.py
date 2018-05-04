@@ -254,12 +254,13 @@ class ValueInfo(object):
     """
     Simple class encapsulating information about a store array.
     """
-    def __init__(self, dtype, size):
+    def __init__(self, dtype, shape, size):
         self.dtype = dtype
+        self.shape = shape
         self.size = size
 
     def __str__(self):
-        return "dtype={} size={}".format(self.dtype, self.size)
+        return "dtype={} shape={}, size={}".format(self.dtype, self.shape, self.size)
 
 
 class Store(Mapping):
@@ -349,7 +350,20 @@ class Store(Mapping):
         # Create the mapping for descriptors.
         self._descriptor_map = {descriptor.key: descriptor for descriptor in descriptors}
 
+    def _check_open(self):
+        if self._buffer is None:
+            raise exceptions.StoreClosedError()
+
+    def info(self, key):
+        self._check_open()
+        descriptor = self._descriptor_map[key]
+        dtype = type_to_np_dtype_map[descriptor.type]
+        size = type_size(descriptor.type) * descriptor.array_len
+        shape = descriptor.array_len,
+        return ValueInfo(dtype, shape, size)
+
     def __getitem__(self, key):
+        self._check_open()
         descriptor = self._descriptor_map[key]
         size = type_size(descriptor.type) * descriptor.array_len
         data = self._buffer[descriptor.array_start: descriptor.array_start + size]
@@ -359,20 +373,29 @@ class Store(Mapping):
         return array
 
     def __len__(self):
+        self._check_open()
         return len(self._descriptor_map)
 
     def __iter__(self):
+        self._check_open()
         for key in self._descriptor_map.keys():
             yield key
 
-    def __del__(self):
+    def close(self):
         if self._use_mmap and self._buffer is not None:
+            logger.debug("Closing mmap '{}'".format(self._buffer))
             self._buffer.close()
+        self._buffer = None
         if self._file is not None:
+            logger.debug("Closing file '{}'".format(self._file.name))
             self._file.close()
+            self._file = None
 
-    def info(self, key):
-        descriptor = self._descriptor_map[key]
-        dtype = type_to_np_dtype_map[descriptor.type]
-        size = type_size(descriptor.type) * descriptor.array_len
-        return ValueInfo(dtype, size)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def __del__(self):
+        self.close()
