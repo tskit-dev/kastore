@@ -63,6 +63,12 @@ np_dtype_to_ka_type(int dtype)
         case NPY_UINT8:
             ret = KAS_UINT8;
             break;
+        case NPY_INT16:
+            ret = KAS_INT16;
+            break;
+        case NPY_UINT16:
+            ret = KAS_UINT16;
+            break;
         case NPY_INT32:
             ret = KAS_INT32;
             break;
@@ -97,6 +103,12 @@ ka_type_to_np_dtype(int type)
             break;
         case KAS_UINT8:
             ret = NPY_UINT8;
+            break;
+        case KAS_INT16:
+            ret = NPY_INT16;
+            break;
+        case KAS_UINT16:
+            ret = NPY_UINT16;
             break;
         case KAS_INT32:
             ret = NPY_INT32;

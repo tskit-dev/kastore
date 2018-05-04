@@ -36,9 +36,9 @@ class StandardFilesMixin(object):
 
     def test_bad_type(self):
         self.assertRaises(
-            kas.FileFormatError, self.read_file, "malformed/bad_type_9.kas")
+            kas.FileFormatError, self.read_file, "malformed/bad_type_11.kas")
         self.assertRaises(
-            kas.FileFormatError, self.read_file, "malformed/bad_type_16.kas")
+            kas.FileFormatError, self.read_file, "malformed/bad_type_20.kas")
 
     def test_bad_filesizes(self):
         self.assertRaises(

@@ -196,7 +196,8 @@ def make_types_files():
     Makes a set of files with 0 to 10 elements of each of the types.
     """
     dtypes = [
-        "int8", "uint8", "uint32", "int32", "uint64", "int64", "float32", "float64"]
+        "int8", "uint8", "int16", "uint16", "uint32", "int32", "uint64", "int64",
+        "float32", "float64"]
     destination_dir = "../test-data/v1"
     for n in range(10):
         data = {dtype: np.arange(n, dtype=dtype) for dtype in dtypes}

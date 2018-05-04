@@ -68,7 +68,7 @@ kas_strerror(int err)
 static size_t
 type_size(int type)
 {
-    const size_t type_size_map[] = {1, 1, 4, 4, 8, 8, 4, 8};
+    const size_t type_size_map[] = {1, 1, 2, 2, 4, 4, 8, 8, 4, 8};
     assert(type < KAS_NUM_TYPES);
     return type_size_map[type];
 }
@@ -590,7 +590,7 @@ kastore_close(kastore_t *self)
 
 int KAS_WARN_UNUSED
 kastore_get(kastore_t *self, const char *key, size_t key_len,
-        const void **array, size_t *array_len, int *type)
+        void **array, size_t *array_len, int *type)
 {
     int ret = KAS_ERR_KEY_NOT_FOUND;
     kaitem_t search;
@@ -622,8 +622,7 @@ out:
 }
 
 int KAS_WARN_UNUSED
-kastore_gets(kastore_t *self, const char *key, const void **array,
-        size_t *array_len, int *type)
+kastore_gets(kastore_t *self, const char *key, void **array, size_t *array_len, int *type)
 {
     return kastore_get(self, key, strlen(key), array, array_len, type);
 }
@@ -700,6 +699,14 @@ kastore_puts(kastore_t *self, const char *key,
 {
     return kastore_put(self, key, strlen(key), array, array_len, type, flags);
 }
+
+int KAS_WARN_UNUSED
+kastore_puts_uint32(kastore_t *self, const char *key, const uint32_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_puts(self, key, (const void *) array, array_len, KAS_UINT32, flags);
+}
+
 
 void
 kastore_print_state(kastore_t *self, FILE *out)

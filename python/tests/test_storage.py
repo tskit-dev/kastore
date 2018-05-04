@@ -87,7 +87,8 @@ class TestRoundTripSimple(TestRoundTrip):
 
     def test_all_dtypes(self):
         dtypes = [
-            "int8", "uint8", "uint32", "int32", "uint64", "int64", "float32", "float64"]
+            "int8", "uint8", "uint16", "int16", "uint32", "int32",
+            "uint64", "int64", "float32", "float64"]
         for n in range(10):
             data = {dtype: np.arange(n, dtype=dtype) for dtype in dtypes}
             self.verify(data)
@@ -121,6 +122,14 @@ class TestRoundTripDataTypes(TestRoundTrip):
 
     @hypothesis.given(value=hnp.arrays(dtype=np.int8, shape=shape_strategy))
     def test_single_int8(self, value):
+        self.verify({"a": value})
+
+    @hypothesis.given(value=hnp.arrays(dtype=np.int16, shape=shape_strategy))
+    def test_single_int16(self, value):
+        self.verify({"a": value})
+
+    @hypothesis.given(value=hnp.arrays(dtype=np.uint16, shape=shape_strategy))
+    def test_single_uint16(self, value):
         self.verify({"a": value})
 
     @hypothesis.given(value=hnp.arrays(dtype=np.int32, shape=shape_strategy))
