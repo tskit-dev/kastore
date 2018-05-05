@@ -18,6 +18,12 @@ class FileFormatError(KastoreException):
     """
 
 
+class StoreClosedError(KastoreException):
+    """
+    The store has been closed and cannot be accessed.
+    """
+
+
 class VersionTooOldError(KastoreException):
     """
     The provided file is too old to be read by the current version

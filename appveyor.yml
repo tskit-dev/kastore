@@ -20,6 +20,9 @@ test_script:
   - "conda config --add channels conda-forge"
   - "conda install --yes --file=python/requirements/development.txt"
   - "pip install attrs"
+  # As of 2018/05/04 there seems to be an issue with mock not pulling in pbr 
+  # properly. Trying this workaround.
+  - "pip install pbr"
   - "cd python"
   - "python setup.py build_ext --inplace"
   - "nosetests -vs"

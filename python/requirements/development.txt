@@ -2,6 +2,8 @@ codecov
 coverage
 flake8
 hypothesis
+humanize
 nose
 numpy
 six
+mock
