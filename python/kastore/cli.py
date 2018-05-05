@@ -9,7 +9,6 @@ import argparse
 import logging
 import os
 import signal
-import sys
 
 import humanize
 
@@ -17,13 +16,6 @@ import kastore
 
 
 logger = logging.getLogger(__name__)
-
-
-def error_message(message):
-    """
-    Writes an error message to stderr.
-    """
-    print("{}: error: {}".format(sys.argv[0], message), file=sys.stderr)
 
 
 def setup_logging(args):

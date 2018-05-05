@@ -10,6 +10,8 @@ import os
 import sys
 import tempfile
 import unittest
+import subprocess
+import logging
 
 import six
 import numpy as np
@@ -17,6 +19,7 @@ import mock
 
 import kastore as kas
 import kastore.cli as cli
+import kastore.exceptions as exceptions
 import kastore.__main__ as main
 
 
@@ -102,6 +105,26 @@ class TestDumpArgumentParser(unittest.TestCase):
         self.assertEqual(args.array, "array")
 
 
+class TestDirectOutput(unittest.TestCase):
+    """
+    Tests for some of the argparse inherited functionality
+    """
+    def run_command(self, cmd):
+        stdout = subprocess.check_output(
+            [sys.executable, "-m", "kastore"] + cmd,
+            stderr=subprocess.STDOUT)
+        return stdout.decode()
+
+    def test_help(self):
+        stdout = self.run_command(["-h"])
+        self.assertGreater(len(stdout), 0)
+
+    def test_version(self):
+        stdout = self.run_command(["-V"])
+        self.assertGreater(len(stdout), 0)
+        self.assertEqual(stdout.split()[-1], kas.__version__)
+
+
 class TestOutput(unittest.TestCase):
     """
     Tests that the output of the various tests is good.
@@ -157,3 +180,31 @@ class TestOutput(unittest.TestCase):
             stdout, stderr = self.get_output(["dump", self.temp_file, key])
             self.assertEqual(len(stderr), 0)
             self.assertEqual(stdout.splitlines(), list(map(str, data[key])))
+
+    def test_error(self):
+        # We really should be catching this exception and writing a message to
+        # stderr. For now though, document the fact that we are raising the exception
+        # up to the main.
+        self.assertRaises(
+            exceptions.FileFormatError, self.get_output, ["ls", self.temp_file])
+
+    def verify_logging(self, args, level):
+        # We don't actually check the output here as we're mocking out the
+        # call to logging config, but it's convenient to reuse the machinery
+        # here in this class
+        data = self.get_example_data()
+        kas.dump(data, self.temp_file)
+        log_format = '%(asctime)s %(message)s'
+        with mock.patch("logging.basicConfig") as mocked_config:
+            stdout, stderr = self.get_output(args + ["ls", self.temp_file])
+            mocked_config.assert_called_once_with(level=level, format=log_format)
+        return stderr
+
+    def test_logging_verbosity_0(self):
+        self.verify_logging([], logging.WARNING)
+
+    def test_logging_verbosity_1(self):
+        self.verify_logging(["-v"], logging.INFO)
+
+    def test_logging_verbosity_2(self):
+        self.verify_logging(["-vv"], logging.DEBUG)
