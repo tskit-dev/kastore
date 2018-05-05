@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <float.h>
+#include <stdbool.h>
 
 #include "kastore.h"
 
@@ -10,6 +11,27 @@
 
 char * _tmp_file_name;
 FILE * _devnull;
+
+/* Wrappers used to check for correct error handling. Must be linked with the
+ * link option, e.g., -Wl,--wrap=malloc. See 'ld' manpage for details.
+ */
+void *__wrap_malloc(size_t);
+void *__real_malloc(size_t);
+
+int _malloc_fail_at = -1;
+int _malloc_count = 0;
+
+void *
+__wrap_malloc(size_t c)
+{
+    /* printf("coutn = %d, fail_at = %d\n", _malloc_count, _malloc_fail_at); */
+    if (_malloc_count == _malloc_fail_at) {
+        return NULL;
+    }
+    _malloc_count++;
+    /* printf("malloc_count = %d\n", _malloc_count); */
+    return __real_malloc(c);
+}
 
 static void
 test_bad_open_mode(void)
@@ -1122,6 +1144,45 @@ test_all_types_n_elements(void)
     }
 }
 
+static void
+test_write_malloc_fails(void)
+{
+    kastore_t store;
+    int ret = 0;
+    int32_t array[] = {1, 2, 3, 4};
+    bool done;
+
+    /* Make sure the failing malloc setup works first */
+    _malloc_fail_at = 0;
+    _malloc_count = 0;
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts_int32(&store, "array", array, 4, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_NO_MEMORY);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    /* keep increasing fail_at until we pass. This should catch all possible
+     * places at which we can fail. */
+    done = false;
+    while (! done) {
+        ret = kastore_open(&store, _tmp_file_name, "w", 0);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        _malloc_count = 0;
+        _malloc_fail_at++;
+        ret = kastore_puts_int32(&store, "array", array, 4, 0);
+        if (ret == 0) {
+            done = true;
+        } else {
+            CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_NO_MEMORY);
+        }
+        ret = kastore_close(&store);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+    }
+    /* Make sure we reset this for other functions */
+    _malloc_fail_at = -1;
+}
+
 static int
 kastore_suite_init(void)
 {
@@ -1219,6 +1280,7 @@ main(int argc, char **argv)
         {"test_bad_array_start", test_bad_array_start},
         {"test_truncated_file_correct_size", test_truncated_file_correct_size},
         {"test_all_types_n_elements", test_all_types_n_elements},
+        {"test_write_malloc_fails", test_write_malloc_fails},
         CU_TEST_INFO_NULL,
     };
 

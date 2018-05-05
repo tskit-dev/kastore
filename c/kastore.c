@@ -739,7 +739,6 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     }
     self->items = p;
     new_item = self->items + self->num_items;
-    self->num_items++;
 
     memset(new_item, 0, sizeof(*new_item));
     new_item->type = type;
@@ -749,9 +748,12 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     new_item->key = malloc(key_len);
     new_item->array = malloc(array_size == 0? 1: array_size);
     if (new_item->key == NULL || new_item->array == NULL) {
+        kas_safe_free(new_item->key);
+        kas_safe_free(new_item->array);
         ret = KAS_ERR_NO_MEMORY;
         goto out;
     }
+    self->num_items++;
     memcpy(new_item->key, key, key_len);
     memcpy(new_item->array, array, array_size);
 

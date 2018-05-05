@@ -5,6 +5,6 @@ add_global_arguments([
     '-Wconversion', '-Wshadow', '-Wpointer-arith', '-Wcast-align',
     '-Wcast-qual', '-Wwrite-strings', '-Wnested-externs',
     '-fshort-enums', '-fno-common'], language : 'c')
-      
+link_args =  ['-Wl,--wrap=malloc']
 cunit_dep = dependency('cunit')
-executable('tests', ['tests.c', 'kastore.c'], dependencies: cunit_dep)
+executable('tests', ['tests.c', 'kastore.c'], dependencies: cunit_dep, link_args:link_args)
