@@ -273,6 +273,7 @@ class Store(Mapping):
         self._descriptor_map = None
         # Make sure _file and _buffer are defined so that we can access them in
         # the destructor below.
+        self._open = True
         self._file = None
         self._buffer = None
         self._use_mmap = use_mmap
@@ -285,6 +286,12 @@ class Store(Mapping):
         else:
             self._buffer = self._file.read()
         self._read_file()
+        if self._use_mmap:
+            # Close the mmap; we'll use numpy's native inteface to create mmaps from
+            # the file directly.
+            self._buffer.close()
+            self._buffer = None
+        self._file.close()
 
     def _read_file(self):
         header = self._buffer[:HEADER_SIZE]
@@ -351,7 +358,7 @@ class Store(Mapping):
         self._descriptor_map = {descriptor.key: descriptor for descriptor in descriptors}
 
     def _check_open(self):
-        if self._buffer is None:
+        if not self._open:
             raise exceptions.StoreClosedError()
 
     def info(self, key):
@@ -365,10 +372,20 @@ class Store(Mapping):
     def __getitem__(self, key):
         self._check_open()
         descriptor = self._descriptor_map[key]
-        size = type_size(descriptor.type) * descriptor.array_len
-        data = self._buffer[descriptor.array_start: descriptor.array_start + size]
         dtype = type_to_np_dtype_map[descriptor.type]
-        array = np.frombuffer(data, dtype=dtype)
+        if self._use_mmap:
+            # We use np.memmap here rather than using np.frombuffer because
+            # it is possible to segfault if we try to access an array that
+            # has been made this way from a closed mmap. This might change
+            # in future though, so keeping the close() semantics to support
+            # that.
+            array = np.memmap(
+                self.filename, dtype=dtype, mode="r",
+                offset=descriptor.array_start, shape=(descriptor.array_len,))
+        else:
+            array = np.frombuffer(
+                self._buffer, dtype=dtype, offset=descriptor.array_start,
+                count=descriptor.array_len)
         logger.debug("Loaded '{}'".format(descriptor.key))
         return array
 
@@ -382,14 +399,9 @@ class Store(Mapping):
             yield key
 
     def close(self):
-        if self._use_mmap and self._buffer is not None:
-            logger.debug("Closing mmap '{}'".format(self._buffer))
-            self._buffer.close()
+        self._open = False
         self._buffer = None
-        if self._file is not None:
-            logger.debug("Closing file '{}'".format(self._file.name))
-            self._file.close()
-            self._file = None
+        self._file = None
 
     def __enter__(self):
         return self

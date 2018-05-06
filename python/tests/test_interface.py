@@ -85,3 +85,34 @@ class TestClosedStore(InterfaceTest):
         self.assertTrue(np.array_equal(store["a"], np.arange(N)))
         store.close()
         self.verify_closed(store)
+
+    def test_arrays_mmap(self):
+        # Make sure that arrays returned are numpy mmap objects,
+        # https://docs.scipy.org/doc/numpy-1.14.0/reference/generated/numpy.memmap.html
+        N = 100
+        data = {"a": np.arange(N)}
+        kas.dump(data, self.temp_file)
+        with kas.load(self.temp_file) as store:
+            new_array = store["a"]
+            self.assertTrue(np.array_equal(new_array, data["a"]))
+            self.assertEqual(new_array.filename, self.temp_file)
+            self.assertEqual(new_array.mode, 'r')
+
+    def test_arrays_read_only(self):
+        N = 10
+        data = {"a": np.arange(N, dtype=int)}
+        kas.dump(data, self.temp_file)
+        with kas.load(self.temp_file) as store:
+            new_array = store["a"]
+            self.assertTrue(np.array_equal(new_array, data["a"]))
+            self.assertFalse(new_array.flags.writeable)
+
+    def test_arrays_after_close(self):
+        N = 100
+        data = {"a": np.arange(N)}
+        kas.dump(data, self.temp_file)
+        for use_mmap in [True, False]:
+            with kas.load(self.temp_file, use_mmap=False) as store:
+                new_array = store["a"]
+                self.assertTrue(np.array_equal(new_array, data["a"]))
+            self.assertTrue(np.array_equal(new_array, data["a"]))
