@@ -38,15 +38,17 @@ jobs:
           name: Run C tests
           command: |
             ./build-gcc/tests
+            ./build-gcc/malloc_tests
       - run:
           name: Valgrind for C tests.
           command: |
             valgrind --leak-check=full --error-exitcode=1 ./build-gcc/tests
+            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/malloc_tests
       - run:
           name: Run gcov & upload coverage.
           command: |
             gcov -pb -o ./python/build/temp.linux*/ python/_kastoremodule.c
-            find ./build-gcc -type f -name '*.gcno' -exec gcov -pb -o ./build-gcc/tests@exe {} +
+            gcov -pb ./build-gcc/tests@exe/kastore.c.gcno ./build-gcc/malloc_tests@exe/kastore.c.gcno
             codecov -X gcov -F C
       - run:
           name: Compile C tests under clang
@@ -56,3 +58,4 @@ jobs:
           name: Run clang C tests
           command: |
             ./build-clang/tests
+            ./build-clang/malloc_tests
