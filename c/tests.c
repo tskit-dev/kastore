@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <float.h>
+#include <stdbool.h>
 
 #include "kastore.h"
 
@@ -1121,6 +1122,11 @@ test_all_types_n_elements(void)
         verify_all_types_n_elements(j);
     }
 }
+
+/*=================================================
+  Test suite management
+  =================================================
+*/
 
 static int
 kastore_suite_init(void)
