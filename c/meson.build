@@ -8,5 +8,16 @@ add_global_arguments([
 cunit_dep = dependency('cunit')
 executable('tests', ['tests.c', 'kastore.c'], dependencies: cunit_dep)
 
-link_args =  ['-Wl,--wrap=malloc', '-Wl,--wrap=realloc', '-Wl,--wrap=calloc']
-executable('malloc_tests', ['malloc_tests.c', 'kastore.c'], dependencies: cunit_dep, link_args:link_args)
+executable('malloc_tests', ['malloc_tests.c', 'kastore.c'], 
+    dependencies: cunit_dep, 
+    link_args:['-Wl,--wrap=malloc', '-Wl,--wrap=realloc', '-Wl,--wrap=calloc'])
+
+executable('io_tests', ['io_tests.c', 'kastore.c'], 
+    dependencies: cunit_dep, 
+    link_args:[
+        '-Wl,--wrap=fwrite', 
+        '-Wl,--wrap=fread', 
+        '-Wl,--wrap=fclose',
+        '-Wl,--wrap=fseek',
+        '-Wl,--wrap=stat64',
+        '-Wl,--wrap=mmap64'])

@@ -172,10 +172,9 @@ out:
 }
 
 /* Compute the locations of the keys and arrays in the file. */
-static int KAS_WARN_UNUSED
+static void
 kastore_pack_items(kastore_t *self)
 {
-    int ret = 0;
     size_t j, offset, remainder;
 
     /* Pack the keys */
@@ -194,7 +193,6 @@ kastore_pack_items(kastore_t *self)
         offset += self->items[j].array_len * type_size(self->items[j].type);
     }
     self->file_size = offset;
-    return ret;
 }
 
 static int KAS_WARN_UNUSED
@@ -405,10 +403,7 @@ kastore_write_file(kastore_t *self)
     int ret = 0;
 
     qsort(self->items, self->num_items, sizeof(kaitem_t), compare_items);
-    ret = kastore_pack_items(self);
-    if (ret != 0) {
-        goto out;
-    }
+    kastore_pack_items(self);
     ret = kastore_write_header(self);
     if (ret != 0) {
         goto out;

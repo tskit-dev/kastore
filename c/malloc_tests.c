@@ -97,6 +97,43 @@ test_write(void)
 }
 
 static void
+test_append(void)
+{
+    kastore_t store;
+    int ret = 0;
+    int32_t array[] = {1, 2, 3, 4};
+    bool done;
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts_int32(&store, "array", array, 4, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    /* keep increasing fail_at until we pass. This should catch all possible
+     * places at which we can fail. */
+    _malloc_fail_at = 0;
+    done = false;
+    while (! done) {
+        _malloc_count = 0;
+        ret = kastore_open(&store, _tmp_file_name, "a", 0);
+        if (ret == 0) {
+            done = true;
+        } else {
+            CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_NO_MEMORY);
+        }
+        ret = kastore_close(&store);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        _malloc_fail_at++;
+    }
+    CU_ASSERT(_malloc_fail_at > 1);
+    /* Make sure we reset this for other functions */
+    _malloc_fail_at = -1;
+}
+
+
+static void
 test_open_read(void)
 {
     kastore_t store;
@@ -232,6 +269,7 @@ main(int argc, char **argv)
     CU_pSuite suite;
     CU_TestInfo tests[] = {
         {"test_write", test_write},
+        {"test_append", test_append},
         {"test_open_read", test_open_read},
         {"test_read", test_read},
         CU_TEST_INFO_NULL,
