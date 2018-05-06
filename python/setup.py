@@ -40,6 +40,7 @@ setup(
     long_description=long_description,
     url='https://github.com/tskit-dev/kastore',
     author='tskit developers',
+    version='0.1.0',
     # TODO setup a tskit developers email address.
     author_email='jerome.kelleher@well.ox.ac.uk',
     classifiers=[
@@ -67,8 +68,5 @@ setup(
         'Bug Reports': 'https://github.com/tskit-dev/kastore/issues',
         'Source': 'https://github.com/tskit-dev/kastore',
     },
-    setup_requires=['numpy', 'setuptools_scm'],
-    use_scm_version={
-        "root": "..", "relative_to": __file__,
-        "write_to": "python/kastore/_version.py"},
+    setup_requires=['numpy'],
 )
