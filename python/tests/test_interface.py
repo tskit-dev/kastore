@@ -85,3 +85,23 @@ class TestClosedStore(InterfaceTest):
         self.assertTrue(np.array_equal(store["a"], np.arange(N)))
         store.close()
         self.verify_closed(store)
+
+
+@unittest.skip("Fails with Bus error")
+class TestMmapErrors(InterfaceTest):
+    """
+    Checks that we correctly detect file errors when using mmaps.
+    """
+    def write_data(self):
+        N = 1000
+        data = {"{}".format(j): np.arange(N) for j in range(100)}
+        kas.dump(data, self.temp_file)
+
+    def test_truncated_file(self):
+        self.write_data()
+        store = kas.load(self.temp_file)
+        # Truncate the underlying file.
+        with open(self.temp_file, "w"):
+            pass
+        print(store["0"])
+        store.close()
