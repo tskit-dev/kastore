@@ -1,6 +1,6 @@
 project('kastore', 'c')
 add_global_arguments([
-    '-std=c99', '-Wall', '-Wextra', '-Werror', '-pedantic', '-W',
+    '-std=c99', '-Wall', '-Wextra', '-Werror', '-Wpedantic', '-W',
     '-Wmissing-prototypes',  '-Wstrict-prototypes',
     '-Wconversion', '-Wshadow', '-Wpointer-arith', '-Wcast-align',
     '-Wcast-qual', '-Wwrite-strings', '-Wnested-externs',
@@ -21,3 +21,10 @@ executable('io_tests', ['io_tests.c', 'kastore.c'],
         '-Wl,--wrap=fseek',
         '-Wl,--wrap=stat64',
         '-Wl,--wrap=mmap64'])
+
+shared_library('kastore', 'kastore.c')
+ 
+executable('dynamic_api_tests', ['tests.c'], 
+    c_args : '-DKAS_DYNAMIC_API',
+    link_args:['-ldl'],
+    dependencies: cunit_dep)

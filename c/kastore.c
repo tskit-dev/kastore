@@ -873,3 +873,42 @@ kastore_print_state(kastore_t *self, FILE *out)
     }
     fprintf(out, "============================\n");
 }
+
+kas_funcptr *
+kas_dynamic_api_init(void)
+{
+    static kas_funcptr kas_dynamic_api[KAS_DYNAMIC_API_NUM];
+    kas_dynamic_api[KAS_INDEX_OPEN] = (kas_funcptr) kastore_open;
+    kas_dynamic_api[KAS_INDEX_CLOSE] = (kas_funcptr) kastore_close;
+
+    kas_dynamic_api[KAS_INDEX_GET] = (kas_funcptr) kastore_get;
+    kas_dynamic_api[KAS_INDEX_GETS] = (kas_funcptr) kastore_gets;
+    kas_dynamic_api[KAS_INDEX_GETS_INT8] = (kas_funcptr) kastore_gets_int8;
+    kas_dynamic_api[KAS_INDEX_GETS_UINT8] = (kas_funcptr) kastore_gets_uint8;
+    kas_dynamic_api[KAS_INDEX_GETS_INT16] = (kas_funcptr) kastore_gets_int16;
+    kas_dynamic_api[KAS_INDEX_GETS_UINT16] = (kas_funcptr) kastore_gets_uint16;
+    kas_dynamic_api[KAS_INDEX_GETS_INT32] = (kas_funcptr) kastore_gets_int32;
+    kas_dynamic_api[KAS_INDEX_GETS_UINT32] = (kas_funcptr) kastore_gets_uint32;
+    kas_dynamic_api[KAS_INDEX_GETS_INT64] = (kas_funcptr) kastore_gets_int64;
+    kas_dynamic_api[KAS_INDEX_GETS_UINT64] = (kas_funcptr) kastore_gets_uint64;
+    kas_dynamic_api[KAS_INDEX_GETS_FLOAT32] = (kas_funcptr) kastore_gets_float32;
+    kas_dynamic_api[KAS_INDEX_GETS_FLOAT64] = (kas_funcptr) kastore_gets_float64;
+
+    kas_dynamic_api[KAS_INDEX_PUT] = (kas_funcptr) kastore_put;
+    kas_dynamic_api[KAS_INDEX_PUTS] = (kas_funcptr) kastore_puts;
+    kas_dynamic_api[KAS_INDEX_PUTS_INT8] = (kas_funcptr) kastore_puts_int8;
+    kas_dynamic_api[KAS_INDEX_PUTS_UINT8] = (kas_funcptr) kastore_puts_uint8;
+    kas_dynamic_api[KAS_INDEX_PUTS_INT16] = (kas_funcptr) kastore_puts_int16;
+    kas_dynamic_api[KAS_INDEX_PUTS_UINT16] = (kas_funcptr) kastore_puts_uint16;
+    kas_dynamic_api[KAS_INDEX_PUTS_INT32] = (kas_funcptr) kastore_puts_int32;
+    kas_dynamic_api[KAS_INDEX_PUTS_UINT32] = (kas_funcptr) kastore_puts_uint32;
+    kas_dynamic_api[KAS_INDEX_PUTS_INT64] = (kas_funcptr) kastore_puts_int64;
+    kas_dynamic_api[KAS_INDEX_PUTS_UINT64] = (kas_funcptr) kastore_puts_uint64;
+    kas_dynamic_api[KAS_INDEX_PUTS_FLOAT32] = (kas_funcptr) kastore_puts_float32;
+    kas_dynamic_api[KAS_INDEX_PUTS_FLOAT64] = (kas_funcptr) kastore_puts_float64;
+
+    kas_dynamic_api[KAS_INDEX_PRINT_STATE] = (kas_funcptr) kastore_print_state;
+    kas_dynamic_api[KAS_INDEX_STRERROR] = (kas_funcptr) kas_strerror;
+
+    return kas_dynamic_api;
+}
