@@ -1,6 +1,8 @@
 from __future__ import print_function
 from __future__ import division
 
+import os.path
+
 __version__ = "0.1.0"
 
 from . import store
@@ -46,3 +48,12 @@ def dump(data, filename, key_encoding="utf-8", engine=PY_ENGINE):
         _kastore.dump(data, filename)
     else:
         _raise_unknown_engine()
+
+
+def get_include():
+    """
+    Returns the directory path where include files for the kastore C API are
+    to be found.
+    """
+    pkg_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(pkg_path, "include")

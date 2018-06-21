@@ -85,3 +85,15 @@ class TestClosedStore(InterfaceTest):
         self.assertTrue(np.array_equal(store["a"], np.arange(N)))
         store.close()
         self.verify_closed(store)
+
+
+class TestGetInclude(unittest.TestCase):
+    """
+    Check that the get_include works as expected.
+    """
+    def test_output(self):
+        include_dir = kas.get_include()
+        self.assertTrue(os.path.exists(include_dir))
+        self.assertTrue(os.path.isdir(include_dir))
+        path = os.path.join(kas.__path__[0], "include")
+        self.assertEqual(include_dir, os.path.abspath(path))
