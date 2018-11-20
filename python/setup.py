@@ -57,6 +57,7 @@ setup(
     ],
     keywords='Binary store numerical arrays',
     packages=['kastore'],
+    include_package_data=True,
     ext_modules=[_kastore_module],
     install_requires=['six', 'numpy', 'humanize'],
     entry_points={

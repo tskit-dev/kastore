@@ -7,7 +7,6 @@
 #include <structmember.h>
 #include <float.h>
 #include <stdbool.h>
-
 #include "kastore.h"
 
 #if PY_MAJOR_VERSION >= 3
@@ -354,6 +353,9 @@ init_kastore(void)
 #else
     PyObject *module = Py_InitModule3("_kastore", kastore_methods, MODULE_DOC);
 #endif
+    PyObject *c_api_object = NULL;
+    kas_funcptr *api_pointers = kas_dynamic_api_init();
+
     if (module == NULL) {
         INITERROR;
     }
@@ -370,6 +372,12 @@ init_kastore(void)
     Py_INCREF(_kastore_VersionTooNewError);
     PyModule_AddObject(module, "VersionTooNewError", _kastore_VersionTooNewError);
 
+    /* Initialise the dynamic API. */
+    c_api_object = PyCapsule_New((void *)api_pointers, "_kastore._C_API", NULL);
+    if (c_api_object == NULL) {
+        INITERROR;
+    }
+    PyModule_AddObject(module, "_C_API", c_api_object);
 #if PY_MAJOR_VERSION >= 3
     return module;
 #endif
