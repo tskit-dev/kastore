@@ -1,12 +1,12 @@
 environment:
   matrix:
-    - PYTHON: "C:\\Miniconda35-x64"
-
-    - PYTHON: "C:\\Miniconda35"
-
     - PYTHON: "C:\\Miniconda36-x64"
 
     - PYTHON: "C:\\Miniconda36"
+
+    - PYTHON: "C:\\Miniconda37-x64"
+
+    - PYTHON: "C:\\Miniconda37"
 
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
@@ -19,10 +19,6 @@ test_script:
   - "git reset --hard"
   - "conda config --add channels conda-forge"
   - "conda install --yes --file=python/requirements/development.txt"
-  - "pip install attrs"
-  # As of 2018/05/04 there seems to be an issue with mock not pulling in pbr 
-  # properly. Trying this workaround.
-  - "pip install pbr"
   - "cd python"
   - "python setup.py build_ext --inplace"
   - "nosetests -vs"
