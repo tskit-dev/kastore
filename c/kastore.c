@@ -162,7 +162,7 @@ kastore_read_header(kastore_t *self)
         goto out;
     }
     self->num_items = num_items;
-    self->file_size = file_size;
+    self->file_size = (size_t) file_size;
     if (self->file_size < KAS_HEADER_SIZE) {
         ret = KAS_ERR_BAD_FILE_FORMAT;
         goto out;

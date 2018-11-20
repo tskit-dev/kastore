@@ -30,9 +30,9 @@ def load(filename, use_mmap=True, key_encoding="utf-8", engine=PY_ENGINE):
             # worth having separate code paths. Same for all the other
             # exceptions we're chaining here.
             raise FileFormatError(str(e))
-        except _kastore.VersionTooOldError as e:
+        except _kastore.VersionTooOldError:
             raise VersionTooOldError()
-        except _kastore.VersionTooNewError as e:
+        except _kastore.VersionTooNewError:
             raise VersionTooNewError()
 
     else:
