@@ -40,7 +40,7 @@ setup(
     long_description=long_description,
     url='https://github.com/tskit-dev/kastore',
     author='tskit developers',
-    version='0.1.0',
+    version='0.2.0',
     # TODO setup a tskit developers email address.
     author_email='jerome.kelleher@well.ox.ac.uk',
     classifiers=[

@@ -3,7 +3,7 @@ from __future__ import division
 
 import os.path
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from . import store
 from . exceptions import FileFormatError
