@@ -9,7 +9,11 @@ from . import store
 from . exceptions import FileFormatError
 from . exceptions import VersionTooOldError
 from . exceptions import VersionTooNewError
-import _kastore
+try:
+    import _kastore
+except ImportError:
+    # TODO do something to deal with the C engine being missing.
+    pass
 
 PY_ENGINE = "python"
 C_ENGINE = "c"
@@ -20,6 +24,15 @@ def _raise_unknown_engine():
 
 
 def load(filename, use_mmap=True, key_encoding="utf-8", engine=PY_ENGINE):
+    """
+    Loads a store from the specified file.
+
+    :param str filename: The path of the file to load.
+    :param str key_encoding: The encoding to use when converting the keys from
+        raw bytes.
+    :param str engine: The underlying implementation to use.
+    :return: A dict-like object mapping the key-array pairs.
+    """
     if engine == PY_ENGINE:
         return store.load(filename, use_mmap=use_mmap, key_encoding=key_encoding)
     elif engine == C_ENGINE:
@@ -42,6 +55,14 @@ def load(filename, use_mmap=True, key_encoding="utf-8", engine=PY_ENGINE):
 
 
 def dump(data, filename, key_encoding="utf-8", engine=PY_ENGINE):
+    """
+    Dumps a store to the specified file.
+
+    :param str filename: The path of the file to write the store to.
+    :param str key_encoding: The encoding to use when converting the keys
+        to raw bytes.
+    :param str engine: The underlying implementation to use.
+    """
     if engine == PY_ENGINE:
         store.dump(data, filename, key_encoding)
     elif engine == C_ENGINE:
