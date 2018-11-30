@@ -12,7 +12,7 @@ Welcome to kastore's documentation!
 
    introduction
    python-api
-
+   c-api
 
 
 Indices and tables

@@ -1,3 +1,9 @@
+/**
+ * @file kastore.h
+ * @brief Public API for kastore.
+ *
+ * This is the API documentation for kastore.
+ */
 #ifndef KASTORE_H
 #define KASTORE_H
 
@@ -53,6 +59,11 @@
 #define KAS_MAGIC                   "\211KAS\r\n\032\n"
 #define KAS_ARRAY_ALIGN             8
 
+/**
+ * @brief An item mapping a key to an array.
+ *
+ * Detailed stuff on item.
+ */
 typedef struct {
     int type;
     size_t key_len;
@@ -63,6 +74,11 @@ typedef struct {
     size_t array_start;
 } kaitem_t;
 
+/**
+ * @brief A file-backed store of key-array values.
+ *
+ * STuff about the store.
+ */
 typedef struct {
     int flags;
     int mode;
@@ -228,7 +244,19 @@ extern kas_funcptr *kas_dynamic_api;
 
 #else
 
+/**
+ * @brief Open a store.
+ *
+ * Open a store.
+ *
+ * @param self A pointer to a kastore object.
+ * @param filename The file path to open.
+ * @param mode The open mode: can be read ("r"), write ("w") or append ("a").
+ * @param flags The open flags.
+ * @return Return 0 on success or a negative value on failure.
+ */
 int kastore_open KAS_PROTO_OPEN;
+
 int kastore_close KAS_PROTO_CLOSE;
 
 int kastore_get KAS_PROTO_GET;
@@ -257,16 +285,14 @@ int kastore_puts_uint64 KAS_PROTO_PUTS_UINT64;
 int kastore_puts_float32 KAS_PROTO_PUTS_FLOAT32;
 int kastore_puts_float64 KAS_PROTO_PUTS_FLOAT64;
 
-/**
- * Prints debug state for this store.
- *
- * :param self: The store.
- * :param out: The stream to write output to.
- * :since: 0.1.0
- */
 void kastore_print_state KAS_PROTO_PRINT_STATE;
 const char *kas_strerror KAS_PROTO_STRERROR;
 
+/**
+ * @brief Initialise the dynamic API.
+ *
+ * Initialises the dynamic API after a dlopen etc.
+ */
 kas_funcptr* kas_dynamic_api_init(void);
 
 #endif
