@@ -257,6 +257,13 @@ int kastore_puts_uint64 KAS_PROTO_PUTS_UINT64;
 int kastore_puts_float32 KAS_PROTO_PUTS_FLOAT32;
 int kastore_puts_float64 KAS_PROTO_PUTS_FLOAT64;
 
+/**
+ * Prints debug state for this store.
+ *
+ * :param self: The store.
+ * :param out: The stream to write output to.
+ * :since: 0.1.0
+ */
 void kastore_print_state KAS_PROTO_PRINT_STATE;
 const char *kas_strerror KAS_PROTO_STRERROR;
 

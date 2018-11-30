@@ -20,6 +20,10 @@ def _raise_unknown_engine():
 
 
 def load(filename, use_mmap=True, key_encoding="utf-8", engine=PY_ENGINE):
+    """
+    Loads a store from the specified file.
+
+    """
     if engine == PY_ENGINE:
         return store.load(filename, use_mmap=use_mmap, key_encoding=key_encoding)
     elif engine == C_ENGINE:
