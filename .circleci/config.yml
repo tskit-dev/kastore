@@ -9,7 +9,7 @@ jobs:
           name: Install dependencies and set path
           command: |
             pip install --user -r python/requirements/development.txt
-            sudo apt-get install ninja-build libcunit1-dev valgrind clang
+            sudo apt-get install ninja-build libcunit1-dev valgrind clang doxygen
             pip install meson --user
             echo 'export PATH=/home/circleci/.local/bin:$PATH' >> $BASH_ENV
       - run:
@@ -72,3 +72,8 @@ jobs:
             ./build-clang/dynamic_api_tests
             ./build-clang/malloc_tests
             ./build-clang/io_tests
+
+      - run:
+          name: Build docs
+          command: |
+            cd docs && make

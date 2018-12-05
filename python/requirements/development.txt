@@ -8,3 +8,5 @@ nose
 numpy
 six
 mock
+breathe
+sphinx_rtd_theme
