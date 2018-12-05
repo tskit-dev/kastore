@@ -31,6 +31,19 @@ jobs:
               --cover-inclusive python/tests
             python3 -m codecov -F python
       - run:
+          name: Build Python package
+          command: |
+            cd python
+            rm -fR build
+            python setup.py sdist
+            python -m venv venv
+            source venv/bin/activate 
+            pip install --upgrade setuptools pip wheel
+            python setup.py build_ext
+            python setup.py egg_info
+            python setup.py bdist_wheel
+            pip install dist/*.tar.gz 
+      - run:
           name: Compile C
           command: |
             CFLAGS=--coverage meson c/ build-gcc && cd build-gcc && ninja
