@@ -198,4 +198,5 @@ todo_include_todos = True
 breathe_projects = {"kastore": "doxygen/xml" }
 breathe_default_project = "kastore"
 breathe_domain_by_extension = {"h": "c"}
+breathe_show_define_initializer = True
 

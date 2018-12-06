@@ -15,6 +15,7 @@ Welcome to kastore's documentation!
    python-api
    c-api
    format
+   development
 
 
 Indices and tables

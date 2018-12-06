@@ -353,6 +353,7 @@ init_kastore(void)
 #else
     PyObject *module = Py_InitModule3("_kastore", kastore_methods, MODULE_DOC);
 #endif
+    kas_version_t version;
     PyObject *c_api_object = NULL;
     kas_funcptr *api_pointers = kas_dynamic_api_init();
 
@@ -375,6 +376,13 @@ init_kastore(void)
     /* Initialise the dynamic API. */
     c_api_object = PyCapsule_New((void *)api_pointers, "_kastore._C_API", NULL);
     if (c_api_object == NULL) {
+        INITERROR;
+    }
+    /* Sanity check: we've compiled the kastore code into this module, so there's no
+     * way the versions could have changed */
+    version = kas_version();
+    if (version.major != KAS_VERSION_MAJOR || version.minor != KAS_VERSION_MINOR) {
+        PyErr_SetString(PyExc_RuntimeError, "API version mismatch");
         INITERROR;
     }
     PyModule_AddObject(module, "_C_API", c_api_object);

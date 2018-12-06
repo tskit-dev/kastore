@@ -105,7 +105,6 @@ Errors
 .. doxygengroup:: ERROR_GROUP
         :content-only:
 
-
 -----
 Types
 -----
@@ -113,9 +112,24 @@ Types
 .. doxygengroup:: TYPE_GROUP
         :content-only:
 
-***********
-Dynamic API
-***********
+-------------------
+Version information
+-------------------
+
+.. doxygengroup:: API_VERSION_GROUP
+        :content-only:
+
+.. doxygengroup:: FILE_VERSION_GROUP
+        :content-only:
+
+***********************
+Miscellaneous functions
+***********************
+
+.. doxygenstruct:: kas_version_t
+    :members:
+
+.. doxygenfunction:: kas_version
 
 .. doxygenfunction:: kas_dynamic_api_init
 

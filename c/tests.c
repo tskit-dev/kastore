@@ -1169,6 +1169,17 @@ test_all_types_n_elements(void)
     }
 }
 
+static void
+test_library_version(void)
+{
+    kas_version_t version = kas_version();
+
+    CU_ASSERT_EQUAL_FATAL(version.major, KAS_VERSION_MAJOR);
+    CU_ASSERT_EQUAL_FATAL(version.minor, KAS_VERSION_MINOR);
+    CU_ASSERT_EQUAL_FATAL(version.patch, KAS_VERSION_PATCH);
+}
+
+
 /*=================================================
   Test suite management
   =================================================
@@ -1277,6 +1288,7 @@ main(int argc, char **argv)
         {"test_bad_array_start", test_bad_array_start},
         {"test_truncated_file_correct_size", test_truncated_file_correct_size},
         {"test_all_types_n_elements", test_all_types_n_elements},
+        {"test_library_version", test_library_version},
         CU_TEST_INFO_NULL,
     };
 

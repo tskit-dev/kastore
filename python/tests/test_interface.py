@@ -97,3 +97,27 @@ class TestGetInclude(unittest.TestCase):
         self.assertTrue(os.path.isdir(include_dir))
         path = os.path.join(kas.__path__[0], "include")
         self.assertEqual(include_dir, os.path.abspath(path))
+
+
+class TestMissingCEngine(InterfaceTest):
+    """
+    Tests that we handle the missing low level module smoothly.
+    """
+    def test_dump(self):
+        data = {"a": np.zeros(1)}
+        try:
+            kas._kastore_loaded = False
+            with self.assertRaises(RuntimeError):
+                kas.dump(data, self.temp_file, engine=kas.C_ENGINE)
+        finally:
+            kas._kastore_loaded = True
+
+    def test_load(self):
+        data = {"a": np.zeros(1)}
+        kas.dump(data, self.temp_file)
+        try:
+            kas._kastore_loaded = False
+            with self.assertRaises(RuntimeError):
+                kas.load(self.temp_file, engine=kas.C_ENGINE)
+        finally:
+            kas._kastore_loaded = True
