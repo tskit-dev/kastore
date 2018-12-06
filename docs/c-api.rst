@@ -119,3 +119,9 @@ Dynamic API
 
 .. doxygenfunction:: kas_dynamic_api_init
 
+*******************
+Version information
+*******************
+
+.. doxygengroup:: VERSION_GROUP
+        :content-only:

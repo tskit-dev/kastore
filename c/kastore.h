@@ -19,11 +19,12 @@
 #include <stddef.h>
 #include <stdio.h>
 
+/** @} */
+
 /**
 @defgroup ERROR_GROUP Error return values.
 @{
 */
-
 /**
 Generic error thrown when no other message can be generated.
 */
@@ -78,20 +79,16 @@ The requestion function cannot be called in the current mode.
 The requested type does not match the type of the stored values.
 */
 #define KAS_ERR_TYPE_MISMATCH                         -13
-
 /** @} */
 
 /* Flags for open */
 #define KAS_NO_MMAP             1
 
-#define KAS_FILE_VERSION_MAJOR  1
-#define KAS_FILE_VERSION_MINOR  0
 
 /**
 @defgroup TYPE_GROUP Data types.
 @{
 */
-
 #define KAS_INT8                0
 #define KAS_UINT8               1
 #define KAS_INT16               2
@@ -102,13 +99,50 @@ The requested type does not match the type of the stored values.
 #define KAS_UINT64              7
 #define KAS_FLOAT32             8
 #define KAS_FLOAT64             9
-
 /** @} */
 
 #define KAS_NUM_TYPES           10
 
 #define KAS_READ                1
 #define KAS_WRITE               2
+
+/**
+@defgroup FILE_VERSION_GROUP File version macros.
+@{
+*/
+/**
+The file version major number. Incremented when any breaking changes are made
+to the file format.
+*/
+#define KAS_FILE_VERSION_MAJOR  1
+/**
+The file version minor number. Incremented when non-breaking backward-compatible
+changes are madeto the file format.
+*/
+#define KAS_FILE_VERSION_MINOR  0
+/** @} */
+
+/**
+@defgroup VERSION_GROUP API version macros.
+@{
+*/
+/**
+The library major version. Incremented when breaking changes to the API or ABI are
+introduced. This includes any changes to the signatures of functions and the
+sizes and types of externally visible structs.
+*/
+#define KAS_VERSION_MAJOR   0
+/**
+The library major version. Incremented when non-breaking backward-compatible changes
+to the API or ABI are introduced, i.e., the addition of a new function.
+*/
+#define KAS_VERSION_MINOR   1
+/**
+The library patch version. Incremented when any changes not relevant to the
+to the API or ABI are introduced, i.e., internal refactors of bugfixes.
+*/
+#define KAS_VERSION_PATCH   0
+/** @} */
 
 #define KAS_HEADER_SIZE             64
 #define KAS_ITEM_DESCRIPTOR_SIZE    64
@@ -139,6 +173,12 @@ typedef struct {
     size_t file_size;
     char *read_buffer;
 } kastore_t;
+
+typedef struct {
+    int major;
+    int minor;
+    int patch;
+} kas_version_t;
 
 /* Definitions of the prototypes for the functions. This is done to avoid
  * duplication in the standard and dynamic API exports.
@@ -199,6 +239,7 @@ typedef struct {
 
 #define KAS_PROTO_PRINT_STATE (kastore_t *self, FILE *out)
 #define KAS_PROTO_STRERROR (int err)
+#define KAS_PROTO_VERSION (void)
 
 #define KAS_INDEX_OPEN              0
 #define KAS_INDEX_CLOSE             1
@@ -228,9 +269,10 @@ typedef struct {
 #define KAS_INDEX_PUTS_FLOAT64      25
 #define KAS_INDEX_PRINT_STATE       26
 #define KAS_INDEX_STRERROR          27
+#define KAS_INDEX_VERSION           28
 
 /* Total number of exported functions */
-#define KAS_DYNAMIC_API_NUM 28
+#define KAS_DYNAMIC_API_NUM 29
 
 /* We need to pass around arrays of generic function pointers. Because
  * C99 does not allow us to cast function pointers to void *, it's useful
@@ -293,6 +335,8 @@ extern kas_funcptr *kas_dynamic_api;
         kas_dynamic_api[KAS_INDEX_PRINT_STATE])
 #define kas_strerror (*(const char * (*)KAS_PROTO_STRERROR) \
         kas_dynamic_api[KAS_INDEX_STRERROR])
+#define kas_version (*(kas_version_t (*)KAS_PROTO_VERSION) \
+        kas_dynamic_api[KAS_INDEX_VERSION])
 
 #else
 
@@ -465,6 +509,17 @@ void kastore_print_state KAS_PROTO_PRINT_STATE;
 @return String describing the error code.
 */
 const char *kas_strerror KAS_PROTO_STRERROR;
+
+/**
+@brief Returns the API version.
+
+@rst
+The API follows the `semver convention <https://semver.org/>`_, where the
+major, minor and patch numbers have specific meanings. The versioning
+scheme here also takes into account ABI compatability.
+@endrst
+*/
+kas_version_t kas_version KAS_PROTO_VERSION;
 
 /**
 @brief Initialises the dynamic API.

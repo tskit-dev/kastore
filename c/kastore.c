@@ -68,6 +68,17 @@ kas_strerror(int err)
     return ret;
 }
 
+kas_version_t
+kas_version(void)
+{
+    kas_version_t version;
+
+    version.major = KAS_VERSION_MAJOR;
+    version.minor = KAS_VERSION_MINOR;
+    version.patch = KAS_VERSION_PATCH;
+    return version;
+}
+
 static size_t
 type_size(int type)
 {
@@ -909,6 +920,7 @@ kas_dynamic_api_init(void)
 
     kas_dynamic_api[KAS_INDEX_PRINT_STATE] = (kas_funcptr) kastore_print_state;
     kas_dynamic_api[KAS_INDEX_STRERROR] = (kas_funcptr) kas_strerror;
+    kas_dynamic_api[KAS_INDEX_VERSION] = (kas_funcptr) kas_version;
 
     return kas_dynamic_api;
 }
