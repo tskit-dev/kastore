@@ -9,14 +9,21 @@ from . import store
 from . exceptions import FileFormatError
 from . exceptions import VersionTooOldError
 from . exceptions import VersionTooNewError
+
+_kastore_loaded = True
 try:
     import _kastore
 except ImportError:
-    # TODO do something to deal with the C engine being missing.
+    _kastore_loaded = False
     pass
 
 PY_ENGINE = "python"
 C_ENGINE = "c"
+
+
+def _check_low_level_module():
+    if not _kastore_loaded:
+        raise RuntimeError("C engine not available")
 
 
 def _raise_unknown_engine():
@@ -36,6 +43,7 @@ def load(filename, use_mmap=True, key_encoding="utf-8", engine=PY_ENGINE):
     if engine == PY_ENGINE:
         return store.load(filename, use_mmap=use_mmap, key_encoding=key_encoding)
     elif engine == C_ENGINE:
+        _check_low_level_module()
         try:
             return _kastore.load(filename, use_mmap=use_mmap)
         except _kastore.FileFormatError as e:
@@ -66,6 +74,7 @@ def dump(data, filename, key_encoding="utf-8", engine=PY_ENGINE):
     if engine == PY_ENGINE:
         store.dump(data, filename, key_encoding)
     elif engine == C_ENGINE:
+        _check_low_level_module()
         _kastore.dump(data, filename)
     else:
         _raise_unknown_engine()
