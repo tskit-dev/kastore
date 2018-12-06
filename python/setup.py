@@ -25,6 +25,7 @@ _kastore_module = Extension(
 here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
+version_file = os.path.join(here, "kastore", "_version.py")
 
 numpy_ver = "numpy>=1.7"
 
@@ -34,7 +35,6 @@ setup(
     long_description=long_description,
     url='https://github.com/tskit-dev/kastore',
     author='tskit developers',
-    version='0.2.1.dev0',
     # TODO setup a tskit developers email address.
     author_email='jerome.kelleher@well.ox.ac.uk',
     classifiers=[
@@ -63,7 +63,11 @@ setup(
         'Bug Reports': 'https://github.com/tskit-dev/kastore/issues',
         'Source': 'https://github.com/tskit-dev/kastore',
     },
-    setup_requires=[numpy_ver],
+    use_scm_version={
+        "root": "..",
+        "relative_to": __file__,
+        "write_to": version_file},
+    setup_requires=[numpy_ver, "setuptools_scm"],
     cmdclass={
         'build_ext': local_build_ext
     }

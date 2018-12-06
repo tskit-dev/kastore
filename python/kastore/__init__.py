@@ -3,17 +3,22 @@ from __future__ import division
 
 import os.path
 
-__version__ = "0.2.0"
-
 from . import store
 from . exceptions import FileFormatError
 from . exceptions import VersionTooOldError
 from . exceptions import VersionTooNewError
 
+__version__ = "undefined"
+try:
+    from . import _version
+    __version__ = _version.version
+except ImportError:  # pragma: no cover
+    pass
+
 _kastore_loaded = True
 try:
     import _kastore
-except ImportError:
+except ImportError:  # pragma: no cover
     _kastore_loaded = False
     pass
 

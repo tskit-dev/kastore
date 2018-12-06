@@ -123,7 +123,7 @@ changes are madeto the file format.
 /** @} */
 
 /**
-@defgroup VERSION_GROUP API version macros.
+@defgroup API_VERSION_GROUP API version macros.
 @{
 */
 /**
@@ -174,9 +174,15 @@ typedef struct {
     char *read_buffer;
 } kastore_t;
 
+/**
+@brief Library version information.
+*/
 typedef struct {
+    /** @brief The major version number. */
     int major;
+    /** @brief The minor version number. */
     int minor;
+    /** @brief The patch version number. */
     int patch;
 } kas_version_t;
 
