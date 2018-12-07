@@ -60,9 +60,9 @@ class TestRoundTrip(unittest.TestCase):
 
     def verify(self, data):
         for engine in [kas.C_ENGINE, kas.PY_ENGINE]:
-            for use_mmap in [True, False]:
+            for read_all in [True, False]:
                 kas.dump(data, self.temp_file, engine=engine)
-                new_data = kas.load(self.temp_file, use_mmap=use_mmap, engine=engine)
+                new_data = kas.load(self.temp_file, read_all=read_all, engine=engine)
                 self.assertEqual(sorted(new_data.keys()), sorted(data.keys()))
                 for key, source_array in data.items():
                     dest_array = new_data[key]

@@ -28,7 +28,7 @@ class StandardFilesMixin(object):
 
     def read_file(self, filename):
         full_path = os.path.join(self.test_data_path, filename)
-        return kas.load(full_path, engine=self.engine, use_mmap=False)
+        return kas.load(full_path, engine=self.engine, read_all=False)
 
     def test_empty_file(self):
         self.assertRaises(
@@ -130,19 +130,19 @@ class StandardFilesMixin(object):
 
 class TestStandardFilesPyEngine(StandardFilesMixin, unittest.TestCase):
     engine = kas.PY_ENGINE
-    use_mmap = True
+    read_all = False
 
 
 class TestStandardFilesCEngine(StandardFilesMixin, unittest.TestCase):
     engine = kas.C_ENGINE
-    use_mmap = True
+    read_all = False
 
 
-class TestStandardFilesPyEngineNoMmap(StandardFilesMixin, unittest.TestCase):
+class TestStandardFilesPyEngineReadAll(StandardFilesMixin, unittest.TestCase):
     engine = kas.PY_ENGINE
-    use_mmap = False
+    read_all = True
 
 
-class TestStandardFilesCEngineNoMmap(StandardFilesMixin, unittest.TestCase):
+class TestStandardFilesCEngineReadAll(StandardFilesMixin, unittest.TestCase):
     engine = kas.C_ENGINE
-    use_mmap = False
+    read_all = True
