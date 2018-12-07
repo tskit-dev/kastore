@@ -145,7 +145,7 @@ class MalformedFilesMixin(FileFormatsMixin):
         self.assertEqual(os.path.getsize(self.temp_file), 0)
         self.assertRaises(
             kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-            use_mmap=self.use_mmap)
+            read_all=self.read_all)
 
     def test_bad_magic(self):
         self.write_file()
@@ -158,7 +158,7 @@ class MalformedFilesMixin(FileFormatsMixin):
             f.write(buff)
         self.assertRaises(
             kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-            use_mmap=self.use_mmap)
+            read_all=self.read_all)
 
     def test_bad_file_size(self):
         for num_items in range(10):
@@ -172,9 +172,8 @@ class MalformedFilesMixin(FileFormatsMixin):
                 self.assertEqual(len(buff), before_len)
                 with open(self.temp_file, 'wb') as f:
                     f.write(buff)
-                self.assertRaises(
-                    kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-                    use_mmap=self.use_mmap)
+                with self.assertRaises(kas.FileFormatError):
+                    kas.load(self.temp_file, engine=self.engine, read_all=self.read_all)
 
     def test_bad_item_types(self):
         items = {"a": []}
@@ -184,9 +183,8 @@ class MalformedFilesMixin(FileFormatsMixin):
             with open(self.temp_file, "wb") as f:
                 descriptors[0].type = bad_type
                 store.write_file(f, descriptors, file_size)
-            self.assertRaises(
-                kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-                use_mmap=self.use_mmap)
+            with self.assertRaises(kas.FileFormatError):
+                kas.load(self.temp_file, engine=self.engine, read_all=self.read_all)
 
     def test_bad_key_initial_offsets(self):
         items = {"a": np.arange(100)}
@@ -199,7 +197,7 @@ class MalformedFilesMixin(FileFormatsMixin):
                 store.write_file(f, descriptors, file_size)
             self.assertRaises(
                 kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-                use_mmap=self.use_mmap)
+                read_all=self.read_all)
 
     def test_bad_key_non_sequential(self):
         items = {"a": np.arange(100), "b": []}
@@ -209,7 +207,7 @@ class MalformedFilesMixin(FileFormatsMixin):
             descriptors[1].key_start += offset
             self.assertRaises(
                 kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-                use_mmap=self.use_mmap)
+                read_all=self.read_all)
 
     def test_bad_array_initial_offset(self):
         items = {"a": np.arange(100)}
@@ -221,7 +219,7 @@ class MalformedFilesMixin(FileFormatsMixin):
                 store.write_file(f, descriptors, file_size)
             self.assertRaises(
                 kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-                use_mmap=self.use_mmap)
+                read_all=self.read_all)
 
     def test_bad_array_non_sequential(self):
         items = {"a": np.arange(100), "b": []}
@@ -232,26 +230,26 @@ class MalformedFilesMixin(FileFormatsMixin):
                 store.write_file(f, descriptors, file_size)
             self.assertRaises(
                 kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-                use_mmap=self.use_mmap)
+                read_all=self.read_all)
 
 
 class TestMalformedFilesPyEngine(MalformedFilesMixin, unittest.TestCase):
-    use_mmap = True
+    read_all = False
     engine = kas.PY_ENGINE
 
 
 class TestMalformedFilesCEngine(MalformedFilesMixin, unittest.TestCase):
-    use_mmap = True
+    read_all = False
     engine = kas.C_ENGINE
 
 
-class TestMalformedFilesPyEngineNoMmap(MalformedFilesMixin, unittest.TestCase):
-    use_mmap = False
+class TestMalformedFilesPyEngineReadAll(MalformedFilesMixin, unittest.TestCase):
+    read_all = True
     engine = kas.PY_ENGINE
 
 
-class TestMalformedFilesCEngineNoMmap(MalformedFilesMixin, unittest.TestCase):
-    use_mmap = False
+class TestMalformedFilesCEngineReadAll(MalformedFilesMixin, unittest.TestCase):
+    read_all = True
     engine = kas.C_ENGINE
 
 
@@ -268,7 +266,7 @@ class FileVersionsMixin(FileFormatsMixin):
         self.assertEqual(len(buff), before_len)
         with open(self.temp_file, 'wb') as f:
             f.write(buff)
-        kas.load(self.temp_file, engine=self.engine, use_mmap=self.use_mmap)
+        kas.load(self.temp_file, engine=self.engine, read_all=self.read_all)
 
     def test_major_version_too_old(self):
         self.assertRaises(
@@ -283,19 +281,19 @@ class FileVersionsMixin(FileFormatsMixin):
 
 class TestFileVersionsPyEngine(FileVersionsMixin, unittest.TestCase):
     engine = kas.PY_ENGINE
-    use_mmap = True
+    read_all = False
 
 
-class TestFileVersionsPyEngineNoMmap(FileVersionsMixin, unittest.TestCase):
+class TestFileVersionsPyEngineReadAll(FileVersionsMixin, unittest.TestCase):
     engine = kas.PY_ENGINE
-    use_mmap = False
+    read_all = True
 
 
 class TestFileVersionsCEngine(FileVersionsMixin, unittest.TestCase):
     engine = kas.C_ENGINE
-    use_mmap = True
+    read_all = False
 
 
-class TestFileVersionsCEngineNoMmap(FileVersionsMixin, unittest.TestCase):
+class TestFileVersionsCEngineReadAll(FileVersionsMixin, unittest.TestCase):
     engine = kas.C_ENGINE
-    use_mmap = False
+    read_all = True

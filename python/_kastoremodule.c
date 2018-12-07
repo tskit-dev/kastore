@@ -140,14 +140,25 @@ build_dictionary(kastore_t *store)
     PyObject *data = PyDict_New();
     kaitem_t *item;
     npy_intp dims;
-    int dtype;
-    size_t j;
+    int dtype, dummy_type, err;
+    size_t j, dummy_len;
+    void *dummy_array;
 
     if (data == NULL) {
         goto out;
     }
     for (j = 0; j < store->num_items; j++) {
         item = store->items + j;
+        /* When we're opened in the default mode, the item array pointers
+         * aren't set until after 'get' is called. So, we have to kludge
+         * around this until we have a proper API for accessing all items
+         */
+        err = kastore_get(store, item->key, item->key_len, &dummy_array,
+                &dummy_len, &dummy_type);
+        if (err != 0) {
+            handle_library_error(err);
+            goto out;
+        }
         key = PyUnicode_FromStringAndSize(item->key, item->key_len);
         if (key == NULL) {
             goto out;
@@ -238,18 +249,18 @@ kastore_load(PyObject *self, PyObject *args, PyObject *kwds)
     char *filename;
     kastore_t store;
     PyObject *data = NULL;
-    static char *kwlist[] = {"filename", "use_mmap", NULL};
-    int use_mmap = 1;
-    int flags;
+    static char *kwlist[] = {"filename", "read_all", NULL};
+    int read_all = 0;
+    int flags = 0;
 
     memset(&store, 0, sizeof(store));
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|i:load", kwlist,
-                &filename, &use_mmap)) {
+                &filename, &read_all)) {
         goto out;
     }
-    if (! use_mmap) {
-        flags = KAS_NO_MMAP;
+    if (read_all) {
+        flags = KAS_READ_ALL;
     }
     err = kastore_open(&store, filename, "r", flags);
     if (err != 0) {

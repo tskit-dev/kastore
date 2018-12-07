@@ -968,7 +968,7 @@ verify_bad_file(const char *filename, int err)
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
-    ret = kastore_open(&store, filename, "r", KAS_NO_MMAP);
+    ret = kastore_open(&store, filename, "r", KAS_READ_ALL);
     CU_ASSERT_EQUAL_FATAL(ret, err);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);

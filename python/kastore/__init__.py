@@ -35,10 +35,13 @@ def _raise_unknown_engine():
     raise ValueError("unknown engine")
 
 
-def load(filename, use_mmap=True, key_encoding="utf-8", engine=PY_ENGINE):
+def load(filename, read_all=False, key_encoding="utf-8", engine=PY_ENGINE):
     """
     Loads a store from the specified file.
 
+    :param bool read_all: If True, read the entire file into memory. This
+        optimisation is useful when all the data will be needed, saving some
+        malloc and fread overhead.
     :param str filename: The path of the file to load.
     :param str key_encoding: The encoding to use when converting the keys from
         raw bytes.
@@ -46,11 +49,11 @@ def load(filename, use_mmap=True, key_encoding="utf-8", engine=PY_ENGINE):
     :return: A dict-like object mapping the key-array pairs.
     """
     if engine == PY_ENGINE:
-        return store.load(filename, use_mmap=use_mmap, key_encoding=key_encoding)
+        return store.load(filename, read_all=read_all, key_encoding=key_encoding)
     elif engine == C_ENGINE:
         _check_low_level_module()
         try:
-            return _kastore.load(filename, use_mmap=use_mmap)
+            return _kastore.load(filename, read_all=read_all)
         except _kastore.FileFormatError as e:
             # Note in Python 3 we should use "raise X from e" to designate
             # that the low-level exception is the cause of the high-level

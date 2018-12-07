@@ -18,9 +18,7 @@ executable('io_tests', ['io_tests.c', 'kastore.c'],
         '-Wl,--wrap=fwrite', 
         '-Wl,--wrap=fread', 
         '-Wl,--wrap=fclose',
-        '-Wl,--wrap=fseek',
-        '-Wl,--wrap=stat64',
-        '-Wl,--wrap=mmap64'])
+        '-Wl,--wrap=fseek'])
 
 shared_library('kastore', 'kastore.c')
  

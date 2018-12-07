@@ -141,7 +141,7 @@ test_open_read(void)
     const char *filename = "test-data/v1/all_types_1_elements.kas";
     bool done;
     size_t f;
-    int flags[] = {0, KAS_NO_MMAP};
+    int flags[] = {0, KAS_READ_ALL};
 
     /* Make sure the failing malloc setup works first */
     _malloc_fail_at = 0;
@@ -187,7 +187,7 @@ test_read(void)
     /* Make sure the failing malloc setup works first */
     _malloc_fail_at = 0;
     _malloc_count = 0;
-    ret = kastore_open(&store, filename, "r", KAS_NO_MMAP);
+    ret = kastore_open(&store, filename, "r", KAS_READ_ALL);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_NO_MEMORY);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);

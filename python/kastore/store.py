@@ -246,8 +246,8 @@ def write_file(fileobj, descriptors, file_size):
         offset = descriptor.array_start + len(data)
 
 
-def load(filename, use_mmap=True, key_encoding="utf-8"):
-    return Store(filename, use_mmap=use_mmap, key_encoding=key_encoding)
+def load(filename, read_all=False, key_encoding="utf-8"):
+    return Store(filename, read_all=read_all, key_encoding=key_encoding)
 
 
 class ValueInfo(object):
@@ -267,7 +267,7 @@ class Store(Mapping):
     """
     Dictionary-like object giving dynamic access to the data in a kastore.
     """
-    def __init__(self, filename, use_mmap=True, key_encoding="utf8"):
+    def __init__(self, filename, read_all=False, key_encoding="utf8"):
         self.filename = filename
         self.key_encoding = key_encoding
         self._descriptor_map = None
@@ -275,15 +275,15 @@ class Store(Mapping):
         # the destructor below.
         self._file = None
         self._buffer = None
-        self._use_mmap = use_mmap
+        self._read_all = read_all
         self._file = open(self.filename, "rb")
         self._file_size = os.fstat(self._file.fileno()).st_size
         if self._file_size == 0:
             raise exceptions.FileFormatError("Empty file")
-        if self._use_mmap:
-            self._buffer = mmap.mmap(self._file.fileno(), 0, access=mmap.ACCESS_READ)
-        else:
+        if self._read_all:
             self._buffer = self._file.read()
+        else:
+            self._buffer = mmap.mmap(self._file.fileno(), 0, access=mmap.ACCESS_READ)
         self._read_file()
 
     def _read_file(self):
@@ -382,7 +382,7 @@ class Store(Mapping):
             yield key
 
     def close(self):
-        if self._use_mmap and self._buffer is not None:
+        if not self._read_all and self._buffer is not None:
             logger.debug("Closing mmap '{}'".format(self._buffer))
             self._buffer.close()
         self._buffer = None

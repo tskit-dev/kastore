@@ -39,8 +39,8 @@ class TestBasicInfo(InterfaceTest):
 
     def verify(self, data):
         kas.dump(data, self.temp_file)
-        for use_mmap in [True, False]:
-            new_data = kas.load(self.temp_file, use_mmap=use_mmap)
+        for read_all in [True, False]:
+            new_data = kas.load(self.temp_file, read_all=read_all)
             for key, array in new_data.items():
                 info = new_data.info(key)
                 s = str(info)

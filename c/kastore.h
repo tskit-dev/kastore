@@ -82,7 +82,7 @@ The requested type does not match the type of the stored values.
 /** @} */
 
 /* Flags for open */
-#define KAS_NO_MMAP             1
+#define KAS_READ_ALL            1
 
 
 /**
