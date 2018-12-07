@@ -16,6 +16,7 @@ Welcome to kastore's documentation!
    c-api
    format
    development
+   changelogs
 
 
 Indices and tables

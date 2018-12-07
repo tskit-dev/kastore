@@ -25,6 +25,10 @@ languages have been updated, then the process should be followed for each langua
 Python
 ------
 
+To make a release first prepare a pull request that updates the Python CHANGELOG.rst,
+ensuring that all significant changes since the last release have been listed. Once
+this PR is merged, create a release on GitHub with the pattern ``py_MAJOR.MINOR.PATCH``.
+After this, create the distribution artefacts for Python and upload to PyPI.
 
 -----
 C API
