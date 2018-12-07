@@ -76,34 +76,6 @@ __wrap_fclose(FILE *stream)
     return __real_fclose(stream);
 }
 
-void *__wrap_mmap64(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
-void *__real_mmap64(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
-int _mmap_fail_at = -1;
-int _mmap_count = 0;
-void *
-__wrap_mmap64(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
-{
-    if (_mmap_fail_at == _mmap_count) {
-        return MAP_FAILED;
-    }
-    _mmap_count++;
-    return __real_mmap64(addr, length, prot, flags, fd, offset);
-}
-
-void *__wrap_stat64(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
-void *__real_stat64(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
-int _stat_fail_at = -1;
-int _stat_count = 0;
-void *
-__wrap_stat64(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
-{
-    if (_stat_fail_at == _stat_count) {
-        return MAP_FAILED;
-    }
-    _stat_count++;
-    return __real_stat64(addr, length, prot, flags, fd, offset);
-}
-
 /* Tests */
 
 static void
@@ -255,7 +227,7 @@ test_open_read_fread(void)
     const char *filename = "test-data/v1/all_types_1_elements.kas";
     bool done;
     size_t f;
-    int flags[] = {0, KAS_NO_MMAP};
+    int flags[] = {0, KAS_READ_ALL};
 
     _fread_fail_at = 0;
     /* Make sure the failing fread setup works first */
@@ -303,50 +275,61 @@ test_open_read_fseek(void)
     kastore_t store;
     int ret = 0;
     const char *filename = "test-data/v1/all_types_1_elements.kas";
+    size_t f;
+    int flags[] = {0, KAS_READ_ALL};
 
-    /* fseek is only called in the non mmap code path */
-    _fseek_fail_at = 0;
-    _fseek_count = 0;
-    ret = kastore_open(&store, filename, "r", KAS_NO_MMAP);
-    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
-    ret = kastore_close(&store);
-    CU_ASSERT_EQUAL_FATAL(ret, 0);
-
+    /* Both code paths will fail on open */
+    for (f = 0; f < sizeof(flags) / sizeof(*flags); f++) {
+        _fseek_count = 0;
+        _fseek_fail_at = 0;
+        ret = kastore_open(&store, filename, "r", flags[f]);
+        CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+        kastore_close(&store);
+    }
+    /* Make sure we reset this for other functions */
     _fseek_fail_at = -1;
 }
 
 static void
-test_open_read_mmap(void)
+test_get_fseek(void)
 {
     kastore_t store;
     int ret = 0;
     const char *filename = "test-data/v1/all_types_1_elements.kas";
+    uint32_t *a;
+    size_t len;
 
-    _mmap_fail_at = 0;
-    _mmap_count = 0;
     ret = kastore_open(&store, filename, "r", 0);
-    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
-    ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-
-    _mmap_fail_at = -1;
+    _fseek_count = 0;
+    _fseek_fail_at = 0;
+    ret = kastore_gets_uint32(&store, "uint32", &a, &len);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    kastore_close(&store);
+    /* Make sure we reset this for other functions */
+    _fseek_fail_at = -1;
 }
 
 static void
-test_open_read_stat(void)
+test_get_fread(void)
 {
     kastore_t store;
     int ret = 0;
     const char *filename = "test-data/v1/all_types_1_elements.kas";
+    uint32_t *a;
+    size_t len;
 
-    _stat_fail_at = 0;
-    _stat_count = 0;
     ret = kastore_open(&store, filename, "r", 0);
-    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
-    ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-
-    _stat_fail_at = -1;
+    _fread_count = 0;
+    _fread_fail_at = 0;
+    errno = ENOENT;
+    ret = kastore_gets_uint32(&store, "uint32", &a, &len);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    errno = 0;
+    kastore_close(&store);
+    /* Make sure we reset this for other functions */
+    _fread_fail_at = -1;
 }
 
 /*=================================================
@@ -407,8 +390,8 @@ main(int argc, char **argv)
         {"test_append_fclose", test_append_fclose},
         {"test_open_read_fread", test_open_read_fread},
         {"test_open_read_fseek", test_open_read_fseek},
-        {"test_open_read_mmap", test_open_read_mmap},
-        {"test_open_read_stat", test_open_read_stat},
+        {"test_get_fseek", test_get_fseek},
+        {"test_get_fread", test_get_fread},
         CU_TEST_INFO_NULL,
     };
 

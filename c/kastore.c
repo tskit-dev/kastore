@@ -1,9 +1,3 @@
-#ifdef __unix__
-#define _POSIX_C_SOURCE 1
-#include <sys/mman.h>
-#include <sys/stat.h>
-#endif
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -246,15 +240,27 @@ kastore_read_descriptors(kastore_t *self)
     uint8_t type;
     uint64_t key_start, key_len, array_start, array_len;
     char *descriptor;
-    size_t descriptor_offset, offset, remainder;
+    size_t descriptor_offset, offset, remainder, size, count;
+    char *read_buffer = NULL;
 
-    descriptor_offset = KAS_HEADER_SIZE;
-    if (descriptor_offset + self->num_items * KAS_ITEM_DESCRIPTOR_SIZE
-            > self->file_size) {
+    size = self->num_items * KAS_ITEM_DESCRIPTOR_SIZE;
+    if (size + KAS_HEADER_SIZE > self->file_size) {
         goto out;
     }
+    read_buffer = malloc(size);
+    if (read_buffer == NULL) {
+        ret = KAS_ERR_NO_MEMORY;
+        goto out;
+    }
+    count = fread(read_buffer, size, 1, self->file);
+    if (count == 0) {
+        ret = kastore_get_read_io_error(self);
+        goto out;
+    }
+
+    descriptor_offset = 0;
     for (j = 0; j < self->num_items; j++) {
-        descriptor = self->read_buffer + descriptor_offset;
+        descriptor = read_buffer + descriptor_offset;
         descriptor_offset += KAS_ITEM_DESCRIPTOR_SIZE;
         memcpy(&type, descriptor, 1);
         memcpy(&key_start, descriptor + 8, 8);
@@ -272,13 +278,11 @@ kastore_read_descriptors(kastore_t *self)
         }
         self->items[j].key_start = (size_t) key_start;
         self->items[j].key_len = (size_t) key_len;
-        self->items[j].key = self->read_buffer + key_start;
         if (array_start + array_len * type_size(type) > self->file_size) {
             goto out;
         }
         self->items[j].array_start = (size_t) array_start;
         self->items[j].array_len = (size_t) array_len;
-        self->items[j].array = self->read_buffer + array_start;
     }
 
     /* Check the integrity of the key and array packing. Keys must
@@ -303,9 +307,13 @@ kastore_read_descriptors(kastore_t *self)
         }
         offset += self->items[j].array_len * type_size(self->items[j].type);
     }
-
+    if (offset != self->file_size) {
+        ret = KAS_ERR_BAD_FILE_FORMAT;
+        goto out;
+    }
     ret = 0;
 out:
+    kas_safe_free(read_buffer);
     return ret;
 }
 
@@ -346,50 +354,21 @@ out:
     return ret;
 }
 
-#if __unix__
-static int KAS_WARN_UNUSED
-kastore_mmap_file(kastore_t *self)
-{
-    int ret = 0;
-    void *p;
-    struct stat st;
-
-    if (stat(self->filename, &st) != 0) {
-        ret = KAS_ERR_IO;
-        goto out;
-    }
-    if (self->file_size != (size_t) st.st_size) {
-        ret = KAS_ERR_BAD_FILE_FORMAT;
-        goto out;
-    }
-    p = mmap(NULL, self->file_size, PROT_READ,  MAP_PRIVATE,
-            fileno(self->file), 0);
-    if (p == MAP_FAILED) {
-        ret = KAS_ERR_IO;
-        goto out;
-    }
-    self->read_buffer = p;
-out:
-    return ret;
-}
-
-static void
-kastore_munmap_file(kastore_t *self)
-{
-    if (self->read_buffer != NULL) {
-        munmap(self->read_buffer, self->file_size);
-    }
-}
-#endif
-
 static int KAS_WARN_UNUSED
 kastore_read_file(kastore_t *self)
 {
     int ret = 0;
     int err;
-    size_t count;
+    size_t count, size, j;
+    bool read_all = !!(self->flags & KAS_READ_ALL);
 
-    self->read_buffer = malloc(self->file_size);
+    size = self->file_size;
+    if (!read_all) {
+        /* Read in up to the start of first array. This will contain all the keys. */
+        size = self->items[0].array_start;
+    }
+
+    self->read_buffer = malloc(size);
     if (self->read_buffer == NULL) {
         ret = KAS_ERR_NO_MEMORY;
         goto out;
@@ -399,10 +378,46 @@ kastore_read_file(kastore_t *self)
         ret = KAS_ERR_IO;
         goto out;
     }
-    count = fread(self->read_buffer, self->file_size, 1, self->file);
+    count = fread(self->read_buffer, size, 1, self->file);
     if (count == 0) {
         ret = kastore_get_read_io_error(self);
         goto out;
+    }
+    /* Assign the pointers for the keys and arrays */
+    for (j = 0; j < self->num_items; j++) {
+        self->items[j].key = self->read_buffer + self->items[j].key_start;
+        if (read_all) {
+            self->items[j].array = self->read_buffer + self->items[j].array_start;
+        }
+    }
+out:
+    return ret;
+}
+
+static int KAS_WARN_UNUSED
+kastore_read_item(kastore_t *self, kaitem_t *item)
+{
+    int ret = 0;
+    int err;
+    size_t size = item->array_len * type_size(item->type);
+    size_t count;
+
+    item->array = malloc(size == 0? 1: size);
+    if (item->array == NULL) {
+        ret = KAS_ERR_NO_MEMORY;
+        goto out;
+    }
+    if (size > 0) {
+        err = fseek(self->file, (long) item->array_start, SEEK_SET);
+        if (err != 0) {
+            ret = KAS_ERR_IO;
+            goto out;
+        }
+        count = fread(item->array, size, 1, self->file);
+        if (count == 0) {
+            ret = kastore_get_read_io_error(self);
+            goto out;
+        }
     }
 out:
     return ret;
@@ -440,23 +455,6 @@ kastore_read(kastore_t *self)
     if (ret != 0) {
         goto out;
     }
-#ifdef __unix__
-    if (!self->flags & KAS_NO_MMAP) {
-        ret = kastore_mmap_file(self);
-        if (ret != 0) {
-            goto out;
-        }
-#else
-    /* On windows we silently ignore MMAP */
-    if (0) {
-#endif
-    } else {
-        ret = kastore_read_file(self);
-        if (ret != 0) {
-            goto out;
-        }
-    }
-
     if (self->num_items > 0) {
         self->items = calloc(self->num_items, sizeof(*self->items));
         if (self->items == NULL) {
@@ -467,6 +465,13 @@ kastore_read(kastore_t *self)
         if (ret != 0) {
             goto out;
         }
+        ret = kastore_read_file(self);
+        if (ret != 0) {
+            goto out;
+        }
+    } else if (self->file_size != KAS_HEADER_SIZE) {
+        ret = KAS_ERR_BAD_FILE_FORMAT;
+        goto out;
     }
 out:
     return ret;
@@ -523,7 +528,7 @@ kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
     self->flags = flags;
     self->filename = filename;
     if (appending) {
-        ret = kastore_open(&tmp, self->filename, "r", KAS_NO_MMAP);
+        ret = kastore_open(&tmp, self->filename, "r", KAS_READ_ALL);
         if (ret != 0) {
             goto out;
         }
@@ -575,18 +580,18 @@ kastore_close(kastore_t *self)
                 kas_safe_free(self->items[j].array);
             }
         }
-    }
-    kas_safe_free(self->items);
-#if __unix__
-    if (! (self->flags & KAS_NO_MMAP)) {
-        kastore_munmap_file(self);
     } else {
         kas_safe_free(self->read_buffer);
+        if (! (self->flags & KAS_READ_ALL)) {
+            /* The arrays have been individually malloced on demand. */
+            if (self->items != NULL) {
+                for (j = 0; j < self->num_items; j++) {
+                    kas_safe_free(self->items[j].array);
+                }
+            }
+        }
     }
-#else
-    /* On windows we must have alloced the read buffer. */
-    kas_safe_free(self->read_buffer);
-#endif
+    kas_safe_free(self->items);
     if (self->file != NULL) {
         err = fclose(self->file);
         if (err != 0) {
@@ -620,6 +625,12 @@ kastore_get(kastore_t *self, const char *key, size_t key_len,
             compare_items);
     if (item == NULL) {
         goto out;
+    }
+    if (item->array == NULL) {
+        ret = kastore_read_item(self, item);
+        if (ret != 0) {
+            goto out;
+        }
     }
     *array = item->array;
     *array_len = item->array_len;
@@ -869,7 +880,8 @@ kastore_print_state(kastore_t *self, FILE *out)
     fprintf(out, "============================\n");
     fprintf(out, "kastore state\n");
     fprintf(out, "file_version = %d.%d\n", self->file_version[0], self->file_version[1]);
-    fprintf(out, "mode = %d\n", self->mode);
+    fprintf(out, "mode  = %d\n", self->mode);
+    fprintf(out, "flags = %d\n", self->flags);
     fprintf(out, "num_items = %zu\n", self->num_items);
     fprintf(out, "file_size = %zu\n", self->file_size);
     fprintf(out, "filename = '%s'\n", self->filename);
@@ -877,9 +889,11 @@ kastore_print_state(kastore_t *self, FILE *out)
     fprintf(out, "============================\n");
     for (j = 0; j < self->num_items; j++) {
         item = self->items + j;
-        fprintf(out, "%.*s: type=%d, key_start=%zu, key_len=%zu, array_start=%zu, array_len=%zu\n",
+        fprintf(out, "%.*s: type=%d, key_start=%zu, key_len=%zu, key=%p, "
+                "array_start=%zu, array_len=%zu, array=%p\n",
                 (int) item->key_len, item->key, item->type, item->key_start, item->key_len,
-                item->array_start, item->array_len);
+                (void *) item->key, item->array_start, item->array_len,
+                (void *) item->array);
 
     }
     fprintf(out, "============================\n");

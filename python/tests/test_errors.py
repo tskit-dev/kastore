@@ -172,9 +172,8 @@ class MalformedFilesMixin(FileFormatsMixin):
                 self.assertEqual(len(buff), before_len)
                 with open(self.temp_file, 'wb') as f:
                     f.write(buff)
-                self.assertRaises(
-                    kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-                    use_mmap=self.use_mmap)
+                with self.assertRaises(kas.FileFormatError):
+                    kas.load(self.temp_file, engine=self.engine, use_mmap=self.use_mmap)
 
     def test_bad_item_types(self):
         items = {"a": []}
@@ -184,9 +183,8 @@ class MalformedFilesMixin(FileFormatsMixin):
             with open(self.temp_file, "wb") as f:
                 descriptors[0].type = bad_type
                 store.write_file(f, descriptors, file_size)
-            self.assertRaises(
-                kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-                use_mmap=self.use_mmap)
+            with self.assertRaises(kas.FileFormatError):
+                kas.load(self.temp_file, engine=self.engine, use_mmap=self.use_mmap)
 
     def test_bad_key_initial_offsets(self):
         items = {"a": np.arange(100)}
