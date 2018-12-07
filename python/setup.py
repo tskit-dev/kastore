@@ -1,3 +1,4 @@
+import sys
 import os.path
 import codecs
 from setuptools import setup, Extension
@@ -9,8 +10,12 @@ from setuptools.command.build_ext import build_ext
 class local_build_ext(build_ext):
     def finalize_options(self):
         build_ext.finalize_options(self)
+        if sys.version_info[0] >= 3:
+            import builtins
+        else:
+            import __builtin__ as builtins
         # Prevent numpy from thinking it is still in its setup process:
-        __builtins__.__NUMPY_SETUP__ = False
+        builtins.__NUMPY_SETUP__ = False
         import numpy
         self.include_dirs.append(numpy.get_include())
 
