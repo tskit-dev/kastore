@@ -31,7 +31,7 @@ author = 'Tskit developers'
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '0.2.0'
+release = ''
 
 
 # -- General configuration ---------------------------------------------------
@@ -200,3 +200,6 @@ breathe_default_project = "kastore"
 breathe_domain_by_extension = {"h": "c"}
 breathe_show_define_initializer = True
 
+# TODO add an RST epilogue defining the version numbers of the Python
+# and C APIs. Should be simple to do the Python version. Getting C
+# will probably mean parsing the doxygen XML.
