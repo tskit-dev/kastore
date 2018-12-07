@@ -7,13 +7,8 @@ from . import store
 from . exceptions import FileFormatError
 from . exceptions import VersionTooOldError
 from . exceptions import VersionTooNewError
-
-__version__ = "undefined"
-try:
-    from . import _version
-    __version__ = _version.version
-except ImportError:  # pragma: no cover
-    pass
+from . import _version
+__version__ = _version.kastore_version
 
 _kastore_loaded = True
 try:
