@@ -9,52 +9,6 @@
 
 #include <CUnit/Basic.h>
 
-#ifdef KAS_DYNAMIC_API
-#include <dlfcn.h>
-
-void *_plugin;
-kas_funcptr *kas_dynamic_api;
-
-static void
-load_plugin(void)
-{
-    typedef kas_funcptr* (*init_func)(void);
-    init_func kas_dynamic_api_init;
-    const char *path = getenv("KASTORE_SOPATH");
-
-    if (path == NULL) {
-        path = "build/libkastore.so";
-    }
-    _plugin = dlopen(path, RTLD_NOW);
-    if (_plugin == NULL) {
-        printf("Cannot load plugin: %s\n",  dlerror());
-        abort();
-    }
-    /* Because dlsym returns a void * and C99 does not allow us to convert from
-     * data pointers to function pointers, we need to turn off the pedantic
-     * checking for this statement. Apparently it's safe to cast such pointers
-     * on POSIX systems though, so we don't need to worry too much.
-     */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-    kas_dynamic_api_init = (init_func) dlsym(_plugin, "kas_dynamic_api_init");
-#pragma GCC diagnostic pop
-    if (kas_dynamic_api_init == NULL) {
-        printf("Cannot load plugin: %s\n",  dlerror());
-        abort();
-    }
-    /* This loads the dynamic API. */
-    kas_dynamic_api = kas_dynamic_api_init();
-}
-
-static void
-unload_plugin(void)
-{
-    dlclose(_plugin);
-}
-
-#endif
-
 char * _tmp_file_name;
 FILE * _devnull;
 
@@ -1208,9 +1162,6 @@ kastore_suite_init(void)
     if (_devnull == NULL) {
         return CUE_SINIT_FAILED;
     }
-#ifdef KAS_DYNAMIC_API
-    load_plugin();
-#endif
     return CUE_SUCCESS;
 }
 
@@ -1224,9 +1175,6 @@ kastore_suite_cleanup(void)
     if (_devnull != NULL) {
         fclose(_devnull);
     }
-#ifdef KAS_DYNAMIC_API
-    unload_plugin();
-#endif
     return CUE_SUCCESS;
 }
 
