@@ -48,7 +48,8 @@ jobs:
           name: Compile C
           command: |
             # Build with coverage options
-            meson c/ build-gcc -D b_coverage=true && cd build-gcc && ninja
+            meson c/ build-gcc -D b_coverage=true 
+            ninja -C build-gcc
       - run:
           name: Run C tests
           command: |
@@ -75,7 +76,8 @@ jobs:
       - run:
           name: Compile C tests under clang
           command: |
-            CC=clang meson c/ build-clang && cd build-clang && ninja
+            CC=clang CXX=clang++ meson c/ build-clang 
+            ninja -C build-clang
       - run:
           name: Run clang C tests
           command: |
