@@ -17,6 +17,9 @@ import six
 
 import kastore as kas
 
+# Set the deadline to None to avoid weird behaviour on CI.
+hypothesis.settings.register_profile("kastore_defaults", deadline=None)
+hypothesis.settings.load_profile("kastore_defaults")
 
 # Exclude any 'other' unicode categories:
 # http://www.unicode.org/reports/tr44/#General_Category_Values
