@@ -7,6 +7,10 @@
 #ifndef KASTORE_H
 #define KASTORE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef __GNUC__
     #define KAS_WARN_UNUSED __attribute__ ((warn_unused_result))
     #define KAS_UNUSED(x) KAS_UNUSED_ ## x __attribute__((__unused__))
@@ -388,5 +392,9 @@ do {\
         pointer = NULL;\
     }\
 } while (0)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
