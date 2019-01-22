@@ -51,17 +51,15 @@ jobs:
       - run:
           name: Run C tests
           command: |
-            export KASTORE_SOPATH=./build-gcc/libkastore.so
             ./build-gcc/tests
-            ./build-gcc/dynamic_api_tests
+            ./build-gcc/cpp_tests
             ./build-gcc/malloc_tests
             ./build-gcc/io_tests
       - run:
           name: Valgrind for C tests.
           command: |
-            export KASTORE_SOPATH=./build-gcc/libkastore.so
             valgrind --leak-check=full --error-exitcode=1 ./build-gcc/tests
-            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/dynamic_api_tests
+            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/cpp_tests
             valgrind --leak-check=full --error-exitcode=1 ./build-gcc/malloc_tests
             valgrind --leak-check=full --error-exitcode=1 ./build-gcc/io_tests
       - run:
@@ -71,7 +69,6 @@ jobs:
             gcov -pb ./build-gcc/tests@exe/kastore.c.gcno \
               ./build-gcc/malloc_tests@exe/kastore.c.gcno \
               ./build-gcc/io_tests@exe/kastore.c.gcno \
-              ./build-gcc/dynamic_api_tests@exe/kastore.c.gcno \
               ./build-gcc/kastore@sha/kastore.c.gcno 
             codecov -X gcov -F C
       - run:
@@ -81,9 +78,8 @@ jobs:
       - run:
           name: Run clang C tests
           command: |
-            export KASTORE_SOPATH=./build-clang/libkastore.so
             ./build-clang/tests
-            ./build-clang/dynamic_api_tests
+            ./build-clang/cpp_tests
             ./build-clang/malloc_tests
             ./build-clang/io_tests
 
