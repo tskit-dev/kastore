@@ -5,6 +5,7 @@ add_global_arguments([
     '-Wconversion', '-Wshadow', '-Wpointer-arith', '-Wcast-align',
     '-Wcast-qual', '-Wwrite-strings', '-Wnested-externs',
     '-fshort-enums', '-fno-common'], language : 'c')
+
 cunit_dep = dependency('cunit')
 executable('tests', ['tests.c', 'kastore.c'], dependencies: cunit_dep)
 
@@ -21,8 +22,3 @@ executable('io_tests', ['io_tests.c', 'kastore.c'],
         '-Wl,--wrap=fseek'])
 
 shared_library('kastore', 'kastore.c')
- 
-executable('dynamic_api_tests', ['tests.c'], 
-    c_args : '-DKAS_DYNAMIC_API',
-    link_args:['-ldl'],
-    dependencies: cunit_dep)
