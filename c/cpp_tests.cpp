@@ -11,6 +11,7 @@ using namespace std;
 void
 test_strerror()
 {
+    std::cout << "test_strerror" << endl;
     std::ostringstream o;
     o << kas_strerror(KAS_ERR_NO_MEMORY);
     assert(std::string("Out of memory").compare(o.str()) == 0);

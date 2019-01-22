@@ -131,5 +131,3 @@ Miscellaneous functions
 
 .. doxygenfunction:: kas_version
 
-.. doxygenfunction:: kas_dynamic_api_init
-

@@ -135,12 +135,12 @@ The library major version. Incremented when breaking changes to the API or ABI a
 introduced. This includes any changes to the signatures of functions and the
 sizes and types of externally visible structs.
 */
-#define KAS_VERSION_MAJOR   0
+#define KAS_VERSION_MAJOR   1
 /**
 The library major version. Incremented when non-breaking backward-compatible changes
 to the API or ABI are introduced, i.e., the addition of a new function.
 */
-#define KAS_VERSION_MINOR   1
+#define KAS_VERSION_MINOR   0
 /**
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
