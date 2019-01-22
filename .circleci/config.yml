@@ -47,7 +47,8 @@ jobs:
       - run:
           name: Compile C
           command: |
-            CFLAGS=--coverage meson c/ build-gcc && cd build-gcc && ninja
+            # Build with coverage options
+            meson c/ build-gcc -D b_coverage=true && cd build-gcc && ninja
       - run:
           name: Run C tests
           command: |
@@ -55,13 +56,6 @@ jobs:
             ./build-gcc/cpp_tests
             ./build-gcc/malloc_tests
             ./build-gcc/io_tests
-      - run:
-          name: Valgrind for C tests.
-          command: |
-            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/tests
-            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/cpp_tests
-            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/malloc_tests
-            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/io_tests
       - run:
           name: Run gcov & upload coverage.
           command: |
@@ -71,6 +65,13 @@ jobs:
               ./build-gcc/io_tests@exe/kastore.c.gcno \
               ./build-gcc/kastore@sha/kastore.c.gcno 
             codecov -X gcov -F C
+      - run:
+          name: Valgrind for C tests.
+          command: |
+            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/tests
+            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/cpp_tests
+            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/malloc_tests
+            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/io_tests
       - run:
           name: Compile C tests under clang
           command: |
