@@ -87,6 +87,18 @@ jobs:
             ./build-clang/io_tests
 
       - run:
+          name: Install shared library
+          command: |
+            meson build-install c --prefix=/usr
+            sudo ninja -C build-install install
+
+     - run:
+          name: Hand-compile a program.
+          command: |
+            g++ c/cpp_tests.cpp -o cpp_tests -lkastore
+            ./cpp_tests
+
+      - run:
           name: Build docs
           command: |
             cd docs && make
