@@ -10,7 +10,8 @@ jobs:
           command: |
             pip install --user -r python/requirements/development.txt
             sudo apt-get install ninja-build libcunit1-dev valgrind clang doxygen
-            pip install meson --user
+            # Install meson as root so we can install to the system below.
+            sudo pip install meson 
             echo 'export PATH=/home/circleci/.local/bin:$PATH' >> $BASH_ENV
       - run:
           name: Compile Python
@@ -92,7 +93,7 @@ jobs:
             meson build-install c --prefix=/usr
             sudo ninja -C build-install install
 
-     - run:
+      - run:
           name: Hand-compile a program.
           command: |
             g++ c/cpp_tests.cpp -o cpp_tests -lkastore
