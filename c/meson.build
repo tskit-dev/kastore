@@ -14,11 +14,12 @@ inc = include_directories('.')
 kastore = static_library('kastore', 'kastore.c')
 kastore_dep = declare_dependency(link_with : kastore, include_directories: inc)
 
-# The shared library can be installed into the system.
-install_headers('kastore.h')
-shared_library('kastore', 'kastore.c', install: true)
-
 if not meson.is_subproject()
+
+    # The shared library can be installed into the system.
+    install_headers('kastore.h')
+    shared_library('kastore', 'kastore.c', install: true)
+
     cunit_dep = dependency('cunit')
     executable('tests', ['tests.c', 'kastore.c'], dependencies: cunit_dep)
 
