@@ -14,10 +14,6 @@ The file format layout is as follows.
 + 8 byte bounaries.
 +===================================+
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import struct
 import logging
 import mmap
