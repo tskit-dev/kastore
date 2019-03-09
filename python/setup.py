@@ -44,6 +44,7 @@ setup(
     version=kastore_version,
     # TODO setup a tskit developers email address.
     author_email='jerome.kelleher@well.ox.ac.uk',
+    python_requires='>=3.5',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
