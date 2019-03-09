@@ -9,10 +9,6 @@
 #include <stdbool.h>
 #include "kastore.h"
 
-#if PY_MAJOR_VERSION >= 3
-#define IS_PY3K
-#endif
-
 #define MODULE_DOC \
 "C interface for kastore."
 
@@ -330,13 +326,11 @@ static PyMethodDef kastore_methods[] = {
     {NULL}        /* Sentinel */
 };
 
-/* Initialisation code supports Python 2.x and 3.x. The framework uses the
- * recommended structure from http://docs.python.org/howto/cporting.html.
+/* The framework uses the recommended structure from
+ * http://docs.python.org/howto/cporting.html.
  * I've ignored the point about storing state in globals, as the examples
  * from the Python documentation still use this idiom.
  */
-
-#if PY_MAJOR_VERSION >= 3
 
 static struct PyModuleDef kastoremodule = {
     PyModuleDef_HEAD_INIT,
@@ -351,19 +345,8 @@ static struct PyModuleDef kastoremodule = {
 
 PyObject *
 PyInit__kastore(void)
-
-#else
-#define INITERROR return
-
-void
-init_kastore(void)
-#endif
 {
-#if PY_MAJOR_VERSION >= 3
     PyObject *module = PyModule_Create(&kastoremodule);
-#else
-    PyObject *module = Py_InitModule3("_kastore", kastore_methods, MODULE_DOC);
-#endif
     kas_version_t version;
 
     if (module == NULL) {
@@ -389,7 +372,5 @@ init_kastore(void)
         PyErr_SetString(PyExc_RuntimeError, "API version mismatch");
         INITERROR;
     }
-#if PY_MAJOR_VERSION >= 3
     return module;
-#endif
 }
