@@ -9,7 +9,6 @@ import unittest
 import tempfile
 import os
 import platform
-import sys
 import struct
 
 import numpy as np
@@ -18,7 +17,6 @@ import kastore as kas
 import kastore.store as store
 
 IS_WINDOWS = platform.system() == "Windows"
-IS_PY2 = sys.version_info[0] < 3
 
 
 class InterfaceMixin(object):
@@ -67,7 +65,6 @@ class InterfaceMixin(object):
                 filename=self.temp_file, engine=self.engine)
         # TODO add tests for arrays in fortran order and so on.
 
-    @unittest.skipIf(IS_PY2, "Skip IO errors for py2")
     def test_file_not_found(self):
         a = np.zeros(1)
         for bad_file in ["no_such_file", "/no/such/file"]:
@@ -77,7 +74,6 @@ class InterfaceMixin(object):
             FileNotFoundError, kas.dump, data={"a": a}, filename="/no/such/file",
             engine=self.engine)
 
-    @unittest.skipIf(IS_PY2, "Skip IO errors for py2")
     def test_file_is_a_directory(self):
         tmp_dir = tempfile.mkdtemp()
         try:

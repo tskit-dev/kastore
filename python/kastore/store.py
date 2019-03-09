@@ -22,11 +22,7 @@ import struct
 import logging
 import mmap
 import os
-try:
-    from collections.abc import Mapping
-except ImportError:
-    # Handle Python 2.7 case.
-    from collections import Mapping
+from collections.abc import Mapping
 
 import numpy as np
 import six
