@@ -13,7 +13,6 @@ import unittest
 import subprocess
 import logging
 
-import six
 import numpy as np
 import mock
 

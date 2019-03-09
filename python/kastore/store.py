@@ -25,7 +25,6 @@ import os
 from collections.abc import Mapping
 
 import numpy as np
-import six
 
 import kastore.exceptions as exceptions
 

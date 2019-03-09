@@ -10,7 +10,6 @@ import tempfile
 import os
 import struct
 
-import six
 import numpy as np
 import hypothesis
 import hypothesis.strategies as hst

@@ -59,7 +59,7 @@ setup(
     packages=['kastore'],
     include_package_data=True,
     ext_modules=[_kastore_module],
-    install_requires=['six', numpy_ver, 'humanize'],
+    install_requires=[numpy_ver, 'humanize'],
     entry_points={
         'console_scripts': [
             'kastore=kastore.__main__:main',

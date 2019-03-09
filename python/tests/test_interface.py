@@ -9,7 +9,6 @@ import unittest
 import tempfile
 import os
 
-import six
 import numpy as np
 
 import kastore as kas

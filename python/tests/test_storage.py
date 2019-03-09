@@ -13,7 +13,6 @@ import numpy as np
 import hypothesis
 import hypothesis.strategies as hst
 import hypothesis.extra.numpy as hnp
-import six
 
 import kastore as kas
 
