@@ -30,7 +30,7 @@ class VersionTooOldError(KastoreException):
     of kastore.
     """
     def __init__(self):
-        super(VersionTooOldError, self).__init__(
+        super().__init__(
             "File version is too old. Please upgrade using the 'kastore upgrade' "
             "command line utility")
 
@@ -41,6 +41,6 @@ class VersionTooNewError(KastoreException):
     of kastore.
     """
     def __init__(self):
-        super(VersionTooNewError, self).__init__(
+        super().__init__(
             "File version is too new. Please upgrade your kastore library version "
             "if you wish to read this file.")

@@ -19,7 +19,7 @@ import kastore.store as store
 IS_WINDOWS = platform.system() == "Windows"
 
 
-class InterfaceMixin(object):
+class InterfaceMixin:
     """
     Exercise the low-level interface.
     """
@@ -112,7 +112,7 @@ class TestEngines(unittest.TestCase):
             self.assertRaises(ValueError, kas.load, "", engine=bad_engine)
 
 
-class FileFormatsMixin(object):
+class FileFormatsMixin:
     """
     Common utilities for tests on the file format.
     """

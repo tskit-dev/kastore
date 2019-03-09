@@ -92,7 +92,7 @@ def type_size(ka_type):
     return size_map[ka_type]
 
 
-class ItemDescriptor(object):
+class ItemDescriptor:
     """
     The information required to recover a single key-value pair from the
     file. Each descriptor is a block of 64 bytes, which stores:
@@ -182,7 +182,7 @@ def pack_items(arrays, key_encoding="utf-8"):
     for key in sorted_keys:
         # Normally we wouldn't bother with this in Python, but we want to
         # ensure that the behaviour is identical to the low-level module.
-        if not isinstance(key, six.text_type):
+        if not isinstance(key, str):
             raise TypeError("Key must be a string")
         array = np.array(arrays[key])
         if len(array.shape) != 1:
@@ -246,7 +246,7 @@ def load(filename, read_all=False, key_encoding="utf-8"):
     return Store(filename, read_all=read_all, key_encoding=key_encoding)
 
 
-class ValueInfo(object):
+class ValueInfo:
     """
     Simple class encapsulating information about a store array.
     """

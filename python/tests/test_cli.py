@@ -143,8 +143,8 @@ class TestOutput(unittest.TestCase):
 
     def get_example_data(self):
         data = {
-            six.text_type("A"): np.arange(100),
-            six.text_type("B"): np.zeros(10, dtype=int)
+            str("A"): np.arange(100),
+            str("B"): np.zeros(10, dtype=int)
         }
         return data
 

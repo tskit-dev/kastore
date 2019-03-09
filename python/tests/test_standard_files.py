@@ -13,7 +13,7 @@ import numpy as np
 import kastore as kas
 
 
-class StandardFilesMixin(object):
+class StandardFilesMixin:
     """
     Read in the standard files.
     """

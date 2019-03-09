@@ -64,8 +64,8 @@ class TestClosedStore(InterfaceTest):
     def verify_closed(self, store):
         self.assertRaises(exceptions.StoreClosedError, store.get, "a")
         self.assertRaises(exceptions.StoreClosedError, store.info, "a")
-        self.assertRaises(exceptions.StoreClosedError, list, six.iterkeys(store))
-        self.assertRaises(exceptions.StoreClosedError, list, six.iteritems(store))
+        self.assertRaises(exceptions.StoreClosedError, list, store.keys())
+        self.assertRaises(exceptions.StoreClosedError, list, store.items())
 
     def test_context_manager(self):
         N = 100

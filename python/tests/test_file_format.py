@@ -36,7 +36,7 @@ class TestFileSignature(unittest.TestCase):
         self.assertEqual(b'\211KAS\r\n\032\n', store.MAGIC)
 
 
-class FormatMixin(object):
+class FormatMixin:
     """
     Tests for the file format.
     """
@@ -50,7 +50,7 @@ class FormatMixin(object):
     def test_header_format(self):
         for n in range(10):
             kas.dump(
-                {six.text_type(j): np.zeros(1) for j in range(n)}, self.temp_file,
+                {str(j): np.zeros(1) for j in range(n)}, self.temp_file,
                 engine=self.engine)
             with open(self.temp_file, "rb") as f:
                 contents = f.read()
@@ -74,7 +74,7 @@ class FormatMixin(object):
     def test_item_descriptor_format(self):
         for n in range(10):
             kas.dump(
-                {six.text_type(j): j * np.ones(j) for j in range(n)}, self.temp_file,
+                {str(j): j * np.ones(j) for j in range(n)}, self.temp_file,
                 engine=self.engine)
             with open(self.temp_file, "rb") as f:
                 contents = f.read()
@@ -137,7 +137,7 @@ class FormatMixin(object):
 
     def test_simple_array_storage(self):
         for n in range(10):
-            self.validate_storage({six.text_type(j): j * np.ones(j) for j in range(n)})
+            self.validate_storage({str(j): j * np.ones(j) for j in range(n)})
 
     # Note that hypothesis seems to be leaking memory, so when we're running tests
     # against the C API for memory leaks this must be commented out.

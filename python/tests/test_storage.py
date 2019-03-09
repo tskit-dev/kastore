@@ -85,7 +85,7 @@ class TestRoundTripSimple(TestRoundTrip):
     def test_many_keys(self):
         data = {}
         for j in range(1):
-            data[six.text_type(j)] = j + np.zeros(j, dtype=np.uint32)
+            data[str(j)] = j + np.zeros(j, dtype=np.uint32)
         self.verify(data)
 
     def test_all_dtypes(self):
