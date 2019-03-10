@@ -9,9 +9,6 @@
 #include <stdbool.h>
 #include "kastore.h"
 
-#define MODULE_DOC \
-"C interface for kastore."
-
 static PyObject *_kastore_FileFormatError;
 static PyObject *_kastore_VersionTooOldError;
 static PyObject *_kastore_VersionTooNewError;
@@ -326,22 +323,14 @@ static PyMethodDef kastore_methods[] = {
     {NULL}        /* Sentinel */
 };
 
-/* The framework uses the recommended structure from
- * http://docs.python.org/howto/cporting.html.
- * I've ignored the point about storing state in globals, as the examples
- * from the Python documentation still use this idiom.
- */
-
 static struct PyModuleDef kastoremodule = {
     PyModuleDef_HEAD_INIT,
-    "_kastore",   /* name of module */
-    MODULE_DOC, /* module documentation, may be NULL */
+    "_kastore",
+    "C interface for kastore.",
     -1,
     kastore_methods,
     NULL, NULL, NULL, NULL
 };
-
-#define INITERROR return NULL
 
 PyObject *
 PyInit__kastore(void)
@@ -350,7 +339,7 @@ PyInit__kastore(void)
     kas_version_t version;
 
     if (module == NULL) {
-        INITERROR;
+        return NULL;
     }
     /* Initialise numpy */
     import_array();
@@ -370,7 +359,7 @@ PyInit__kastore(void)
     version = kas_version();
     if (version.major != KAS_VERSION_MAJOR || version.minor != KAS_VERSION_MINOR) {
         PyErr_SetString(PyExc_RuntimeError, "API version mismatch");
-        INITERROR;
+        return NULL;
     }
     return module;
 }
