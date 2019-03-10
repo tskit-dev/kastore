@@ -1,10 +1,6 @@
 """
 Test cases for the kastore CLI.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import io
 import os
 import sys
@@ -13,7 +9,6 @@ import unittest
 import subprocess
 import logging
 
-import six
 import numpy as np
 import mock
 
@@ -143,8 +138,8 @@ class TestOutput(unittest.TestCase):
 
     def get_example_data(self):
         data = {
-            six.text_type("A"): np.arange(100),
-            six.text_type("B"): np.zeros(10, dtype=int)
+            str("A"): np.arange(100),
+            str("B"): np.zeros(10, dtype=int)
         }
         return data
 

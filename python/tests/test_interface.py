@@ -1,15 +1,10 @@
 """
 Basic tests for the information API.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import unittest
 import tempfile
 import os
 
-import six
 import numpy as np
 
 import kastore as kas
@@ -64,8 +59,8 @@ class TestClosedStore(InterfaceTest):
     def verify_closed(self, store):
         self.assertRaises(exceptions.StoreClosedError, store.get, "a")
         self.assertRaises(exceptions.StoreClosedError, store.info, "a")
-        self.assertRaises(exceptions.StoreClosedError, list, six.iterkeys(store))
-        self.assertRaises(exceptions.StoreClosedError, list, six.iteritems(store))
+        self.assertRaises(exceptions.StoreClosedError, list, store.keys())
+        self.assertRaises(exceptions.StoreClosedError, list, store.items())
 
     def test_context_manager(self):
         N = 100

@@ -11,7 +11,7 @@ import kastore as kas
 import kastore.store as store
 
 
-class MalformedFilesBuilder(object):
+class MalformedFilesBuilder:
     """
     Utility for making the malformed files.
     """

@@ -14,22 +14,13 @@ The file format layout is as follows.
 + 8 byte bounaries.
 +===================================+
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import struct
 import logging
 import mmap
 import os
-try:
-    from collections.abc import Mapping
-except ImportError:
-    # Handle Python 2.7 case.
-    from collections import Mapping
+from collections.abc import Mapping
 
 import numpy as np
-import six
 
 import kastore.exceptions as exceptions
 
@@ -186,7 +177,7 @@ def pack_items(arrays, key_encoding="utf-8"):
     for key in sorted_keys:
         # Normally we wouldn't bother with this in Python, but we want to
         # ensure that the behaviour is identical to the low-level module.
-        if not isinstance(key, six.text_type):
+        if not isinstance(key, str):
             raise TypeError("Key must be a string")
         array = np.array(arrays[key])
         if len(array.shape) != 1:

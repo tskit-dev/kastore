@@ -1,6 +1,3 @@
-from __future__ import print_function
-from __future__ import division
-
 import os.path
 
 from . import store
@@ -50,11 +47,8 @@ def load(filename, read_all=False, key_encoding="utf-8", engine=PY_ENGINE):
         try:
             return _kastore.load(filename, read_all=read_all)
         except _kastore.FileFormatError as e:
-            # Note in Python 3 we should use "raise X from e" to designate
-            # that the low-level exception is the cause of the high-level
-            # exception. We can't do that in Python 2 though, and it's not
-            # worth having separate code paths. Same for all the other
-            # exceptions we're chaining here.
+            # TODO implement this using exception chaining, "raise X from e"
+            # https://github.com/tskit-dev/kastore/issues/81
             raise FileFormatError(str(e))
         except _kastore.VersionTooOldError:
             raise VersionTooOldError()

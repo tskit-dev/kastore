@@ -1,10 +1,6 @@
 """
 Basic tests for the storage integrity of the data.
 """
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import unittest
 import tempfile
 import os
@@ -13,7 +9,6 @@ import numpy as np
 import hypothesis
 import hypothesis.strategies as hst
 import hypothesis.extra.numpy as hnp
-import six
 
 import kastore as kas
 
@@ -85,7 +80,7 @@ class TestRoundTripSimple(TestRoundTrip):
     def test_many_keys(self):
         data = {}
         for j in range(1):
-            data[six.text_type(j)] = j + np.zeros(j, dtype=np.uint32)
+            data[str(j)] = j + np.zeros(j, dtype=np.uint32)
         self.verify(data)
 
     def test_all_dtypes(self):
