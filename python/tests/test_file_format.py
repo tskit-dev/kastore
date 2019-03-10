@@ -31,7 +31,7 @@ class TestFileSignature(unittest.TestCase):
         self.assertEqual(b'\211KAS\r\n\032\n', store.MAGIC)
 
 
-class FormatMixin:
+class FormatMixin(object):
     """
     Tests for the file format.
     """

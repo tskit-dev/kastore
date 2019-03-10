@@ -9,7 +9,7 @@ import numpy as np
 import kastore as kas
 
 
-class StandardFilesMixin:
+class StandardFilesMixin(object):
     """
     Read in the standard files.
     """

@@ -87,7 +87,7 @@ def type_size(ka_type):
     return size_map[ka_type]
 
 
-class ItemDescriptor:
+class ItemDescriptor(object):
     """
     The information required to recover a single key-value pair from the
     file. Each descriptor is a block of 64 bytes, which stores:
@@ -241,7 +241,7 @@ def load(filename, read_all=False, key_encoding="utf-8"):
     return Store(filename, read_all=read_all, key_encoding=key_encoding)
 
 
-class ValueInfo:
+class ValueInfo(object):
     """
     Simple class encapsulating information about a store array.
     """
