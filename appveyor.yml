@@ -1,12 +1,7 @@
 environment:
   matrix:
     - PYTHON: "C:\\Miniconda36-x64"
-
-    - PYTHON: "C:\\Miniconda36"
-
     - PYTHON: "C:\\Miniconda37-x64"
-
-    - PYTHON: "C:\\Miniconda37"
 
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
