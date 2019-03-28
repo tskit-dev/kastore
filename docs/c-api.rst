@@ -102,6 +102,35 @@ type of the array is known in advance.
         :content-only:
 
 
+.. _sec_c_api_oput:
+
+*************
+Put functions
+*************
+
+Put functions provide the interface for inserting data into store. The most
+general interface is :c:func:`kastore_put` which allows keys to be arbitrary
+bytes, but it is usually more convenient to use one of the :ref:`typed put
+functions <sec_c_api_typed_put>`.
+
+.. doxygenfunction:: kastore_put
+.. doxygenfunction:: kastore_puts
+
+.. _sec_c_api_typed_put:
+
+----------
+Typed puts
+----------
+
+The functions listed here provide a convenient short-cut for inserting
+key-array pairs where the key is a standard NULL terminated C string and the
+type of the array is known in advance.
+
+.. doxygengroup:: TYPED_PUTS_GROUP
+        :content-only:
+
+
+
 *********
 Constants
 *********

@@ -428,13 +428,13 @@ function are identical to :c:func:`kastore_put`.
 @param flags The insertion flags. Currently unused.
 @return Return 0 on success or a negative value on failure.
 */
-int kastore_own_put(kastore_t *self, const char *key, size_t key_len,
+int kastore_oput(kastore_t *self, const char *key, size_t key_len,
         void *array, size_t array_len, int type, int flags);
 /**
 @brief Insert the specified null terminated key and array pair into the store.
 
 @rst
-As for :c:func:`kastore_own_put` except the key must be NULL-terminated C string.
+As for :c:func:`kastore_oput` except the key must be NULL-terminated C string.
 @endrst
 
 @param self A pointer to a kastore object.
@@ -445,7 +445,7 @@ As for :c:func:`kastore_own_put` except the key must be NULL-terminated C string
 @param flags The insertion flags. Currently unused.
 @return Return 0 on success or a negative value on failure.
 */
-int kastore_own_puts(kastore_t *self, const char *key, void *array, size_t array_len,
+int kastore_oputs(kastore_t *self, const char *key, void *array, size_t array_len,
         int type, int flags);
 
 /**
@@ -453,25 +453,25 @@ int kastore_own_puts(kastore_t *self, const char *key, void *array, size_t array
  @{
  */
 
-int kastore_own_puts_int8(kastore_t *self, const char *key, int8_t *array,
+int kastore_oputs_int8(kastore_t *self, const char *key, int8_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_uint8(kastore_t *self, const char *key, uint8_t *array,
+int kastore_oputs_uint8(kastore_t *self, const char *key, uint8_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_int16(kastore_t *self, const char *key, int16_t *array,
+int kastore_oputs_int16(kastore_t *self, const char *key, int16_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_uint16(kastore_t *self, const char *key, uint16_t *array,
+int kastore_oputs_uint16(kastore_t *self, const char *key, uint16_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_int32(kastore_t *self, const char *key, int32_t *array,
+int kastore_oputs_int32(kastore_t *self, const char *key, int32_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_uint32(kastore_t *self, const char *key, uint32_t *array,
+int kastore_oputs_uint32(kastore_t *self, const char *key, uint32_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_int64(kastore_t *self, const char *key, int64_t *array,
+int kastore_oputs_int64(kastore_t *self, const char *key, int64_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_uint64(kastore_t *self, const char *key, uint64_t *array,
+int kastore_oputs_uint64(kastore_t *self, const char *key, uint64_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_float32(kastore_t *self, const char *key, float *array,
+int kastore_oputs_float32(kastore_t *self, const char *key, float *array,
         size_t array_len, int flags);
-int kastore_own_puts_float64(kastore_t *self, const char *key, double *array,
+int kastore_oputs_float64(kastore_t *self, const char *key, double *array,
         size_t array_len, int flags);
 
 /** @} */

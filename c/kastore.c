@@ -767,7 +767,7 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     }
     memcpy(array_copy, array, array_size);
 
-    ret = kastore_own_put(self, key, key_len, array_copy, array_len, type, flags);
+    ret = kastore_oput(self, key, key_len, array_copy, array_len, type, flags);
     if (ret == 0) {
         /* Kastore has taken ownership of the array, so we don't need to free it */
         array_copy = NULL;
@@ -778,7 +778,7 @@ out:
 }
 
 int KAS_WARN_UNUSED
-kastore_own_put(kastore_t *self, const char *key, size_t key_len,
+kastore_oput(kastore_t *self, const char *key, size_t key_len,
        void *array, size_t array_len, int type, int KAS_UNUSED(flags))
 {
     int ret = 0;
@@ -920,80 +920,80 @@ kastore_puts_float64(kastore_t *self, const char *key, const double *array, size
 }
 
 int KAS_WARN_UNUSED
-kastore_own_puts(kastore_t *self, const char *key,
+kastore_oputs(kastore_t *self, const char *key,
        void *array, size_t array_len, int type, int flags)
 {
-    return kastore_own_put(self, key, strlen(key), array, array_len, type, flags);
+    return kastore_oput(self, key, strlen(key), array, array_len, type, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_own_puts_int8(kastore_t *self, const char *key, int8_t *array, size_t array_len,
+kastore_oputs_int8(kastore_t *self, const char *key, int8_t *array, size_t array_len,
         int flags)
 {
-    return kastore_own_puts(self, key, (void *) array, array_len, KAS_INT8, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_INT8, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_own_puts_uint8(kastore_t *self, const char *key, uint8_t *array, size_t array_len,
+kastore_oputs_uint8(kastore_t *self, const char *key, uint8_t *array, size_t array_len,
         int flags)
 {
-    return kastore_own_puts(self, key, (void *) array, array_len, KAS_UINT8, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_UINT8, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_own_puts_int16(kastore_t *self, const char *key, int16_t *array, size_t array_len,
+kastore_oputs_int16(kastore_t *self, const char *key, int16_t *array, size_t array_len,
         int flags)
 {
-    return kastore_own_puts(self, key, (void *) array, array_len, KAS_INT16, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_INT16, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_own_puts_uint16(kastore_t *self, const char *key, uint16_t *array, size_t array_len,
+kastore_oputs_uint16(kastore_t *self, const char *key, uint16_t *array, size_t array_len,
         int flags)
 {
-    return kastore_own_puts(self, key, (void *) array, array_len, KAS_UINT16, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_UINT16, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_own_puts_int32(kastore_t *self, const char *key, int32_t *array, size_t array_len,
+kastore_oputs_int32(kastore_t *self, const char *key, int32_t *array, size_t array_len,
         int flags)
 {
-    return kastore_own_puts(self, key, (void *) array, array_len, KAS_INT32, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_INT32, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_own_puts_uint32(kastore_t *self, const char *key, uint32_t *array, size_t array_len,
+kastore_oputs_uint32(kastore_t *self, const char *key, uint32_t *array, size_t array_len,
         int flags)
 {
-    return kastore_own_puts(self, key, (void *) array, array_len, KAS_UINT32, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_UINT32, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_own_puts_int64(kastore_t *self, const char *key, int64_t *array, size_t array_len,
+kastore_oputs_int64(kastore_t *self, const char *key, int64_t *array, size_t array_len,
         int flags)
 {
-    return kastore_own_puts(self, key, (void *) array, array_len, KAS_INT64, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_INT64, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_own_puts_uint64(kastore_t *self, const char *key, uint64_t *array, size_t array_len,
+kastore_oputs_uint64(kastore_t *self, const char *key, uint64_t *array, size_t array_len,
         int flags)
 {
-    return kastore_own_puts(self, key, (void *) array, array_len, KAS_UINT64, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_UINT64, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_own_puts_float32(kastore_t *self, const char *key, float *array, size_t array_len,
+kastore_oputs_float32(kastore_t *self, const char *key, float *array, size_t array_len,
         int flags)
 {
-    return kastore_own_puts(self, key, (void *) array, array_len, KAS_FLOAT32, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_FLOAT32, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_own_puts_float64(kastore_t *self, const char *key, double *array, size_t array_len,
+kastore_oputs_float64(kastore_t *self, const char *key, double *array, size_t array_len,
         int flags)
 {
-    return kastore_own_puts(self, key, (void *) array, array_len, KAS_FLOAT64, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_FLOAT64, flags);
 }
 
 void
