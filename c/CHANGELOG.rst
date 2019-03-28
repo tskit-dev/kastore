@@ -1,4 +1,12 @@
 --------------------
+[1.1.0] - 2019-03-19
+--------------------
+
+- Add `contains` function
+- Add `oput` variants that transfer ownership of buffer.
+- Various documentation updates.
+
+--------------------
 [1.0.1] - 2019-01-24
 --------------------
 
