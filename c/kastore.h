@@ -204,7 +204,18 @@ After :c:func:`kastore_open` has been called on a particular store,
 :c:func:`kastore_close` must be called to avoid leaking memory. This must also
 be done when :c:func:`kastore_open` returns an error.
 
-.. todo:: Document open flags.
+When opened in read-mode, the default is to read key/array values from file
+on demand. This is useful when a subset of the data is required and we don't
+wish to read the entire file. If the entire file is to be read, the
+``KAS_READ_ALL`` flag may be specified to improve performance.
+
+**Flags**
+
+KAS_READ_ALL
+    If this option is specified, read the entire file at
+    open time. This will give slightly better performance as the file can
+    be read sequentially in a single pass.
+
 @endrst
 
 @param self A pointer to a kastore object.
