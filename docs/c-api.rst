@@ -6,8 +6,14 @@ C API Documentation
 
 This is the C API documentation for kastore.
 
-.. todo:: Give a short example program.
+.. _sec_c_api_example:
 
+***************
+Example program
+***************
+
+.. literalinclude:: ../c/example.c
+    :language: c
 
 ******************
 General principles
@@ -104,31 +110,29 @@ type of the array is known in advance.
 
 .. _sec_c_api_oput:
 
-*************
-Put functions
-*************
+*****************
+Own-put functions
+*****************
 
-Put functions provide the interface for inserting data into store. The most
-general interface is :c:func:`kastore_put` which allows keys to be arbitrary
-bytes, but it is usually more convenient to use one of the :ref:`typed put
-functions <sec_c_api_typed_put>`.
+The 'own-put' functions are almost identical to the standard 'put' functions,
+but transfer ownership of the array buffer from the caller to the store. This
+is useful, for example, when client code wishes to write a large array to the
+store and wants of avoid the overhead of keeping a separate copy of this buffer
+in the store. By calling :c:func:`kastore_oput`, the user can put the key-array
+pair into the store and transfer responsibility for freeing the malloced
+array buffer to the store. See the :ref:`sec_c_api_example` for an illustration.
 
-.. doxygenfunction:: kastore_put
-.. doxygenfunction:: kastore_puts
+.. doxygenfunction:: kastore_oput
+.. doxygenfunction:: kastore_oputs
 
-.. _sec_c_api_typed_put:
+.. _sec_c_api_typed_oput:
 
-----------
-Typed puts
-----------
+-----------
+Typed oputs
+-----------
 
-The functions listed here provide a convenient short-cut for inserting
-key-array pairs where the key is a standard NULL terminated C string and the
-type of the array is known in advance.
-
-.. doxygengroup:: TYPED_PUTS_GROUP
+.. doxygengroup:: TYPED_OPUTS_GROUP
         :content-only:
-
 
 
 *********

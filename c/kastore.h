@@ -359,7 +359,7 @@ strings, it is usually more convenient to use the :ref:`typed variants
 int kastore_put(kastore_t *self, const char *key, size_t key_len,
         const void *array, size_t array_len, int type, int flags);
 /**
-@brief Insert the specified null terminated key and array pair into the store.
+@brief Insert the specified NULL terminated key and array pair into the store.
 
 @rst
 As for :c:func:`kastore_put` except the key must be NULL-terminated C string.
@@ -405,15 +405,16 @@ int kastore_puts_float64(kastore_t *self, const char *key, const double *array,
 /** @} */
 
 /**
-@brief Insert the specified key-array pair into the store, taking ownership
-of the array buffer (own-put).
+@brief Insert the specified key-array pair into the store, transferring ownership
+of the malloced array buffer to the store (own-put).
 
 @rst
 A key with the specified length is inserted into the store and associated with
 an array of the specified type and number of elements. The contents of the
-specified key is copied, but the array buffer is 'taken' and freed when
-the store is closed. The array buffer must be a pointer returned by ``malloc``.
-Ownership of the buffer is not taken unless the function returns successfully.
+specified key is copied, but the array buffer is taken directly and freed when
+the store is closed. The array buffer must be a pointer returned by ``malloc``
+or ``calloc``. Ownership of the buffer is not taken unless the function returns
+successfully.
 
 Apart from taking ownership of the array buffer, the semantics of this
 function are identical to :c:func:`kastore_put`.
@@ -422,7 +423,7 @@ function are identical to :c:func:`kastore_put`.
 @param self A pointer to a kastore object.
 @param key The key.
 @param key_len The length of the key.
-@param array The array. Must be a pointer returned by malloc.
+@param array The array. Must be a pointer returned by malloc/calloc.
 @param array_len The number of elements in the array.
 @param type The type of the array.
 @param flags The insertion flags. Currently unused.
@@ -431,7 +432,8 @@ function are identical to :c:func:`kastore_put`.
 int kastore_oput(kastore_t *self, const char *key, size_t key_len,
         void *array, size_t array_len, int type, int flags);
 /**
-@brief Insert the specified null terminated key and array pair into the store.
+@brief Insert the specified NULL terminated key and array pair into the store,
+transferring ownership of the malloced array buffer to the store (own-put).
 
 @rst
 As for :c:func:`kastore_oput` except the key must be NULL-terminated C string.
@@ -439,7 +441,7 @@ As for :c:func:`kastore_oput` except the key must be NULL-terminated C string.
 
 @param self A pointer to a kastore object.
 @param key The key.
-@param array The array. Must be a pointer returned by malloc.
+@param array The array. Must be a pointer returned by malloc/calloc.
 @param array_len The number of elements in the array.
 @param type The type of the array.
 @param flags The insertion flags. Currently unused.

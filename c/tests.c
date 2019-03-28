@@ -13,6 +13,24 @@ char * _tmp_file_name;
 FILE * _devnull;
 
 static void
+test_oputs_example(void)
+{
+    int ret;
+    kastore_t store;
+    size_t num_elements = 100;
+    uint32_t *array = calloc(num_elements, sizeof(*array));
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_oputs_uint32(&store, "big_array", array, num_elements, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
 test_bad_open_mode(void)
 {
     int ret;
@@ -1408,6 +1426,7 @@ main(int argc, char **argv)
     CU_pTest test;
     CU_pSuite suite;
     CU_TestInfo tests[] = {
+        {"test_oputs_example", test_oputs_example},
         {"test_bad_open_mode", test_bad_open_mode},
         {"test_open_io_errors", test_open_io_errors},
         {"test_append_empty_file", test_append_empty_file},
