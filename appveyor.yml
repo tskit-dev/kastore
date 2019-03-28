@@ -13,6 +13,8 @@ test_script:
   - "git config core.symlinks true"
   - "git reset --hard"
   - "conda config --add channels conda-forge"
+  - "conda create --yes --name testenv"
+  - "activate testenv"
   - "conda install --yes --file=python/requirements/development.txt"
   - "cd python"
   - "python setup.py build_ext --inplace"

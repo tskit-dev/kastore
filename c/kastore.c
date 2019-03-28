@@ -727,13 +727,42 @@ kastore_gets_float64(kastore_t *self, const char *key, double **array, size_t *a
 
 int KAS_WARN_UNUSED
 kastore_put(kastore_t *self, const char *key, size_t key_len,
-       const void *array, size_t array_len, int type,
-       int KAS_UNUSED(flags))
+       const void *array, size_t array_len, int type, int flags)
+{
+    int ret;
+    size_t array_size;
+    void *array_copy = NULL;
+
+    if (type < 0 || type >= KAS_NUM_TYPES) {
+        ret = KAS_ERR_BAD_TYPE;
+        goto out;
+    }
+    array_size = type_size(type) * array_len;
+    array_copy = malloc(array_size == 0? 1: array_size);
+    if (array_copy == NULL) {
+        ret = KAS_ERR_NO_MEMORY;
+        goto out;
+    }
+    memcpy(array_copy, array, array_size);
+
+    ret = kastore_own_put(self, key, key_len, array_copy, array_len, type, flags);
+    if (ret == 0) {
+        /* Kastore has taken ownership of the array, so we don't need to free it */
+        array_copy = NULL;
+    }
+out:
+    kas_safe_free(array_copy);
+    return ret;
+}
+
+int KAS_WARN_UNUSED
+kastore_own_put(kastore_t *self, const char *key, size_t key_len,
+       void *array, size_t array_len, int type, int KAS_UNUSED(flags))
 {
     int ret = 0;
     kaitem_t *new_item;
     void *p;
-    size_t j, array_size;
+    size_t j;
 
     if (self->mode != KAS_WRITE) {
         ret = KAS_ERR_ILLEGAL_OPERATION;
@@ -761,18 +790,15 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     new_item->type = type;
     new_item->key_len = key_len;
     new_item->array_len = array_len;
-    array_size = type_size(type) * array_len;
+    new_item->array = array;
     new_item->key = malloc(key_len);
-    new_item->array = malloc(array_size == 0? 1: array_size);
-    if (new_item->key == NULL || new_item->array == NULL) {
+    if (new_item->key == NULL) {
         kas_safe_free(new_item->key);
-        kas_safe_free(new_item->array);
         ret = KAS_ERR_NO_MEMORY;
         goto out;
     }
     self->num_items++;
     memcpy(new_item->key, key, key_len);
-    memcpy(new_item->array, array, array_size);
 
     /* Check if this key is already in here. OK, this is a quadratic time
      * algorithm, but we're not expecting to have lots of items (< 100). In
@@ -784,12 +810,12 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
             /* Free the key memory and remove this item */
             self->num_items--;
             kas_safe_free(new_item->key);
-            kas_safe_free(new_item->array);
             ret = KAS_ERR_DUPLICATE_KEY;
             goto out;
         }
     }
 out:
+
     return ret;
 }
 
@@ -869,6 +895,83 @@ kastore_puts_float64(kastore_t *self, const char *key, const double *array, size
         int flags)
 {
     return kastore_puts(self, key, (const void *) array, array_len, KAS_FLOAT64, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_own_puts(kastore_t *self, const char *key,
+       void *array, size_t array_len, int type, int flags)
+{
+    return kastore_own_put(self, key, strlen(key), array, array_len, type, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_own_puts_int8(kastore_t *self, const char *key, int8_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_own_puts(self, key, (void *) array, array_len, KAS_INT8, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_own_puts_uint8(kastore_t *self, const char *key, uint8_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_own_puts(self, key, (void *) array, array_len, KAS_UINT8, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_own_puts_int16(kastore_t *self, const char *key, int16_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_own_puts(self, key, (void *) array, array_len, KAS_INT16, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_own_puts_uint16(kastore_t *self, const char *key, uint16_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_own_puts(self, key, (void *) array, array_len, KAS_UINT16, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_own_puts_int32(kastore_t *self, const char *key, int32_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_own_puts(self, key, (void *) array, array_len, KAS_INT32, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_own_puts_uint32(kastore_t *self, const char *key, uint32_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_own_puts(self, key, (void *) array, array_len, KAS_UINT32, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_own_puts_int64(kastore_t *self, const char *key, int64_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_own_puts(self, key, (void *) array, array_len, KAS_INT64, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_own_puts_uint64(kastore_t *self, const char *key, uint64_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_own_puts(self, key, (void *) array, array_len, KAS_UINT64, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_own_puts_float32(kastore_t *self, const char *key, float *array, size_t array_len,
+        int flags)
+{
+    return kastore_own_puts(self, key, (void *) array, array_len, KAS_FLOAT32, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_own_puts_float64(kastore_t *self, const char *key, double *array, size_t array_len,
+        int flags)
+{
+    return kastore_own_puts(self, key, (void *) array, array_len, KAS_FLOAT64, flags);
 }
 
 void
