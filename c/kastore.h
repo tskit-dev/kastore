@@ -229,6 +229,46 @@ call ``kastore_close`` multiple times on the same object, but
 int kastore_close(kastore_t *self);
 
 /**
+@brief Return 1 if the store contains the specified key and 0 if it does not.
+
+@rst
+Queries the store for the specified key and returns 1 if it exists. If the
+key does not exist, 0 is returned. If an error occurs (for example, if querying
+the store while it is in write-mode), a negative value is returned.
+
+For keys that are standard NULL terminated strings, the :c:func:`kastore_containss`
+function may be more convenient.
+@endrst
+
+@param self A pointer to a kastore object.
+@param key The key.
+@param key_len The length of the key.
+@return Return 1 if the key is present and 0 if it does not. If an error occurs,
+    return a negative value.
+*/
+int kastore_contains(kastore_t *self, const char *key, size_t key_len);
+
+/**
+@brief Return 1 if the store contains the specified NULL terminated key
+and 0 if it does not.
+
+@rst
+Queries the store for the specified key, which must be a NULL terminated string,
+and returns 1 if it exists. If the
+key does not exist, 0 is returned. If an error occurs (for example, if querying
+the store while it is in write-mode), a negative value is returned.
+the array in the specified destination pointers.
+@endrst
+
+@param self A pointer to a kastore object.
+@param key The key.
+@return Return 1 if the key is present and 0 if it does not. If an error occurs,
+    return a negative value.
+*/
+int kastore_containss(kastore_t *self, const char *key);
+
+
+/**
 @brief Get the array for the specified key.
 
 @rst

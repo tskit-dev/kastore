@@ -603,6 +603,28 @@ kastore_close(kastore_t *self)
 }
 
 int KAS_WARN_UNUSED
+kastore_contains(kastore_t *self, const char *key, size_t key_len)
+{
+    void *array;
+    size_t array_len;
+    int type;
+    int ret = kastore_get(self, key, key_len, &array, &array_len, &type);
+
+    if (ret == 0) {
+        ret = 1;
+    } else if (ret == KAS_ERR_KEY_NOT_FOUND) {
+        ret = 0;
+    }
+    return ret;
+}
+
+int KAS_WARN_UNUSED
+kastore_containss(kastore_t *self, const char *key)
+{
+    return kastore_contains(self, key, strlen(key));
+}
+
+int KAS_WARN_UNUSED
 kastore_get(kastore_t *self, const char *key, size_t key_len,
         void **array, size_t *array_len, int *type)
 {

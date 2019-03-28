@@ -40,6 +40,16 @@ Top level
 
 .. _sec_c_api_get:
 
+
+******************
+Contains functions
+******************
+
+Contains functions provide a way to determine if a given key is in the store.
+
+.. doxygenfunction:: kastore_contains
+.. doxygenfunction:: kastore_containss
+
 *************
 Get functions
 *************

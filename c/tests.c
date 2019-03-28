@@ -422,6 +422,35 @@ test_get_write_mode(void)
 }
 
 static void
+test_contains(void)
+{
+    int ret;
+    kastore_t store;
+    const uint32_t array[] = {1, 2, 3, 4};
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "abc", array, 4, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    /* It's an error to query a store in write mode */
+    CU_ASSERT_EQUAL(kastore_containss(&store, "abc"), KAS_ERR_ILLEGAL_OPERATION);
+    CU_ASSERT_EQUAL(kastore_containss(&store, "xyz"), KAS_ERR_ILLEGAL_OPERATION);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_open(&store, _tmp_file_name, "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL_FATAL(kastore_containss(&store, "abc"), 1);
+    CU_ASSERT_EQUAL_FATAL(kastore_contains(&store, "abc", 3), 1);
+    CU_ASSERT_EQUAL_FATAL(kastore_contains(&store, "abc", 2), 0);
+    CU_ASSERT_EQUAL_FATAL(kastore_containss(&store, "ab"), 0);
+    CU_ASSERT_EQUAL_FATAL(kastore_containss(&store, "xyz"), 0);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
 test_missing_key(void)
 {
     int ret;
@@ -450,6 +479,9 @@ test_missing_key(void)
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_KEY_NOT_FOUND);
     ret = kastore_gets(&store, "defgh", (void **) &a, &array_len, &type);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_KEY_NOT_FOUND);
+    CU_ASSERT_EQUAL_FATAL(kastore_containss(&store, "xyz"), 0);
+    CU_ASSERT_EQUAL_FATAL(kastore_containss(&store, "a"), 0);
+    CU_ASSERT_EQUAL_FATAL(kastore_containss(&store, "defgh"), 0);
 
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -621,6 +653,7 @@ test_simple_round_trip_append(void)
         CU_ASSERT_EQUAL(type, KAS_UINT32);
         CU_ASSERT_EQUAL(array_len, 1);
         CU_ASSERT_EQUAL(a[0], 1);
+        CU_ASSERT_TRUE(kastore_containss(&store, "a"));
 
         ret = kastore_gets(&store, "b", (void **) &a, &array_len, &type);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -628,6 +661,7 @@ test_simple_round_trip_append(void)
         CU_ASSERT_EQUAL(array_len, 2);
         CU_ASSERT_EQUAL(a[0], 1);
         CU_ASSERT_EQUAL(a[1], 2);
+        CU_ASSERT_TRUE(kastore_containss(&store, "b"));
 
         ret = kastore_gets(&store, "c", (void **) &a, &array_len, &type);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -637,6 +671,7 @@ test_simple_round_trip_append(void)
         CU_ASSERT_EQUAL(a[1], 2);
         CU_ASSERT_EQUAL(a[2], 3);
         CU_ASSERT_EQUAL(a[3], 4);
+        CU_ASSERT_TRUE(kastore_containss(&store, "c"));
 
         ret = kastore_close(&store);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -1388,6 +1423,7 @@ main(int argc, char **argv)
         {"test_duplicate_key", test_duplicate_key},
         {"test_duplicate_key_own_put", test_duplicate_key_own_put},
         {"test_missing_key", test_missing_key},
+        {"test_contains", test_contains},
         {"test_bad_types", test_bad_types},
         {"test_simple_round_trip", test_simple_round_trip},
         {"test_simple_round_trip_own_put_buffers", test_simple_round_trip_own_put_buffers},
