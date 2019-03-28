@@ -19,6 +19,7 @@ if not meson.is_subproject()
     # The shared library can be installed into the system.
     install_headers('kastore.h')
     shared_library('kastore', 'kastore.c', install: true)
+    executable('example', ['example.c'], link_with: kastore)
 
     cunit_dep = dependency('cunit')
     executable('tests', ['tests.c', 'kastore.c'], dependencies: cunit_dep)

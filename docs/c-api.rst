@@ -6,8 +6,14 @@ C API Documentation
 
 This is the C API documentation for kastore.
 
-.. todo:: Give a short example program.
+.. _sec_c_api_example:
 
+***************
+Example program
+***************
+
+.. literalinclude:: ../c/example.c
+    :language: c
 
 ******************
 General principles
@@ -39,6 +45,16 @@ Top level
 .. doxygenfunction:: kas_strerror
 
 .. _sec_c_api_get:
+
+
+******************
+Contains functions
+******************
+
+Contains functions provide a way to determine if a given key is in the store.
+
+.. doxygenfunction:: kastore_contains
+.. doxygenfunction:: kastore_containss
 
 *************
 Get functions
@@ -89,6 +105,33 @@ key-array pairs where the key is a standard NULL terminated C string and the
 type of the array is known in advance.
 
 .. doxygengroup:: TYPED_PUTS_GROUP
+        :content-only:
+
+
+.. _sec_c_api_oput:
+
+*****************
+Own-put functions
+*****************
+
+The 'own-put' functions are almost identical to the standard 'put' functions,
+but transfer ownership of the array buffer from the caller to the store. This
+is useful, for example, when client code wishes to write a large array to the
+store and wants of avoid the overhead of keeping a separate copy of this buffer
+in the store. By calling :c:func:`kastore_oput`, the user can put the key-array
+pair into the store and transfer responsibility for freeing the malloced
+array buffer to the store. See the :ref:`sec_c_api_example` for an illustration.
+
+.. doxygenfunction:: kastore_oput
+.. doxygenfunction:: kastore_oputs
+
+.. _sec_c_api_typed_oput:
+
+-----------
+Typed oputs
+-----------
+
+.. doxygengroup:: TYPED_OPUTS_GROUP
         :content-only:
 
 

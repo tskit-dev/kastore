@@ -140,12 +140,12 @@ sizes and types of externally visible structs.
 The library major version. Incremented when non-breaking backward-compatible changes
 to the API or ABI are introduced, i.e., the addition of a new function.
 */
-#define KAS_VERSION_MINOR   0
+#define KAS_VERSION_MINOR   1
 /**
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 */
-#define KAS_VERSION_PATCH   1
+#define KAS_VERSION_PATCH   0
 /** @} */
 
 #define KAS_HEADER_SIZE             64
@@ -204,7 +204,18 @@ After :c:func:`kastore_open` has been called on a particular store,
 :c:func:`kastore_close` must be called to avoid leaking memory. This must also
 be done when :c:func:`kastore_open` returns an error.
 
-.. todo:: Document open flags.
+When opened in read-mode, the default is to read key/array values from file
+on demand. This is useful when a subset of the data is required and we don't
+wish to read the entire file. If the entire file is to be read, the
+``KAS_READ_ALL`` flag may be specified to improve performance.
+
+**Flags**
+
+KAS_READ_ALL
+    If this option is specified, read the entire file at
+    open time. This will give slightly better performance as the file can
+    be read sequentially in a single pass.
+
 @endrst
 
 @param self A pointer to a kastore object.
@@ -227,6 +238,46 @@ call ``kastore_close`` multiple times on the same object, but
 @return Return 0 on success or a negative value on failure.
 */
 int kastore_close(kastore_t *self);
+
+/**
+@brief Return 1 if the store contains the specified key and 0 if it does not.
+
+@rst
+Queries the store for the specified key and returns 1 if it exists. If the
+key does not exist, 0 is returned. If an error occurs (for example, if querying
+the store while it is in write-mode), a negative value is returned.
+
+For keys that are standard NULL terminated strings, the :c:func:`kastore_containss`
+function may be more convenient.
+@endrst
+
+@param self A pointer to a kastore object.
+@param key The key.
+@param key_len The length of the key.
+@return Return 1 if the key is present and 0 if it does not. If an error occurs,
+    return a negative value.
+*/
+int kastore_contains(kastore_t *self, const char *key, size_t key_len);
+
+/**
+@brief Return 1 if the store contains the specified NULL terminated key
+and 0 if it does not.
+
+@rst
+Queries the store for the specified key, which must be a NULL terminated string,
+and returns 1 if it exists. If the
+key does not exist, 0 is returned. If an error occurs (for example, if querying
+the store while it is in write-mode), a negative value is returned.
+the array in the specified destination pointers.
+@endrst
+
+@param self A pointer to a kastore object.
+@param key The key.
+@return Return 1 if the key is present and 0 if it does not. If an error occurs,
+    return a negative value.
+*/
+int kastore_containss(kastore_t *self, const char *key);
+
 
 /**
 @brief Get the array for the specified key.
@@ -319,7 +370,7 @@ strings, it is usually more convenient to use the :ref:`typed variants
 int kastore_put(kastore_t *self, const char *key, size_t key_len,
         const void *array, size_t array_len, int type, int flags);
 /**
-@brief Insert the specified null terminated key and array pair into the store.
+@brief Insert the specified NULL terminated key and array pair into the store.
 
 @rst
 As for :c:func:`kastore_put` except the key must be NULL-terminated C string.
@@ -365,15 +416,16 @@ int kastore_puts_float64(kastore_t *self, const char *key, const double *array,
 /** @} */
 
 /**
-@brief Insert the specified key-array pair into the store, taking ownership
-of the array buffer (own-put).
+@brief Insert the specified key-array pair into the store, transferring ownership
+of the malloced array buffer to the store (own-put).
 
 @rst
 A key with the specified length is inserted into the store and associated with
 an array of the specified type and number of elements. The contents of the
-specified key is copied, but the array buffer is 'taken' and freed when
-the store is closed. The array buffer must be a pointer returned by ``malloc``.
-Ownership of the buffer is not taken unless the function returns successfully.
+specified key is copied, but the array buffer is taken directly and freed when
+the store is closed. The array buffer must be a pointer returned by ``malloc``
+or ``calloc``. Ownership of the buffer is not taken unless the function returns
+successfully.
 
 Apart from taking ownership of the array buffer, the semantics of this
 function are identical to :c:func:`kastore_put`.
@@ -382,30 +434,31 @@ function are identical to :c:func:`kastore_put`.
 @param self A pointer to a kastore object.
 @param key The key.
 @param key_len The length of the key.
-@param array The array. Must be a pointer returned by malloc.
+@param array The array. Must be a pointer returned by malloc/calloc.
 @param array_len The number of elements in the array.
 @param type The type of the array.
 @param flags The insertion flags. Currently unused.
 @return Return 0 on success or a negative value on failure.
 */
-int kastore_own_put(kastore_t *self, const char *key, size_t key_len,
+int kastore_oput(kastore_t *self, const char *key, size_t key_len,
         void *array, size_t array_len, int type, int flags);
 /**
-@brief Insert the specified null terminated key and array pair into the store.
+@brief Insert the specified NULL terminated key and array pair into the store,
+transferring ownership of the malloced array buffer to the store (own-put).
 
 @rst
-As for :c:func:`kastore_own_put` except the key must be NULL-terminated C string.
+As for :c:func:`kastore_oput` except the key must be NULL-terminated C string.
 @endrst
 
 @param self A pointer to a kastore object.
 @param key The key.
-@param array The array. Must be a pointer returned by malloc.
+@param array The array. Must be a pointer returned by malloc/calloc.
 @param array_len The number of elements in the array.
 @param type The type of the array.
 @param flags The insertion flags. Currently unused.
 @return Return 0 on success or a negative value on failure.
 */
-int kastore_own_puts(kastore_t *self, const char *key, void *array, size_t array_len,
+int kastore_oputs(kastore_t *self, const char *key, void *array, size_t array_len,
         int type, int flags);
 
 /**
@@ -413,25 +466,25 @@ int kastore_own_puts(kastore_t *self, const char *key, void *array, size_t array
  @{
  */
 
-int kastore_own_puts_int8(kastore_t *self, const char *key, int8_t *array,
+int kastore_oputs_int8(kastore_t *self, const char *key, int8_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_uint8(kastore_t *self, const char *key, uint8_t *array,
+int kastore_oputs_uint8(kastore_t *self, const char *key, uint8_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_int16(kastore_t *self, const char *key, int16_t *array,
+int kastore_oputs_int16(kastore_t *self, const char *key, int16_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_uint16(kastore_t *self, const char *key, uint16_t *array,
+int kastore_oputs_uint16(kastore_t *self, const char *key, uint16_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_int32(kastore_t *self, const char *key, int32_t *array,
+int kastore_oputs_int32(kastore_t *self, const char *key, int32_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_uint32(kastore_t *self, const char *key, uint32_t *array,
+int kastore_oputs_uint32(kastore_t *self, const char *key, uint32_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_int64(kastore_t *self, const char *key, int64_t *array,
+int kastore_oputs_int64(kastore_t *self, const char *key, int64_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_uint64(kastore_t *self, const char *key, uint64_t *array,
+int kastore_oputs_uint64(kastore_t *self, const char *key, uint64_t *array,
         size_t array_len, int flags);
-int kastore_own_puts_float32(kastore_t *self, const char *key, float *array,
+int kastore_oputs_float32(kastore_t *self, const char *key, float *array,
         size_t array_len, int flags);
-int kastore_own_puts_float64(kastore_t *self, const char *key, double *array,
+int kastore_oputs_float64(kastore_t *self, const char *key, double *array,
         size_t array_len, int flags);
 
 /** @} */

@@ -13,6 +13,24 @@ char * _tmp_file_name;
 FILE * _devnull;
 
 static void
+test_oputs_example(void)
+{
+    int ret;
+    kastore_t store;
+    size_t num_elements = 100;
+    uint32_t *array = calloc(num_elements, sizeof(*array));
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_oputs_uint32(&store, "big_array", array, num_elements, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
 test_bad_open_mode(void)
 {
     int ret;
@@ -176,13 +194,13 @@ test_bad_types(void)
     ret = kastore_puts(&store, "a", array, 1, KAS_NUM_TYPES + 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_TYPE);
 
-    ret = kastore_own_puts(&store, "a", NULL, 1, -1, 0);
+    ret = kastore_oputs(&store, "a", NULL, 1, -1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_TYPE);
-    ret = kastore_own_puts(&store, "a", NULL, 1, -2, 0);
+    ret = kastore_oputs(&store, "a", NULL, 1, -2, 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_TYPE);
-    ret = kastore_own_puts(&store, "a", NULL, 1, KAS_NUM_TYPES, 0);
+    ret = kastore_oputs(&store, "a", NULL, 1, KAS_NUM_TYPES, 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_TYPE);
-    ret = kastore_own_puts(&store, "a", NULL, 1, KAS_NUM_TYPES + 1, 0);
+    ret = kastore_oputs(&store, "a", NULL, 1, KAS_NUM_TYPES + 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_TYPE);
 
     ret = kastore_close(&store);
@@ -325,7 +343,7 @@ test_duplicate_key(void)
 }
 
 static void
-test_duplicate_key_own_put(void)
+test_duplicate_key_oput(void)
 {
     int ret;
     kastore_t store;
@@ -338,11 +356,11 @@ test_duplicate_key_own_put(void)
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
-    ret = kastore_own_put(&store, "a", 1, a, 1, KAS_UINT32, 0);
+    ret = kastore_oput(&store, "a", 1, a, 1, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_put(&store, "b", 1, b, 1, KAS_UINT32, 0);
+    ret = kastore_oput(&store, "b", 1, b, 1, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_put(&store, "a", 1, c, 1, KAS_UINT32, 0);
+    ret = kastore_oput(&store, "a", 1, c, 1, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_DUPLICATE_KEY);
     CU_ASSERT_EQUAL_FATAL(store.num_items, 2);
 
@@ -422,6 +440,35 @@ test_get_write_mode(void)
 }
 
 static void
+test_contains(void)
+{
+    int ret;
+    kastore_t store;
+    const uint32_t array[] = {1, 2, 3, 4};
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "abc", array, 4, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    /* It's an error to query a store in write mode */
+    CU_ASSERT_EQUAL(kastore_containss(&store, "abc"), KAS_ERR_ILLEGAL_OPERATION);
+    CU_ASSERT_EQUAL(kastore_containss(&store, "xyz"), KAS_ERR_ILLEGAL_OPERATION);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_open(&store, _tmp_file_name, "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL_FATAL(kastore_containss(&store, "abc"), 1);
+    CU_ASSERT_EQUAL_FATAL(kastore_contains(&store, "abc", 3), 1);
+    CU_ASSERT_EQUAL_FATAL(kastore_contains(&store, "abc", 2), 0);
+    CU_ASSERT_EQUAL_FATAL(kastore_containss(&store, "ab"), 0);
+    CU_ASSERT_EQUAL_FATAL(kastore_containss(&store, "xyz"), 0);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
 test_missing_key(void)
 {
     int ret;
@@ -450,6 +497,9 @@ test_missing_key(void)
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_KEY_NOT_FOUND);
     ret = kastore_gets(&store, "defgh", (void **) &a, &array_len, &type);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_KEY_NOT_FOUND);
+    CU_ASSERT_EQUAL_FATAL(kastore_containss(&store, "xyz"), 0);
+    CU_ASSERT_EQUAL_FATAL(kastore_containss(&store, "a"), 0);
+    CU_ASSERT_EQUAL_FATAL(kastore_containss(&store, "defgh"), 0);
 
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -513,7 +563,7 @@ test_simple_round_trip(void)
 }
 
 static void
-test_simple_round_trip_own_put_buffers(void)
+test_simple_round_trip_oput_buffers(void)
 {
     int ret;
     kastore_t store;
@@ -537,11 +587,11 @@ test_simple_round_trip_own_put_buffers(void)
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
-    ret = kastore_own_puts_uint32(&store, "c", array_c, 4, 0);
+    ret = kastore_oputs_uint32(&store, "c", array_c, 4, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_puts_uint32(&store, "b", array_b, 2, 0);
+    ret = kastore_oputs_uint32(&store, "b", array_b, 2, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_puts_uint32(&store, "a", array_a, 1, 0);
+    ret = kastore_oputs_uint32(&store, "a", array_a, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
     ret = kastore_close(&store);
@@ -621,6 +671,7 @@ test_simple_round_trip_append(void)
         CU_ASSERT_EQUAL(type, KAS_UINT32);
         CU_ASSERT_EQUAL(array_len, 1);
         CU_ASSERT_EQUAL(a[0], 1);
+        CU_ASSERT_TRUE(kastore_containss(&store, "a"));
 
         ret = kastore_gets(&store, "b", (void **) &a, &array_len, &type);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -628,6 +679,7 @@ test_simple_round_trip_append(void)
         CU_ASSERT_EQUAL(array_len, 2);
         CU_ASSERT_EQUAL(a[0], 1);
         CU_ASSERT_EQUAL(a[1], 2);
+        CU_ASSERT_TRUE(kastore_containss(&store, "b"));
 
         ret = kastore_gets(&store, "c", (void **) &a, &array_len, &type);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -637,6 +689,7 @@ test_simple_round_trip_append(void)
         CU_ASSERT_EQUAL(a[1], 2);
         CU_ASSERT_EQUAL(a[2], 3);
         CU_ASSERT_EQUAL(a[3], 4);
+        CU_ASSERT_TRUE(kastore_containss(&store, "c"));
 
         ret = kastore_close(&store);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -697,7 +750,7 @@ test_round_trip_int8(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_puts_int8(&store, "max", &max, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_puts_int8(&store, "zero", zero, 1, 0);
+    ret = kastore_oputs_int8(&store, "zero", zero, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -738,7 +791,7 @@ test_round_trip_uint8(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_puts_uint8(&store, "max", &max, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_puts_uint8(&store, "zero", zero, 1, 0);
+    ret = kastore_oputs_uint8(&store, "zero", zero, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -779,7 +832,7 @@ test_round_trip_int16(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_puts_int16(&store, "max", &max, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_puts_int16(&store, "zero", zero, 1, 0);
+    ret = kastore_oputs_int16(&store, "zero", zero, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -820,7 +873,7 @@ test_round_trip_uint16(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_puts_uint16(&store, "max", &max, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_puts_uint16(&store, "zero", zero, 1, 0);
+    ret = kastore_oputs_uint16(&store, "zero", zero, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -861,7 +914,7 @@ test_round_trip_int32(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_puts_int32(&store, "max", &max, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_puts_int32(&store, "zero", zero, 1, 0);
+    ret = kastore_oputs_int32(&store, "zero", zero, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -902,7 +955,7 @@ test_round_trip_uint32(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_puts_uint32(&store, "max", &max, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_puts_uint32(&store, "zero", zero, 1, 0);
+    ret = kastore_oputs_uint32(&store, "zero", zero, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -944,7 +997,7 @@ test_round_trip_int64(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_puts_int64(&store, "max", &max, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_puts_int64(&store, "zero", zero, 1, 0);
+    ret = kastore_oputs_int64(&store, "zero", zero, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -985,7 +1038,7 @@ test_round_trip_uint64(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_puts_uint64(&store, "max", &max, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_puts_uint64(&store, "zero", zero, 1, 0);
+    ret = kastore_oputs_uint64(&store, "zero", zero, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -1026,7 +1079,7 @@ test_round_trip_float32(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_puts_float32(&store, "max", &max, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_puts_float32(&store, "zero", zero, 1, 0);
+    ret = kastore_oputs_float32(&store, "zero", zero, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -1067,7 +1120,7 @@ test_round_trip_float64(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_puts_float64(&store, "max", &max, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_own_puts_float64(&store, "zero", zero, 1, 0);
+    ret = kastore_oputs_float64(&store, "zero", zero, 1, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -1373,6 +1426,7 @@ main(int argc, char **argv)
     CU_pTest test;
     CU_pSuite suite;
     CU_TestInfo tests[] = {
+        {"test_oputs_example", test_oputs_example},
         {"test_bad_open_mode", test_bad_open_mode},
         {"test_open_io_errors", test_open_io_errors},
         {"test_append_empty_file", test_append_empty_file},
@@ -1386,11 +1440,12 @@ main(int argc, char **argv)
         {"test_mixed_keys", test_mixed_keys},
         {"test_put_copy_array", test_put_copy_array},
         {"test_duplicate_key", test_duplicate_key},
-        {"test_duplicate_key_own_put", test_duplicate_key_own_put},
+        {"test_duplicate_key_oput", test_duplicate_key_oput},
         {"test_missing_key", test_missing_key},
+        {"test_contains", test_contains},
         {"test_bad_types", test_bad_types},
         {"test_simple_round_trip", test_simple_round_trip},
-        {"test_simple_round_trip_own_put_buffers", test_simple_round_trip_own_put_buffers},
+        {"test_simple_round_trip_oput_buffers", test_simple_round_trip_oput_buffers},
         {"test_simple_round_trip_append", test_simple_round_trip_append},
         {"test_gets_type_errors", test_gets_type_errors},
         {"test_round_trip_int8", test_round_trip_int8},
