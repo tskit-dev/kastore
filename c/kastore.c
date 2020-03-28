@@ -58,6 +58,9 @@ kas_strerror(int err)
         case KAS_ERR_TYPE_MISMATCH:
             ret = "Mismatch between requested and stored types for array";
             break;
+        case KAS_ERR_EOF:
+            ret = "Unexpected end of file";
+            break;
     }
     return ret;
 }
@@ -146,7 +149,15 @@ kastore_read_header(kastore_t *self)
 
     count = fread(header, KAS_HEADER_SIZE, 1, self->file);
     if (count == 0) {
-        ret = kastore_get_read_io_error(self);
+        /* If the file ends unexpectedly this could be a file format error.
+         * However, in the case of reading from a pipe, EOF indicates that the
+         * writer end has been closed. This is a condition the user needs to
+         * handle differently from a file format error. */
+        if (feof(self->file)) {
+            ret = KAS_ERR_EOF;
+        } else {
+            ret = kastore_get_read_io_error(self);
+        }
         goto out;
     }
     if (strncmp(header, KAS_MAGIC, 8) != 0) {
@@ -358,9 +369,10 @@ static int KAS_WARN_UNUSED
 kastore_read_file(kastore_t *self)
 {
     int ret = 0;
-    int err;
-    size_t count, size, j;
+    size_t count, size, offset, j;
     bool read_all = !!(self->flags & KAS_READ_ALL);
+
+    offset = KAS_HEADER_SIZE + self->num_items * KAS_ITEM_DESCRIPTOR_SIZE;
 
     size = self->file_size;
     if (!read_all) {
@@ -368,14 +380,12 @@ kastore_read_file(kastore_t *self)
         size = self->items[0].array_start;
     }
 
+    assert(size > offset);
+    size -= offset;
+
     self->read_buffer = malloc(size);
     if (self->read_buffer == NULL) {
         ret = KAS_ERR_NO_MEMORY;
-        goto out;
-    }
-    err = fseek(self->file, 0, SEEK_SET);
-    if (err != 0) {
-        ret = KAS_ERR_IO;
         goto out;
     }
     count = fread(self->read_buffer, size, 1, self->file);
@@ -385,9 +395,10 @@ kastore_read_file(kastore_t *self)
     }
     /* Assign the pointers for the keys and arrays */
     for (j = 0; j < self->num_items; j++) {
-        self->items[j].key = self->read_buffer + self->items[j].key_start;
+        self->items[j].key = self->read_buffer + self->items[j].key_start - offset;
         if (read_all) {
-            self->items[j].array = self->read_buffer + self->items[j].array_start;
+            self->items[j].array = self->read_buffer + self->items[j].array_start
+                - offset;
         }
     }
 out:

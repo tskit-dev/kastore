@@ -32,6 +32,9 @@ handle_library_error(int err)
         case KAS_ERR_VERSION_TOO_NEW:
             PyErr_SetNone(_kastore_VersionTooNewError);
             break;
+        case KAS_ERR_EOF:
+            PyErr_Format(PyExc_EOFError, "Unexpected end of file");
+            break;
         default:
             PyErr_Format(PyExc_ValueError, "Error occured: %d: %s",
                     err, kas_strerror(err));

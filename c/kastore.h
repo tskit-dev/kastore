@@ -83,6 +83,10 @@ The requestion function cannot be called in the current mode.
 The requested type does not match the type of the stored values.
 */
 #define KAS_ERR_TYPE_MISMATCH                         -13
+/**
+End of file was reached while reading data.
+*/
+#define KAS_ERR_EOF                                   -14
 /** @} */
 
 /* Flags for open */
@@ -137,10 +141,10 @@ sizes and types of externally visible structs.
 */
 #define KAS_VERSION_MAJOR   1
 /**
-The library major version. Incremented when non-breaking backward-compatible changes
+The library minor version. Incremented when non-breaking backward-compatible changes
 to the API or ABI are introduced, i.e., the addition of a new function.
 */
-#define KAS_VERSION_MINOR   1
+#define KAS_VERSION_MINOR   2
 /**
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.

@@ -111,13 +111,13 @@ test_open_io_errors(void)
 
     /* Reading /dev/null returns 0 bytes */
     ret = kastore_open(&store, "/dev/null", "r", 0);
-    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_FILE_FORMAT);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_EOF);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
     /* Appending /dev/null gives an error. */
     ret = kastore_open(&store, "/dev/null", "a", 0);
-    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_FILE_FORMAT);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_EOF);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 }
@@ -134,7 +134,7 @@ test_append_empty_file(void)
     fclose(f);
 
     ret = kastore_open(&store, _tmp_file_name, "a", 0);
-    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_FILE_FORMAT);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_EOF);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 }
@@ -1186,7 +1186,7 @@ verify_bad_file(const char *filename, int err)
 static void
 test_empty_file(void)
 {
-    verify_bad_file("test-data/malformed/empty_file.kas", KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file("test-data/malformed/empty_file.kas", KAS_ERR_EOF);
 }
 
 static void
