@@ -197,6 +197,8 @@ class MalformedFilesMixin(FileFormatsMixin):
         for offset in [-1, +1, 2, 100]:
             descriptors, file_size = store.pack_items(items)
             descriptors[1].key_start += offset
+            with open(self.temp_file, "wb") as f:
+                store.write_file(f, descriptors, file_size)
             self.assertRaises(
                 kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
                 read_all=self.read_all)
