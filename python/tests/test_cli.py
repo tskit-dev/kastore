@@ -14,7 +14,6 @@ import mock
 
 import kastore as kas
 import kastore.cli as cli
-import kastore.exceptions as exceptions
 import kastore.__main__ as main
 
 
@@ -180,8 +179,7 @@ class TestOutput(unittest.TestCase):
         # We really should be catching this exception and writing a message to
         # stderr. For now though, document the fact that we are raising the exception
         # up to the main.
-        self.assertRaises(
-            exceptions.FileFormatError, self.get_output, ["ls", self.temp_file])
+        self.assertRaises(EOFError, self.get_output, ["ls", self.temp_file])
 
     def verify_logging(self, args, level):
         # We don't actually check the output here as we're mocking out the

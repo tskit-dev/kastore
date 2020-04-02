@@ -136,7 +136,7 @@ class MalformedFilesMixin(FileFormatsMixin):
             pass
         self.assertEqual(os.path.getsize(self.temp_file), 0)
         self.assertRaises(
-            kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
+            EOFError, kas.load, self.temp_file, engine=self.engine,
             read_all=self.read_all)
 
     def test_bad_magic(self):

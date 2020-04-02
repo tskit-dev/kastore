@@ -27,8 +27,7 @@ class StandardFilesMixin(object):
         return kas.load(full_path, engine=self.engine, read_all=False)
 
     def test_empty_file(self):
-        self.assertRaises(
-            kas.FileFormatError, self.read_file, "malformed/empty_file.kas")
+        self.assertRaises(EOFError, self.read_file, "malformed/empty_file.kas")
 
     def test_bad_type(self):
         self.assertRaises(
@@ -63,7 +62,6 @@ class StandardFilesMixin(object):
 
     def test_truncated_file(self):
         self.assertRaises(
-
             kas.FileFormatError, self.read_file, "malformed/truncated_file.kas")
 
     def test_key_offset_outside_file(self):
