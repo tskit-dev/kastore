@@ -505,7 +505,6 @@ test_missing_key(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 }
 
-
 static void
 test_simple_round_trip(void)
 {
@@ -557,6 +556,28 @@ test_simple_round_trip(void)
         CU_ASSERT_EQUAL(a[2], 3);
         CU_ASSERT_EQUAL(a[3], 4);
 
+        ret = kastore_close(&store);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+    }
+}
+
+static void
+test_simple_round_trip_zero_keys(void)
+{
+    int ret;
+    kastore_t store;
+    size_t j;
+    int flags[] = {0, 1};
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    for (j = 0; j < sizeof(flags) / sizeof(*flags); j++) {
+        ret = kastore_open(&store, _tmp_file_name, "r", flags[j]);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        CU_ASSERT_EQUAL(store.num_items, 0);
         ret = kastore_close(&store);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
     }
@@ -1445,6 +1466,7 @@ main(int argc, char **argv)
         {"test_contains", test_contains},
         {"test_bad_types", test_bad_types},
         {"test_simple_round_trip", test_simple_round_trip},
+        {"test_simple_round_trip_zero_keys", test_simple_round_trip_zero_keys},
         {"test_simple_round_trip_oput_buffers", test_simple_round_trip_oput_buffers},
         {"test_simple_round_trip_append", test_simple_round_trip_append},
         {"test_gets_type_errors", test_gets_type_errors},

@@ -74,6 +74,9 @@ class TestRoundTripSimple(TestRoundTrip):
     """
     Simple round-trip tests for some hand crafted cases.
     """
+    def test_zero_keys(self):
+        self.verify({})
+
     def test_single_key(self):
         self.verify({"a": np.zeros(1)})
 
