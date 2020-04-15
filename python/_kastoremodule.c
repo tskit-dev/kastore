@@ -167,6 +167,8 @@ build_dictionary(kastore_t *store)
         if (PyDict_SetItem(data, key, (PyObject *) array) != 0) {
             goto out;
         }
+        Py_XDECREF(key);
+        Py_XDECREF(array);
         key = NULL;
         array = NULL;
     }
