@@ -139,12 +139,7 @@ class ItemDescriptor(object):
         return cls(type_, key_start, key_len, array_start, array_len)
 
 
-def dump(arrays, filename, key_encoding="utf-8"):
-    with open(filename, "wb") as f:
-        _dump(arrays, f, key_encoding)
-
-
-def _dump(arrays, fileobj, key_encoding):
+def dump(arrays, fileobj, key_encoding="utf-8"):
     """
     Writes the arrays in the specified mapping to the key-array-store file.
     """
@@ -235,8 +230,8 @@ def write_file(fileobj, descriptors, file_size):
         offset = descriptor.array_start + len(data)
 
 
-def load(filename, read_all=False, key_encoding="utf-8"):
-    return Store(filename, read_all=read_all, key_encoding=key_encoding)
+def load(file, read_all=False, key_encoding="utf-8"):
+    return Store(file, read_all=read_all, key_encoding=key_encoding)
 
 
 class ValueInfo(object):
@@ -256,8 +251,8 @@ class Store(Mapping):
     """
     Dictionary-like object giving dynamic access to the data in a kastore.
     """
-    def __init__(self, filename, read_all=False, key_encoding="utf8"):
-        self.filename = filename
+    def __init__(self, file, read_all=False, key_encoding="utf8"):
+        self.filename = file
         self.key_encoding = key_encoding
         self._descriptor_map = None
         self._array_map = {}
@@ -266,7 +261,10 @@ class Store(Mapping):
         # the destructor below, even if open() fails.
         self._file = None
         self._file_offset = 0
-        self._file = open(self.filename, "rb", buffering=0)
+        if hasattr(self.filename, "read") and callable(self.filename.read):
+            self._file = self.filename
+        else:
+            self._file = open(self.filename, "rb")
         if not read_all:
             if not self._file.seekable():
                 raise ValueError("read_all=False, but file is non-seekable")
@@ -420,7 +418,8 @@ class Store(Mapping):
     def close(self):
         if self._file is not None:
             logger.debug("Closing file '{}'".format(self._file.name))
-            self._file.close()
+            if self._file != self.filename:
+                self._file.close()
             self._file = None
 
     def __enter__(self):

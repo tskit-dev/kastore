@@ -32,42 +32,40 @@ class InterfaceMixin(object):
             self.assertRaises(
                 TypeError, kas.dump, bad_dict, self.temp_file, engine=self.engine)
             self.assertRaises(
-                TypeError, kas.dump, data=bad_dict, filename=self.temp_file,
-                engine=self.engine)
+                TypeError, kas.dump, bad_dict, self.temp_file, engine=self.engine)
 
     def test_bad_filename_type(self):
         for bad_filename in [[], None, {}]:
             self.assertRaises(
                 TypeError, kas.dump, {}, bad_filename, engine=self.engine)
             self.assertRaises(
-                TypeError, kas.dump, data={}, filename=bad_filename, engine=self.engine)
+                TypeError, kas.dump, {}, bad_filename, engine=self.engine)
             self.assertRaises(
                 TypeError, kas.load, bad_filename, engine=self.engine)
             self.assertRaises(
-                TypeError, kas.load, filename=bad_filename, engine=self.engine)
+                TypeError, kas.load, bad_filename, engine=self.engine)
 
     def test_bad_keys(self):
         a = np.zeros(1)
         for bad_key in [(1234,), b"1234", None, 1234]:
             self.assertRaises(
-                TypeError, kas.dump, data={bad_key: a}, filename=self.temp_file,
-                engine=self.engine)
+                TypeError, kas.dump, {bad_key: a}, self.temp_file, engine=self.engine)
 
     def test_bad_arrays(self):
-        kas.dump(data={"a": []}, filename=self.temp_file, engine=self.engine)
+        kas.dump({"a": []}, self.temp_file, engine=self.engine)
         for bad_array in [kas, lambda x: x, "1234", None, [[0, 1], [0, 2]]]:
             self.assertRaises(
-                ValueError, kas.dump, data={"a": bad_array},
-                filename=self.temp_file, engine=self.engine)
+                ValueError, kas.dump, {"a": bad_array},
+                self.temp_file, engine=self.engine)
         # TODO add tests for arrays in fortran order and so on.
 
     def test_file_not_found(self):
         a = np.zeros(1)
         for bad_file in ["no_such_file", "/no/such/file"]:
             self.assertRaises(
-                FileNotFoundError, kas.load, filename=bad_file, engine=self.engine)
+                FileNotFoundError, kas.load, bad_file, engine=self.engine)
         self.assertRaises(
-            FileNotFoundError, kas.dump, data={"a": a}, filename="/no/such/file",
+            FileNotFoundError, kas.dump, {"a": a}, "/no/such/file",
             engine=self.engine)
 
     def test_file_is_a_directory(self):
@@ -77,10 +75,9 @@ class InterfaceMixin(object):
             if IS_WINDOWS:
                 exception = PermissionError
             self.assertRaises(
-                exception, kas.dump, filename=tmp_dir, data={"a": []},
-                engine=self.engine)
+                exception, kas.dump, {"a": []}, tmp_dir, engine=self.engine)
             self.assertRaises(
-                exception, kas.load, filename=tmp_dir, engine=self.engine)
+                exception, kas.load, tmp_dir, engine=self.engine)
         finally:
             os.rmdir(tmp_dir)
 
@@ -101,7 +98,7 @@ class TestEngines(unittest.TestCase):
 
     def test_bad_engine_dump(self):
         for bad_engine in self.bad_engines:
-            self.assertRaises(ValueError, kas.dump, "", {}, engine=bad_engine)
+            self.assertRaises(ValueError, kas.dump, {}, "", engine=bad_engine)
 
     def test_bad_engine_load(self):
         for bad_engine in self.bad_engines:

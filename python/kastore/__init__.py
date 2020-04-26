@@ -27,25 +27,26 @@ def _raise_unknown_engine():
     raise ValueError("unknown engine")
 
 
-def load(filename, read_all=False, key_encoding="utf-8", engine=PY_ENGINE):
+def load(file, read_all=False, key_encoding="utf-8", engine=PY_ENGINE):
     """
     Loads a store from the specified file.
 
+    :param str file: The path of the file to load, or a file-like object
+        with a ``read()`` method.
     :param bool read_all: If True, read the entire file into memory. This
         optimisation is useful when all the data will be needed, saving some
         malloc and fread overhead.
-    :param str filename: The path of the file to load.
     :param str key_encoding: The encoding to use when converting the keys from
         raw bytes.
     :param str engine: The underlying implementation to use.
     :return: A dict-like object mapping the key-array pairs.
     """
     if engine == PY_ENGINE:
-        return store.load(filename, read_all=read_all, key_encoding=key_encoding)
+        return store.load(file, read_all=read_all, key_encoding=key_encoding)
     elif engine == C_ENGINE:
         _check_low_level_module()
         try:
-            return _kastore.load(filename, read_all=read_all)
+            return _kastore.load(file, read_all=read_all)
         except _kastore.FileFormatError as e:
             # TODO implement this using exception chaining, "raise X from e"
             # https://github.com/tskit-dev/kastore/issues/81
@@ -59,20 +60,25 @@ def load(filename, read_all=False, key_encoding="utf-8", engine=PY_ENGINE):
         _raise_unknown_engine()
 
 
-def dump(data, filename, key_encoding="utf-8", engine=PY_ENGINE):
+def dump(data, file, key_encoding="utf-8", engine=PY_ENGINE):
     """
     Dumps a store to the specified file.
 
-    :param str filename: The path of the file to write the store to.
+    :param str file: The path of the file to write the store to, or a
+        file-like object with a ``write()`` method.
     :param str key_encoding: The encoding to use when converting the keys
         to raw bytes.
     :param str engine: The underlying implementation to use.
     """
     if engine == PY_ENGINE:
-        store.dump(data, filename, key_encoding)
+        if hasattr(file, "write") and callable(file.write):
+            store.dump(data, file, key_encoding)
+        else:
+            with open(file, "wb") as f:
+                store.dump(data, f, key_encoding)
     elif engine == C_ENGINE:
         _check_low_level_module()
-        _kastore.dump(data, filename)
+        _kastore.dump(data, file)
     else:
         _raise_unknown_engine()
 
