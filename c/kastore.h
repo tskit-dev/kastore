@@ -38,7 +38,7 @@ An error occured during IO.
 */
 #define KAS_ERR_IO                                    -2
 /**
-A unrecognised mode string was passed to open().
+An unrecognised mode string was passed to open().
 */
 #define KAS_ERR_BAD_MODE                              -3
 /**
@@ -179,6 +179,7 @@ typedef struct {
     FILE *file;
     const char *filename;
     size_t file_size;
+    long file_offset;
     char *read_buffer;
 } kastore_t;
 
@@ -229,6 +230,24 @@ KAS_READ_ALL
 @return Return 0 on success or a negative value on failure.
 */
 int kastore_open(kastore_t *self, const char *filename, const char *mode, int flags);
+
+/**
+@brief Open a store from a given FILE pointer.
+
+@rst
+Behaviour, mode and flags follow that of :c:func:`kastore_open`.
+``file`` must have been opened in either read-only mode ("r") or write-only
+mode ("w").  Read-write mode ("r+" or "w+") and append mode ("a" or "a+")
+are explicitly not supported.
+@endrst
+
+@param self A pointer to a kastore object.
+@param file The FILE* to read/write the store from/to.
+@param mode The open mode: can be read ("r"), write ("w") or append ("a").
+@param flags The open flags.
+@return Return 0 on success or a negative value on failure.
+*/
+int kastore_openf(kastore_t *self, FILE *file, const char *mode, int flags);
 
 /**
 @brief Close an opened store, freeing all resources.

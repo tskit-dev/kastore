@@ -8,6 +8,7 @@ import pathlib
 import shutil
 import multiprocessing
 import queue
+import traceback
 
 import numpy as np
 
@@ -23,10 +24,7 @@ class DictVerifyMixin(object):
 
 # pathlib.Path objects should work  transparently, and these tests check it
 # isn't broken by fileobj-enabling code.
-class TestPathlib(DictVerifyMixin, unittest.TestCase):
-    # these tests are specific to the Python engine
-    engine = kas.PY_ENGINE
-
+class PathlibMixin(DictVerifyMixin):
     def setUp(self):
         fd, path = tempfile.mkstemp(prefix="kas_test_pathlib")
         os.close(fd)
@@ -51,10 +49,7 @@ class TestPathlib(DictVerifyMixin, unittest.TestCase):
             self.assertEqual(file_size, file_size2)
 
 
-class TestFileobj(DictVerifyMixin, unittest.TestCase):
-    # these tests are specific to the Python engine
-    engine = kas.PY_ENGINE
-
+class FileobjMixin(DictVerifyMixin):
     def setUp(self):
         fd, path = tempfile.mkstemp(prefix="kas_test_fileobj")
         os.close(fd)
@@ -122,35 +117,42 @@ class TestFileobj(DictVerifyMixin, unittest.TestCase):
                     self.assertEqual(file_offset, file_offset2)
 
 
-def dump_to_stream(q_in, file_out, engine):
+def dump_to_stream(q_err, q_in, file_out, engine):
     """
     Get data dicts from `q_in` and kas.dump() them to `file_out`.
+    Uncaught exceptions are placed onto the `q_err` queue.
     """
-    with open(file_out, "wb") as f:
-        while True:
-            data = q_in.get()
-            if data is None:
-                break
-            kas.dump(data, f, engine=engine)
+    try:
+        with open(file_out, "wb") as f:
+            while True:
+                data = q_in.get()
+                if data is None:
+                    break
+                kas.dump(data, f, engine=engine)
+    except Exception as exc:
+        tb = traceback.format_exc()
+        q_err.put((exc, tb))
 
 
-def load_from_stream(q_out, file_in, engine):
+def load_from_stream(q_err, q_out, file_in, engine, read_all):
     """
-    kas.load() stores from `fileobj` and put their data onto `q_out`.
+    kas.load() stores from `file_in` and put their data onto `q_out`.
+    Uncaught exceptions are placed onto the `q_err` queue.
     """
-    with open(file_in, "rb") as f:
-        while True:
-            try:
-                data = kas.load(f, read_all=True, engine=engine)
-            except EOFError:
-                break
-            q_out.put(dict(data.items()))
+    try:
+        with open(file_in, "rb") as f:
+            while True:
+                try:
+                    data = kas.load(f, read_all=read_all, engine=engine)
+                except EOFError:
+                    break
+                q_out.put(dict(data.items()))
+    except Exception as exc:
+        tb = traceback.format_exc()
+        q_err.put((exc, tb))
 
 
-class TestStreaming(DictVerifyMixin, unittest.TestCase):
-    # these tests are specific to the Python engine
-    engine = kas.PY_ENGINE
-
+class StreamingMixin(DictVerifyMixin):
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp(prefix="kas_test_streaming")
         self.temp_fifo = os.path.join(self.temp_dir, "fifo")
@@ -159,22 +161,30 @@ class TestStreaming(DictVerifyMixin, unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_dir)
 
-    def stream(self, datalist):
+    def stream(self, datalist, read_all=True):
         """
         data -> q_in -> kas.dump(..., fifo) -> kas.load(fifo) -> q_out -> data_out
         """
+        q_err = multiprocessing.Queue()
         q_in = multiprocessing.Queue()
         q_out = multiprocessing.Queue()
         proc1 = multiprocessing.Process(
-                target=dump_to_stream, args=(q_in, self.temp_fifo, self.engine))
+                target=dump_to_stream, args=(
+                    q_err, q_in, self.temp_fifo, self.engine))
         proc2 = multiprocessing.Process(
-                target=load_from_stream, args=(q_out, self.temp_fifo, self.engine))
+                target=load_from_stream, args=(
+                    q_err, q_out, self.temp_fifo, self.engine, read_all))
         proc1.start()
         proc2.start()
         for data in datalist:
             q_in.put(data)
         q_in.put(None)  # signal the process that we're done
         proc1.join(timeout=3)
+        if not q_err.empty():
+            # re-raise the first child exception
+            exc, tb = q_err.get()
+            print(tb)
+            raise exc
         if proc1.is_alive():
             # prevent hang if proc1 failed to join
             proc1.terminate()
@@ -209,6 +219,30 @@ class TestStreaming(DictVerifyMixin, unittest.TestCase):
         self.stream(datalist)
 
     def test_cant_seek_error(self):
-        self.assertRaises(
-                ValueError, kas.load, "/dev/stdin", read_all=False,
-                engine=self.engine)
+        datalist = [{"a": np.array([0])}]
+        with self.assertRaises(OSError):
+            self.stream(datalist, read_all=False)
+
+
+class TestPathlibCEngine(PathlibMixin, unittest.TestCase):
+    engine = kas.C_ENGINE
+
+
+class TestPathlibPyEngine(PathlibMixin, unittest.TestCase):
+    engine = kas.PY_ENGINE
+
+
+class TestFileobjCEngine(FileobjMixin, unittest.TestCase):
+    engine = kas.C_ENGINE
+
+
+class TestFileobjPyEngine(FileobjMixin, unittest.TestCase):
+    engine = kas.PY_ENGINE
+
+
+class TestStreamingCEngine(StreamingMixin, unittest.TestCase):
+    engine = kas.C_ENGINE
+
+
+class TestStreamingPyEngine(StreamingMixin, unittest.TestCase):
+    engine = kas.PY_ENGINE

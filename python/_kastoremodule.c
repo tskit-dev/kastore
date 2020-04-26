@@ -243,24 +243,64 @@ static PyObject *
 kastore_load(PyObject *self, PyObject *args, PyObject *kwds)
 {
     int err;
+    int fileobj_fd, new_fd;
     PyObject *ret = NULL;
     char *filename;
     kastore_t store;
     PyObject *data = NULL;
+    PyObject *fileobj = NULL;
+    PyObject *bytes = NULL;
+    FILE *file = NULL;
     static char *kwlist[] = {"filename", "read_all", NULL};
     int read_all = 0;
     int flags = 0;
 
     memset(&store, 0, sizeof(store));
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|i:load", kwlist,
-                &filename, &read_all)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|i:load", kwlist,
+                &fileobj, &read_all)) {
         goto out;
     }
     if (read_all) {
         flags = KAS_READ_ALL;
     }
-    err = kastore_open(&store, filename, "r", flags);
+    /* See comment regarding fileobj in kastore_dump(). */
+    fileobj_fd = PyObject_AsFileDescriptor(fileobj);
+    if (fileobj_fd != -1 && !PyLong_Check(fileobj)) {
+        new_fd = dup(fileobj_fd);
+        if (new_fd == -1) {
+            handle_library_error(KAS_ERR_IO);
+            goto out;
+        }
+        file = fdopen(new_fd, "rb");
+        if (file == NULL) {
+            (void)close(new_fd);
+            handle_library_error(KAS_ERR_IO);
+            goto out;
+        }
+        /* Set unbuffered mode to ensure no more bytes are read than requested.
+         * Buffered reads could read beyond the end of the current store in a
+         * multi-store file or stream. This data would be discarded when we
+         * fclose() the file below, such that attempts to load the next store
+         * will fail. */
+        if (setvbuf(file, NULL, _IONBF, 0) != 0) {
+            handle_library_error(KAS_ERR_IO);
+            goto out;
+        }
+        err = kastore_openf(&store, file, "r", flags);
+    } else {
+        PyErr_Clear();  /* Clear error from PyObject_AsFileDescriptor(). */
+        bytes = PyUnicode_EncodeFSDefault(fileobj);
+        if (bytes == NULL) {
+            PyErr_Format(PyExc_TypeError,
+                    "dump() file argument must be a filename or a file-like "
+                    "object with a fileno() method");
+            goto out;
+        }
+        filename = PyBytes_AS_STRING(bytes);
+        err = kastore_open(&store, filename, "r", flags);
+    }
+    //err = kastore_open(&store, filename, "r", flags);
     if (err != 0) {
         handle_library_error(err);
         goto out;
@@ -277,8 +317,12 @@ kastore_load(PyObject *self, PyObject *args, PyObject *kwds)
     data = NULL;
 out:
     /* In the error case, we ignore errors that occur here. It's OK to call
-     * close on store that has already been closed. */
+     * close on a store that has already been closed. */
     kastore_close(&store);
+    if (file != NULL) {
+        (void)fclose(file);
+    }
+    Py_XDECREF(bytes);
     Py_XDECREF(data);
     return ret;
 }
@@ -287,19 +331,56 @@ static PyObject *
 kastore_dump(PyObject *self, PyObject *args, PyObject *kwds)
 {
     int err;
+    int fileobj_fd, new_fd;
     PyObject *ret = NULL;
     char *filename;
     kastore_t store;
     PyObject *data = NULL;
+    PyObject *fileobj = NULL;
+    PyObject *bytes = NULL;
+    FILE *file = NULL;
     static char *kwlist[] = {"data", "filename", NULL};
 
     memset(&store, 0, sizeof(store));
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!s:dump", kwlist,
-                &PyDict_Type, &data, &filename)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!O:dump", kwlist,
+                &PyDict_Type, &data, &fileobj)) {
         goto out;
     }
-    err = kastore_open(&store, filename, "w", 0);
+    /* Try to obtain a file descriptor from fileobj. This succeeds if the
+     * fileobj has a fileno() method, such as objects derived from io.IOBase.
+     * But it also succeeds if fileobj is an integer file descriptor (PyLong).
+     * There's no reasonable use case for integer file descripter arguments
+     * here, and this is most likely user error. So we explicitly disallow
+     * PyLong fileobjs, to avoid unexpected behaviour (e.g. corrupting the data
+     * stream of any already open file).
+     */
+    fileobj_fd = PyObject_AsFileDescriptor(fileobj);
+    if (fileobj_fd != -1 && !PyLong_Check(fileobj)) {
+        new_fd = dup(fileobj_fd);
+        if (new_fd == -1) {
+            handle_library_error(KAS_ERR_IO);
+            goto out;
+        }
+        file = fdopen(new_fd, "wb");
+        if (file == NULL) {
+            (void)close(new_fd);
+            handle_library_error(KAS_ERR_IO);
+            goto out;
+        }
+        err = kastore_openf(&store, file, "w", 0);
+    } else {
+        PyErr_Clear();  /* Clear error from PyObject_AsFileDescriptor(). */
+        bytes = PyUnicode_EncodeFSDefault(fileobj);
+        if (bytes == NULL) {
+            PyErr_Format(PyExc_TypeError,
+                    "dump() file argument must be a filename or a file-like "
+                    "object with a fileno() method");
+            goto out;
+        }
+        filename = PyBytes_AS_STRING(bytes);
+        err = kastore_open(&store, filename, "w", 0);
+    }
     if (err != 0) {
         handle_library_error(err);
         goto out;
@@ -315,8 +396,12 @@ kastore_dump(PyObject *self, PyObject *args, PyObject *kwds)
     ret = Py_BuildValue("");
 out:
     /* In the error case, we ignore errors that occur here. It's OK to call
-     * close on store that has already been closed. */
+     * close on a store that has already been closed. */
     kastore_close(&store);
+    if (file != NULL) {
+        (void)fclose(file);
+    }
+    Py_XDECREF(bytes);
     return ret;
 }
 

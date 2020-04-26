@@ -266,8 +266,6 @@ class Store(Mapping):
         else:
             self._file = open(self.filename, "rb")
         if not read_all:
-            if not self._file.seekable():
-                raise ValueError("read_all=False, but file is non-seekable")
             # Record the current file offset, in case this is a multi-store file,
             # so that we can seek to the correct location in __getitem__().
             self._file_offset = self._file.tell()

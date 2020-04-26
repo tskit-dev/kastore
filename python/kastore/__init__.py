@@ -1,4 +1,5 @@
 import os.path
+import pathlib
 
 from . import store
 from . exceptions import FileFormatError
@@ -45,6 +46,8 @@ def load(file, read_all=False, key_encoding="utf-8", engine=PY_ENGINE):
         return store.load(file, read_all=read_all, key_encoding=key_encoding)
     elif engine == C_ENGINE:
         _check_low_level_module()
+        if isinstance(file, pathlib.PurePath):
+            file = str(file)
         try:
             return _kastore.load(file, read_all=read_all)
         except _kastore.FileFormatError as e:
@@ -78,6 +81,8 @@ def dump(data, file, key_encoding="utf-8", engine=PY_ENGINE):
                 store.dump(data, f, key_encoding)
     elif engine == C_ENGINE:
         _check_low_level_module()
+        if isinstance(file, pathlib.PurePath):
+            file = str(file)
         _kastore.dump(data, file)
     else:
         _raise_unknown_engine()
