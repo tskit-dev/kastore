@@ -7,6 +7,11 @@
 
 #include "kastore.h"
 
+/* Private flag used to indicate when we have opened the file ourselves
+ * and need to free it. */
+#define OWN_FILE  (1 << 31)
+
+
 const char *
 kas_strerror(int err)
 {
@@ -25,6 +30,9 @@ kas_strerror(int err)
             break;
         case KAS_ERR_BAD_MODE:
             ret = "Bad open mode; must be \"r\", \"w\", or \"a\"";
+            break;
+        case KAS_ERR_BAD_FLAGS:
+            ret = "Unknow flags specified. Only KAS_READ_ALL or 0 allowed.";
             break;
         case KAS_ERR_NO_MEMORY:
             ret = "Out of memory";
@@ -567,7 +575,7 @@ kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
     if (ret != 0) {
         (void)fclose(file);
     } else {
-        self->filename = filename;
+        self->flags |= OWN_FILE;
         if (appending) {
             ret = kastore_insert_all(self, &tmp);
         }
@@ -597,10 +605,13 @@ kastore_openf(kastore_t *self, FILE *file, const char *mode, int flags)
         ret = KAS_ERR_BAD_MODE;
         goto out;
     }
+    if (!(flags == 0 || flags == KAS_READ_ALL)) {
+        ret = KAS_ERR_BAD_FLAGS;
+        goto out;
+    }
 
     self->flags = flags;
     self->file = file;
-    self->filename = NULL;
     if (self->mode == KAS_READ) {
         ret = kastore_read(self);
     }
@@ -620,7 +631,7 @@ kastore_close(kastore_t *self)
             ret = kastore_write_file(self);
             if (ret != 0) {
                 /* Ignore errors on close now */
-                if (self->filename != NULL) {
+                if (self->flags & OWN_FILE) {
                     fclose(self->file);
                 }
                 self->file = NULL;
@@ -645,7 +656,7 @@ kastore_close(kastore_t *self)
         }
     }
     kas_safe_free(self->items);
-    if (self->file != NULL && self->filename != NULL) {
+    if (self->file != NULL && (self->flags & OWN_FILE)) {
         err = fclose(self->file);
         if (err != 0) {
             ret = KAS_ERR_IO;
@@ -1062,9 +1073,7 @@ kastore_print_state(kastore_t *self, FILE *out)
     fprintf(out, "flags = %d\n", self->flags);
     fprintf(out, "num_items = %zu\n", self->num_items);
     fprintf(out, "file_size = %zu\n", self->file_size);
-    if (self->filename != NULL) {
-        fprintf(out, "filename = '%s'\n", self->filename);
-    }
+    fprintf(out, "own_file  = %d\n", !! (self->flags & OWN_FILE));
     fprintf(out, "file = '%p'\n", (void *) self->file);
     fprintf(out, "============================\n");
     for (j = 0; j < self->num_items; j++) {

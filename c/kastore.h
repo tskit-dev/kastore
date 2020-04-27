@@ -19,6 +19,7 @@ extern "C" {
     #define KAS_UNUSED(x) KAS_UNUSED_ ## x
 #endif
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -87,6 +88,10 @@ The requested type does not match the type of the stored values.
 End of file was reached while reading data.
 */
 #define KAS_ERR_EOF                                   -14
+/**
+Unknown flags were provided to open.
+*/
+#define KAS_ERR_BAD_FLAGS                             -15
 /** @} */
 
 /* Flags for open */
@@ -139,12 +144,12 @@ The library major version. Incremented when breaking changes to the API or ABI a
 introduced. This includes any changes to the signatures of functions and the
 sizes and types of externally visible structs.
 */
-#define KAS_VERSION_MAJOR   1
+#define KAS_VERSION_MAJOR   2
 /**
 The library minor version. Incremented when non-breaking backward-compatible changes
 to the API or ABI are introduced, i.e., the addition of a new function.
 */
-#define KAS_VERSION_MINOR   2
+#define KAS_VERSION_MINOR   0
 /**
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
@@ -177,7 +182,6 @@ typedef struct {
     size_t num_items;
     kaitem_t *items;
     FILE *file;
-    const char *filename;
     size_t file_size;
     long file_offset;
     char *read_buffer;
@@ -235,15 +239,16 @@ int kastore_open(kastore_t *self, const char *filename, const char *mode, int fl
 @brief Open a store from a given FILE pointer.
 
 @rst
-Behaviour, mode and flags follow that of :c:func:`kastore_open`.
-``file`` must have been opened in either read-only mode ("r") or write-only
-mode ("w").  Read-write mode ("r+" or "w+") and append mode ("a" or "a+")
-are explicitly not supported.
+Behaviour, mode and flags follow that of :c:func:`kastore_open`,
+except append mode is not supported.
+The ``file`` argument must be opened in an appropriate mode (e.g. "r"
+for a kastore in "r" mode).  Files open with other modes will result
+in KAS_ERR_IO being returned when read/write operations are attempted.
 @endrst
 
 @param self A pointer to a kastore object.
 @param file The FILE* to read/write the store from/to.
-@param mode The open mode: can be read ("r"), write ("w") or append ("a").
+@param mode The open mode: can be read ("r") or write ("w").
 @param flags The open flags.
 @return Return 0 on success or a negative value on failure.
 */

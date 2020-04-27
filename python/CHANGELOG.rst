@@ -1,4 +1,19 @@
 --------------------
+[0.3.0] - 2020-XX-XX
+--------------------
+
+**New features**
+
+- Support for file-like objects in dump/load and remove
+  file seeks. This allows reading from a pipes/FIFOs etc
+  (:user:`grahamgower`, :pr:`88`).
+
+**Breaking changes**
+
+- The ``filename`` named argument to load/dump has been changed to
+  ``file`` to reflect the support for file objects.
+
+--------------------
 [0.2.2] - 2018-12-07
 --------------------
 

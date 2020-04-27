@@ -1,5 +1,5 @@
+import functools
 import os.path
-import pathlib
 
 from . import store
 from . exceptions import FileFormatError
@@ -46,10 +46,12 @@ def load(file, read_all=False, key_encoding="utf-8", engine=PY_ENGINE):
         return store.load(file, read_all=read_all, key_encoding=key_encoding)
     elif engine == C_ENGINE:
         _check_low_level_module()
-        if isinstance(file, pathlib.PurePath):
-            file = str(file)
         try:
-            return _kastore.load(file, read_all=read_all)
+            if hasattr(file, "read") and callable(file.read):
+                return _kastore.load(file, read_all=read_all)
+            else:
+                with open(file, "rb") as f:
+                    return _kastore.load(f, read_all=read_all)
         except _kastore.FileFormatError as e:
             # TODO implement this using exception chaining, "raise X from e"
             # https://github.com/tskit-dev/kastore/issues/81
@@ -74,18 +76,18 @@ def dump(data, file, key_encoding="utf-8", engine=PY_ENGINE):
     :param str engine: The underlying implementation to use.
     """
     if engine == PY_ENGINE:
-        if hasattr(file, "write") and callable(file.write):
-            store.dump(data, file, key_encoding)
-        else:
-            with open(file, "wb") as f:
-                store.dump(data, f, key_encoding)
+        dump = functools.partial(store.dump, key_encoding=key_encoding)
     elif engine == C_ENGINE:
         _check_low_level_module()
-        if isinstance(file, pathlib.PurePath):
-            file = str(file)
-        _kastore.dump(data, file)
+        dump = _kastore.dump
     else:
         _raise_unknown_engine()
+
+    if hasattr(file, "write") and callable(file.write):
+        dump(data, file)
+    else:
+        with open(file, "wb") as f:
+            dump(data, f)
 
 
 def get_include():

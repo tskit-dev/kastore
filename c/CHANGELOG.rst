@@ -1,4 +1,17 @@
 --------------------
+[2.0.0] - 2020-XX-XX
+--------------------
+
+- Major file version bumped because new fields were added the kastore_t
+  struct, leading to potential ABI breakage. No API breakage should occur.
+
+**New features**
+
+- Add kastore_openf function to support FILE objects, and remove
+  file seeks. This allows reading from a pipes/FIFOs etc
+  (:user:`grahamgower`, :pr:`88`).
+
+--------------------
 [1.1.0] - 2019-03-19
 --------------------
 

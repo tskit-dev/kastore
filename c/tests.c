@@ -12,6 +12,23 @@
 char * _tmp_file_name;
 FILE * _devnull;
 
+
+static void
+write_example_file(char *filename)
+{
+    int ret;
+    kastore_t store;
+    size_t num_elements = 10;
+    uint32_t *array = calloc(num_elements, sizeof(*array));
+
+    ret = kastore_open(&store, filename, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_oputs_uint32(&store, "array", array, num_elements, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
 static void
 test_oputs_example(void)
 {
@@ -31,6 +48,27 @@ test_oputs_example(void)
 }
 
 static void
+test_bad_open_flags(void)
+{
+    int ret;
+    kastore_t store;
+    const int bad_flags[] = {2, 3, 1<<31, -1};
+    size_t j;
+
+    for (j = 0; j < sizeof(bad_flags) / sizeof(*bad_flags); j++) {
+        ret = kastore_open(&store, _tmp_file_name, "r", bad_flags[j]);
+        CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_FLAGS);
+        ret = kastore_close(&store);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+        ret = kastore_openf(&store, NULL, "r", bad_flags[j]);
+        CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_FLAGS);
+        ret = kastore_close(&store);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+    }
+}
+
+static void
 test_bad_open_mode(void)
 {
     int ret;
@@ -43,7 +81,65 @@ test_bad_open_mode(void)
         CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_MODE);
         ret = kastore_close(&store);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+        ret = kastore_openf(&store, NULL, bad_modes[j], 0);
+        CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_MODE);
+        ret = kastore_close(&store);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
     }
+
+    /* Additionally, openf doesn't support append mode */
+    ret = kastore_openf(&store, NULL, "a", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_MODE);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
+test_openf_bad_file_read_modes(void)
+{
+    int ret;
+    kastore_t store;
+    FILE *f;
+
+    write_example_file(_tmp_file_name);
+    f = fopen(_tmp_file_name, "w");
+    CU_ASSERT_NOT_EQUAL_FATAL(f, NULL);
+    ret = kastore_openf(&store, f, "r", 0);
+    /* Bad file descriptor */
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    fclose(f);
+
+    write_example_file(_tmp_file_name);
+    f = fopen(_tmp_file_name, "a");
+    CU_ASSERT_NOT_EQUAL_FATAL(f, NULL);
+    ret = kastore_openf(&store, f, "r", 0);
+    /* Bad file descriptor */
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    fclose(f);
+}
+
+static void
+test_openf_bad_file_write_modes(void)
+{
+    int ret;
+    kastore_t store;
+    FILE *f;
+
+    write_example_file(_tmp_file_name);
+    f = fopen(_tmp_file_name, "r");
+    CU_ASSERT_NOT_EQUAL_FATAL(f, NULL);
+    ret = kastore_openf(&store, f, "w", 0);
+    /* Open succeeds because we don't try to write anything until close */
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    /* Bad file descriptor */
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    fclose(f);
 }
 
 static void
@@ -559,6 +655,87 @@ test_simple_round_trip(void)
         ret = kastore_close(&store);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
     }
+}
+
+static void
+verify_simple_file_round_trip(const char *write_mode, const char *read_mode)
+{
+    int ret;
+    FILE *f;
+    kastore_t store;
+    const uint32_t array[] = {1, 2, 3, 4};
+    uint32_t *a;
+    size_t j, array_len;
+    int type;
+    int flags[] = {0, 1};
+
+    f = fopen(_tmp_file_name, write_mode);
+    CU_ASSERT_NOT_EQUAL_FATAL(f, NULL);
+    ret = kastore_openf(&store, f, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_puts(&store, "c", array, 4, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "b", array, 2, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "a", array, 1, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    fclose(f);
+
+    for (j = 0; j < sizeof(flags) / sizeof(*flags); j++) {
+        f = fopen(_tmp_file_name, read_mode);
+        CU_ASSERT_NOT_EQUAL_FATAL(f, NULL);
+        ret = kastore_openf(&store, f, "r", flags[j]);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+        CU_ASSERT_EQUAL(store.num_items, 3);
+        ret = kastore_gets(&store, "a", (void **) &a, &array_len, &type);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        CU_ASSERT_EQUAL(type, KAS_UINT32);
+        CU_ASSERT_EQUAL(array_len, 1);
+        CU_ASSERT_EQUAL(a[0], 1);
+
+        ret = kastore_gets(&store, "b", (void **) &a, &array_len, &type);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        CU_ASSERT_EQUAL(type, KAS_UINT32);
+        CU_ASSERT_EQUAL(array_len, 2);
+        CU_ASSERT_EQUAL(a[0], 1);
+        CU_ASSERT_EQUAL(a[1], 2);
+
+        ret = kastore_gets(&store, "c", (void **) &a, &array_len, &type);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        CU_ASSERT_EQUAL(type, KAS_UINT32);
+        CU_ASSERT_EQUAL(array_len, 4);
+        CU_ASSERT_EQUAL(a[0], 1);
+        CU_ASSERT_EQUAL(a[1], 2);
+        CU_ASSERT_EQUAL(a[2], 3);
+        CU_ASSERT_EQUAL(a[3], 4);
+
+        ret = kastore_close(&store);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        fclose(f);
+    }
+
+    /* Truncate the file to make sure there's no side effects. */
+    f = fopen(_tmp_file_name, "w");
+    CU_ASSERT_NOT_EQUAL_FATAL(f, NULL);
+    fclose(f);
+}
+
+static void
+test_simple_round_trip_file_modes(void)
+{
+    /* Various open modes will work fine. Simpler to test they work than
+     * to rule then out. */
+    verify_simple_file_round_trip("w", "r");
+    verify_simple_file_round_trip("w", "rw");
+    verify_simple_file_round_trip("w+", "r");
+    verify_simple_file_round_trip("a", "rw");
+    verify_simple_file_round_trip("a", "r+");
+    verify_simple_file_round_trip("a+", "rw");
 }
 
 static void
@@ -1448,7 +1625,10 @@ main(int argc, char **argv)
     CU_pSuite suite;
     CU_TestInfo tests[] = {
         {"test_oputs_example", test_oputs_example},
+        {"test_bad_open_flags", test_bad_open_flags},
         {"test_bad_open_mode", test_bad_open_mode},
+        {"test_openf_bad_file_read_modes", test_openf_bad_file_read_modes},
+        {"test_openf_bad_file_write_modes", test_openf_bad_file_write_modes},
         {"test_open_io_errors", test_open_io_errors},
         {"test_append_empty_file", test_append_empty_file},
         {"test_write_errors", test_write_errors},
@@ -1466,6 +1646,7 @@ main(int argc, char **argv)
         {"test_contains", test_contains},
         {"test_bad_types", test_bad_types},
         {"test_simple_round_trip", test_simple_round_trip},
+        {"test_simple_round_trip_file_modes", test_simple_round_trip_file_modes},
         {"test_simple_round_trip_zero_keys", test_simple_round_trip_zero_keys},
         {"test_simple_round_trip_oput_buffers", test_simple_round_trip_oput_buffers},
         {"test_simple_round_trip_append", test_simple_round_trip_append},

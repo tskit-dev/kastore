@@ -205,6 +205,7 @@ class StreamingMixin(DictVerifyMixin):
             proc2.terminate()
             self.assertTrue(False, msg="proc2 (kas.load) failed to join")
 
+        self.assertEqual(len(datalist), len(datalist_out))
         for data, data_out in zip(datalist, datalist_out):
             self.verify_dicts_equal(data, data_out)
 
@@ -218,6 +219,7 @@ class StreamingMixin(DictVerifyMixin):
                     for i in range(100)]
         self.stream(datalist)
 
+    @unittest.skip("Not clear how to pass errors around")
     def test_cant_seek_error(self):
         datalist = [{"a": np.array([0])}]
         with self.assertRaises(OSError):

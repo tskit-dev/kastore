@@ -164,6 +164,28 @@ class MalformedFilesMixin(FileFormatsMixin):
                 with self.assertRaises(kas.FileFormatError):
                     kas.load(self.temp_file, engine=self.engine, read_all=self.read_all)
 
+    def test_truncated_file_descriptors(self):
+        for num_items in range(2, 5):
+            self.write_file(num_items)
+            with open(self.temp_file, 'rb') as f:
+                buff = bytearray(f.read())
+            with open(self.temp_file, 'wb') as f:
+                f.write(buff[:num_items * store.ITEM_DESCRIPTOR_SIZE - 1])
+            with self.assertRaises(kas.FileFormatError):
+                kas.load(self.temp_file, engine=self.engine, read_all=self.read_all)
+
+    def test_truncated_file_data(self):
+        for num_items in range(2, 5):
+            self.write_file(num_items)
+            with open(self.temp_file, 'rb') as f:
+                buff = bytearray(f.read())
+            with open(self.temp_file, 'wb') as f:
+                f.write(buff[:-1])
+            with self.assertRaises(kas.FileFormatError):
+                # Must call dict to ensure all the keys are loaded.
+                dict(
+                    kas.load(self.temp_file, engine=self.engine, read_all=self.read_all))
+
     def test_bad_item_types(self):
         items = {"a": []}
         descriptors, file_size = store.pack_items(items)
@@ -202,7 +224,7 @@ class MalformedFilesMixin(FileFormatsMixin):
 
     def test_bad_array_initial_offset(self):
         items = {"a": np.arange(100)}
-        for offset in [-1, +1, 2, 8, 16, 100]:
+        for offset in [-100, -1, +1, 2, 8, 16, 100]:
             # First key offset must be at header_size + n * (descriptor_size)
             descriptors, file_size = store.pack_items(items)
             descriptors[0].array_start += offset
@@ -222,6 +244,26 @@ class MalformedFilesMixin(FileFormatsMixin):
             self.assertRaises(
                 kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
                 read_all=self.read_all)
+
+    def test_bad_array_alignment(self):
+        items = {"a": np.arange(100, dtype=np.int8), "b": []}
+        descriptors, file_size = store.pack_items(items)
+        descriptors[0].array_start += 1
+        descriptors[0].array_len -= 1
+        with open(self.temp_file, "wb") as f:
+            store.write_file(f, descriptors, file_size)
+        with self.assertRaises(kas.FileFormatError):
+            kas.load(self.temp_file, engine=self.engine, read_all=self.read_all)
+
+    def test_bad_array_packing(self):
+        items = {"a": np.arange(100, dtype=np.int8), "b": []}
+        descriptors, file_size = store.pack_items(items)
+        descriptors[0].array_start += 8
+        descriptors[0].array_len -= 8
+        with open(self.temp_file, "wb") as f:
+            store.write_file(f, descriptors, file_size)
+        with self.assertRaises(kas.FileFormatError):
+            kas.load(self.temp_file, engine=self.engine, read_all=self.read_all)
 
 
 class TestMalformedFilesPyEngine(MalformedFilesMixin, unittest.TestCase):

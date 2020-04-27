@@ -13,6 +13,7 @@ import time
 import tests.test_errors as test_errors
 import tests.test_file_format as test_file_format
 import tests.test_storage as test_storage
+import tests.test_lowlevel as test_lowlevel
 
 
 def main():
@@ -20,6 +21,7 @@ def main():
         "errors": test_errors,
         "file_format": test_file_format,
         "file_storage": test_storage,
+        "lowlevel": test_lowlevel,
     }
     parser = argparse.ArgumentParser(
         description="Run tests in a loop to stress low-level interface")
