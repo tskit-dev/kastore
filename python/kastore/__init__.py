@@ -1,5 +1,6 @@
 import functools
 import io
+import contextlib
 import os.path
 
 from . import store
@@ -60,6 +61,43 @@ def dumps(data, key_encoding=DEFAULT_KEY_ENCODING):
     return fileobj.getvalue()
 
 
+@contextlib.contextmanager
+def _open_file(fileobj, mode):
+    """
+    Abstracts the details of opening file-like objects and freeing the
+    resources used.
+    """
+    # First, see if we can interpret the argument as a pathlike object.
+    path = None
+    try:
+        path = os.fspath(fileobj)
+    except TypeError:
+        pass
+    if path is not None:
+        with open(path, mode) as f:
+            yield f
+    else:
+        # Now we try to open fileobj. If it's not a pathlike object, it could be
+        # an integer fd. In this case we must make sure that close is **not**
+        # called on the fd. It's also important to set buffering to zero for the
+        # Python engine.
+        fd = None
+        try:
+            fd = int(fileobj)
+        except TypeError:
+            pass
+        if fd is not None:
+            with open(fileobj, mode, closefd=False, buffering=0) as f:
+                yield f
+        else:
+            # Finally, this could a fileobj-like object in itself. In this case
+            # we return it as-is and don't close it. We retain TypeError semantics
+            # from earlier versions.
+            if not hasattr(fileobj, "write"):
+                raise TypeError("fileobj object must have a write method")
+            yield fileobj
+
+
 def load(file, read_all=False, key_encoding=DEFAULT_KEY_ENCODING, engine=PY_ENGINE):
     """
     Loads a store from the specified file.
@@ -75,26 +113,27 @@ def load(file, read_all=False, key_encoding=DEFAULT_KEY_ENCODING, engine=PY_ENGI
     :return: A dict-like object mapping the key-array pairs.
     """
     if engine == PY_ENGINE:
-        return store.load(file, read_all=read_all, key_encoding=key_encoding)
+        # The Python engine returns an object which needs to keep its own
+        # copy of the file object, so must handle the semantics of opening
+        # itself.
+        ret = store.load(file, key_encoding=key_encoding, read_all=read_all)
+
     elif engine == C_ENGINE:
         _check_low_level_module()
         try:
-            if hasattr(file, "read") and callable(file.read):
-                return _kastore.load(file, read_all=read_all)
-            else:
-                with open(file, "rb") as f:
-                    return _kastore.load(f, read_all=read_all)
+            with _open_file(file, "rb") as f:
+                ret = _kastore.load(f, read_all=read_all)
+        # TODO we can avoid this by importing the low-level Exceptions into the
+        # exceptions module like we do in Tskit.
         except _kastore.FileFormatError as e:
-            # TODO implement this using exception chaining, "raise X from e"
-            # https://github.com/tskit-dev/kastore/issues/81
             raise FileFormatError(str(e))
         except _kastore.VersionTooOldError:
             raise VersionTooOldError()
         except _kastore.VersionTooNewError:
             raise VersionTooNewError()
-
     else:
         _raise_unknown_engine()
+    return ret
 
 
 def dump(data, file, key_encoding=DEFAULT_KEY_ENCODING, engine=PY_ENGINE):
@@ -109,18 +148,15 @@ def dump(data, file, key_encoding=DEFAULT_KEY_ENCODING, engine=PY_ENGINE):
     :param str engine: The underlying implementation to use.
     """
     if engine == PY_ENGINE:
-        dump = functools.partial(store.dump, key_encoding=key_encoding)
+        dump_func = functools.partial(store.dump, key_encoding=key_encoding)
     elif engine == C_ENGINE:
         _check_low_level_module()
-        dump = _kastore.dump
+        dump_func = _kastore.dump
     else:
         _raise_unknown_engine()
 
-    try:
-        with open(file, "wb") as f:
-            dump(data, f)
-    except TypeError:
-        dump(data, file)
+    with _open_file(file, "wb") as f:
+        dump_func(data, f)
 
 
 def get_include():

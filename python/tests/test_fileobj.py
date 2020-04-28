@@ -7,6 +7,8 @@ import tempfile
 import pathlib
 import shutil
 import multiprocessing
+import socketserver
+import socket
 import queue
 import traceback
 
@@ -116,6 +118,57 @@ class FileobjMixin(DictVerifyMixin):
                     self.verify_dicts_equal(data, data2)
                     self.assertEqual(file_offset, file_offset2)
 
+    def test_load_and_dump_file_single_rw(self):
+        data = {"a": np.arange(10)}
+        with open(self.temp_file, "r+b") as f:
+            kas.dump(data, f, engine=self.engine)
+            for read_all in [True, False]:
+                f.seek(0)
+                data_out = kas.load(f, read_all=read_all, engine=self.engine)
+                data2 = dict(data_out.items())
+                self.verify_dicts_equal(data, data2)
+
+    def test_load_and_dump_file_multi_rw(self):
+        datalist = [{"i"+str(i): i+np.arange(10**5, dtype=int),
+                     "f"+str(i): i+np.arange(10**5, dtype=float)}
+                    for i in range(10)]
+        with open(self.temp_file, "r+b") as f:
+            for data in datalist:
+                kas.dump(data, f, engine=self.engine)
+
+            for read_all in [True, False]:
+                f.seek(0)
+                for data in datalist:
+                    data_out = kas.load(f, read_all=read_all, engine=self.engine)
+                    data2 = dict(data_out.items())
+                    self.verify_dicts_equal(data, data2)
+
+    def test_load_and_dump_fd_single_rw(self):
+        data = {"a": np.arange(10)}
+        with open(self.temp_file, "r+b") as f:
+            fd = f.fileno()
+            kas.dump(data, fd, engine=self.engine)
+            for read_all in [True, False]:
+                os.lseek(fd, 0, os.SEEK_SET)
+                data_out = kas.load(fd, read_all=read_all, engine=self.engine)
+                data2 = dict(data_out.items())
+                self.verify_dicts_equal(data, data2)
+
+    def test_load_and_dump_fd_multi_rw(self):
+        datalist = [{"i"+str(i): i+np.arange(10**5, dtype=int),
+                     "f"+str(i): i+np.arange(10**5, dtype=float)}
+                    for i in range(20)]
+        with open(self.temp_file, "r+b") as f:
+            fd = f.fileno()
+            for data in datalist:
+                kas.dump(data, fd, engine=self.engine)
+            for read_all in [True, False]:
+                os.lseek(fd, 0, os.SEEK_SET)
+                for data in datalist:
+                    data_out = kas.load(fd, read_all=read_all, engine=self.engine)
+                    data2 = dict(data_out.items())
+                    self.verify_dicts_equal(data, data2)
+
 
 def dump_to_stream(q_err, q_in, file_out, engine):
     """
@@ -219,11 +272,80 @@ class StreamingMixin(DictVerifyMixin):
                     for i in range(100)]
         self.stream(datalist)
 
-    @unittest.skip("Not clear how to pass errors around")
-    def test_cant_seek_error(self):
-        datalist = [{"a": np.array([0])}]
-        with self.assertRaises(OSError):
-            self.stream(datalist, read_all=False)
+
+ADDRESS = ("localhost", 10009)
+
+
+class TestServer(socketserver.ThreadingTCPServer):
+    allow_reuse_address = True
+
+
+class StoreEchoHandler(socketserver.BaseRequestHandler):
+
+    def handle(self):
+        while True:
+            try:
+                data = kas.load(self.request.fileno(), engine=self.engine, read_all=True)
+            except EOFError:
+                break
+            kas.dump(dict(data), self.request.fileno(), engine=self.engine)
+        # We only read one list, so shutdown the server straight away
+        self.server.shutdown()
+
+
+class StoreEchoHandlerCEngine(StoreEchoHandler):
+    engine = kas.C_ENGINE
+
+
+class StoreEchoHandlerPyEngine(StoreEchoHandler):
+    engine = kas.PY_ENGINE
+
+
+def server_process(engine, q):
+    handlers = {
+        kas.C_ENGINE: StoreEchoHandlerCEngine,
+        kas.PY_ENGINE: StoreEchoHandlerPyEngine,
+    }
+    server = TestServer(ADDRESS, handlers[engine])
+    # Tell the client (on the other end of the queue) that it's OK to open
+    # a connection
+    q.put(None)
+    server.serve_forever()
+
+
+class SocketMixin(DictVerifyMixin):
+
+    def setUp(self):
+        # Use a queue to synchronise the startup of the server and the client.
+        q = multiprocessing.Queue()
+        self.server_process = multiprocessing.Process(
+            target=server_process, args=(self.engine, q))
+        self.server_process.start()
+        q.get()
+        self.client = socket.create_connection(ADDRESS)
+
+    def tearDown(self):
+        self.client.close()
+        self.server_process.join()
+
+    def verify_stream(self, data_list):
+        fd = self.client.fileno()
+        for data in data_list:
+            kas.dump(data, fd, engine=self.engine)
+            echo_data = kas.load(fd, read_all=True, engine=self.engine)
+            self.verify_dicts_equal(data, echo_data)
+
+    def test_single(self):
+        self.verify_stream([{"a": np.arange(10)}])
+
+    def test_two(self):
+        self.verify_stream([{"a": np.zeros(10)}, {"b": np.zeros(100)}])
+
+    def test_multi(self):
+        datalist = [{"i"+str(i): i+np.arange(10**5, dtype=int),
+                     "f"+str(i): i+np.arange(10**5, dtype=float)}
+                    for i in range(10)]
+        self.verify_stream(datalist)
 
 
 class TestPathlibCEngine(PathlibMixin, unittest.TestCase):
@@ -247,4 +369,12 @@ class TestStreamingCEngine(StreamingMixin, unittest.TestCase):
 
 
 class TestStreamingPyEngine(StreamingMixin, unittest.TestCase):
+    engine = kas.PY_ENGINE
+
+
+class TestSocketCEngine(SocketMixin, unittest.TestCase):
+    engine = kas.C_ENGINE
+
+
+class TestSocketPyEngine(SocketMixin, unittest.TestCase):
     engine = kas.PY_ENGINE

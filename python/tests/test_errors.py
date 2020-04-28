@@ -48,8 +48,8 @@ class InterfaceMixin(object):
     def test_bad_keys(self):
         a = np.zeros(1)
         for bad_key in [(1234,), b"1234", None, 1234]:
-            self.assertRaises(
-                TypeError, kas.dump, {bad_key: a}, self.temp_file, engine=self.engine)
+            with self.assertRaises(TypeError):
+                kas.dump({bad_key: a}, self.temp_file, engine=self.engine)
 
     def test_bad_arrays(self):
         kas.dump({"a": []}, self.temp_file, engine=self.engine)

@@ -16,6 +16,7 @@ The file format layout is as follows.
 """
 import struct
 import logging
+import os
 from collections.abc import Mapping
 
 import numpy as np
@@ -143,9 +144,7 @@ def dump(arrays, fileobj, key_encoding="utf-8"):
     """
     Writes the arrays in the specified mapping to the key-array-store file.
     """
-    # This is really overly strict, but Python2 doesn't support
-    # collections.abc.Mapping.
-    if not isinstance(arrays, dict):
+    if not isinstance(arrays, Mapping):
         raise TypeError("Input must be dict-like")
     for key, array in arrays.items():
         if len(key) == 0:
@@ -252,19 +251,39 @@ class Store(Mapping):
     Dictionary-like object giving dynamic access to the data in a kastore.
     """
     def __init__(self, file, read_all=False, key_encoding="utf8"):
-        self.filename = file
+
+        # Get ourselves a local version of the file. The semantics here are complex
+        # because need to support a range of inputs and the free behaviour is
+        # slightly different on each.
+        self._file = None
+        self._local_file = True
+        try:
+            # First, see if we can interpret the argument as a pathlike object.
+            path = os.fspath(file)
+            self._file = open(path, "rb")
+        except TypeError:
+            pass
+        if self._file is None:
+            # Now we try to open file. If it's not a pathlike object, it could be
+            # an integer fd or object with a fileno method. In this case we
+            # must make sure that close is **not** called on the fd.
+            try:
+                self._file = open(file, "rb", closefd=False, buffering=0)
+            except TypeError:
+                pass
+        if self._file is None:
+            # Assume that this is a file **but** we haven't opened it, so we must
+            # not close it.
+            if not hasattr(file, "write"):
+                raise TypeError("file object must have a write method")
+            self._file = file
+            self._local_file = False
+
         self.key_encoding = key_encoding
         self._descriptor_map = None
         self._array_map = {}
         self._read_all = read_all
-        # Make sure _file is defined so that we can access it in
-        # the destructor below, even if open() fails.
-        self._file = None
         self._file_offset = 0
-        if hasattr(self.filename, "read") and callable(self.filename.read):
-            self._file = self.filename
-        else:
-            self._file = open(self.filename, "rb")
         if not read_all:
             # Record the current file offset, in case this is a multi-store file,
             # so that we can seek to the correct location in __getitem__().
@@ -272,9 +291,7 @@ class Store(Mapping):
         self._read_file()
 
     def _read_header(self):
-        header = self._file.read(HEADER_SIZE)
-        if len(header) < HEADER_SIZE:
-            raise EOFError("Unexpected end of file")
+        header = self._read(HEADER_SIZE, allow_eof=True)
         if header[0:8] != MAGIC:
             raise exceptions.FileFormatError("Magic number mismatch")
         version_major = struct.unpack("<H", header[8:10])[0]
@@ -295,9 +312,7 @@ class Store(Mapping):
         if HEADER_SIZE + descriptor_block_size > file_size:
             raise exceptions.FileFormatError("Bad file size in header")
 
-        descriptor_block = self._file.read(descriptor_block_size)
-        if len(descriptor_block) < descriptor_block_size:
-            raise exceptions.FileFormatError("Truncated file")
+        descriptor_block = self._read(descriptor_block_size)
         offset = 0
         array_end = HEADER_SIZE
         descriptors = []
@@ -337,9 +352,7 @@ class Store(Mapping):
                 size = descriptors[0].array_start
             assert size > offset
             size -= offset
-            buf = self._file.read(size)
-            if len(buf) < size:
-                raise exceptions.FileFormatError("Truncated file")
+            buf = self._read(size)
             buf_start = offset  # buffer starts at this position in the file
 
             # Read the keys.
@@ -384,6 +397,21 @@ class Store(Mapping):
         if self._file is None:
             raise exceptions.StoreClosedError()
 
+    def _read(self, size, allow_eof=False):
+        """
+        Reads exactly size bytes from the file and returns them.
+        """
+        data = b""
+        while len(data) < size:
+            chunk = self._file.read(size - len(data))
+            data += chunk
+            if len(chunk) == 0:  # EOF
+                if allow_eof:
+                    raise EOFError("End of file")
+                else:
+                    raise exceptions.FileFormatError("Truncated file")
+        return data
+
     def info(self, key):
         self._check_open()
         descriptor = self._descriptor_map[key]
@@ -398,9 +426,7 @@ class Store(Mapping):
             descriptor = self._descriptor_map[key]
             self._file.seek(self._file_offset + descriptor.array_start)
             size = type_size(descriptor.type) * descriptor.array_len
-            data = self._file.read(size)
-            if len(data) < size:
-                raise exceptions.FileFormatError("Truncated file")
+            data = self._read(size)
             self._cache_array(descriptor, data)
         return self._array_map[key]
 
@@ -415,8 +441,7 @@ class Store(Mapping):
 
     def close(self):
         if self._file is not None:
-            logger.debug(f"Closing file '{self._file}'")
-            if self._file != self.filename:
+            if self._local_file:
                 self._file.close()
             self._file = None
 

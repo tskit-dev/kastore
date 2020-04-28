@@ -62,12 +62,16 @@ class TestInputs(unittest.TestCase):
                 _kastore.load(fd)
 
     def test_bad_fd(self):
+        bad_fd = 10000
         with self.assertRaises(OSError):
-            # Assuming this is a bad file descriptor
-            _kastore.dump({}, 10000)
+            _kastore.dump({}, bad_fd)
         with self.assertRaises(OSError):
-            # Assuming this is a bad file descriptor
-            _kastore.load(10000)
+            _kastore.load(bad_fd)
+        bad_fd = -1
+        with self.assertRaises(ValueError):
+            _kastore.dump({}, bad_fd)
+        with self.assertRaises(ValueError):
+            _kastore.load(bad_fd)
 
     def test_bad_file_mode(self):
         with open(os.devnull, "r") as f:

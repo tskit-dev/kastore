@@ -8,6 +8,9 @@
   file seeks. This allows reading from a pipes/FIFOs etc
   (:user:`grahamgower`, :pr:`88`).
 
+- Add ``loads`` and ``dumps`` functions that operate on
+  strings (:user:`jeromekelleher`, :pr:`88`)
+
 **Breaking changes**
 
 - The ``filename`` named argument to load/dump has been changed to
