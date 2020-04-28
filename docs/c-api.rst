@@ -40,6 +40,7 @@ Top level
 .. doxygenstruct:: kastore_t
 
 .. doxygenfunction:: kastore_open
+.. doxygenfunction:: kastore_openf
 .. doxygenfunction:: kastore_close
 
 .. doxygenfunction:: kas_strerror

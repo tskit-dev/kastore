@@ -244,6 +244,13 @@ except append mode is not supported.
 The ``file`` argument must be opened in an appropriate mode (e.g. "r"
 for a kastore in "r" mode).  Files open with other modes will result
 in KAS_ERR_IO being returned when read/write operations are attempted.
+
+The FILE will not be closed when :c:func:`kastore_close` is called.
+If the KAS_READ_ALL flag is supplied, no ``seek`` operations will be
+performed on the FILE and so streams such as stdin, FIFOs etc are
+supported. The FILE pointer will be positioned exactly at the end
+of the kastore encoded bytes once reading is completed, and reading
+multiple stores from the same FILE sequentially is fully supported.
 @endrst
 
 @param self A pointer to a kastore object.

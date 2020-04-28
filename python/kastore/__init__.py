@@ -1,4 +1,5 @@
 import functools
+import io
 import os.path
 
 from . import store
@@ -18,6 +19,8 @@ except ImportError:  # pragma: no cover
 PY_ENGINE = "python"
 C_ENGINE = "c"
 
+DEFAULT_KEY_ENCODING = "utf-8"
+
 
 def _check_low_level_module():
     if not _kastore_loaded:
@@ -28,7 +31,36 @@ def _raise_unknown_engine():
     raise ValueError("unknown engine")
 
 
-def load(file, read_all=False, key_encoding="utf-8", engine=PY_ENGINE):
+def loads(encoded_data, key_encoding=DEFAULT_KEY_ENCODING):
+    """
+    Loads a store from the specified bytes object.
+
+    :param bytes encoded_data: The encoded kastore data as returned by :func:`.dumps`
+        or read from a file written by :func:`.dump`.
+    :param str key_encoding: The encoding to use when converting the keys from
+        raw bytes.
+    :return: A dict-like object mapping the key-array pairs.
+    """
+    fileobj = io.BytesIO(encoded_data)
+    return load(fileobj, key_encoding=key_encoding, read_all=True, engine=PY_ENGINE)
+
+
+def dumps(data, key_encoding=DEFAULT_KEY_ENCODING):
+    """
+    Encodes the specified data in kastore form and returns the resulting bytes.
+
+    :param dict data: A dictionary-like string keys to numpy arrays.
+    :param str key_encoding: The encoding to use when converting the keys
+        to raw bytes.
+    :return: The bytes encoding of the specified data in kastore format.
+    :rtype: bytes
+    """
+    fileobj = io.BytesIO()
+    dump(data, fileobj, key_encoding=key_encoding, engine=PY_ENGINE)
+    return fileobj.getvalue()
+
+
+def load(file, read_all=False, key_encoding=DEFAULT_KEY_ENCODING, engine=PY_ENGINE):
     """
     Loads a store from the specified file.
 
@@ -65,10 +97,11 @@ def load(file, read_all=False, key_encoding="utf-8", engine=PY_ENGINE):
         _raise_unknown_engine()
 
 
-def dump(data, file, key_encoding="utf-8", engine=PY_ENGINE):
+def dump(data, file, key_encoding=DEFAULT_KEY_ENCODING, engine=PY_ENGINE):
     """
     Dumps a store to the specified file.
 
+    :param dict data: A dictionary-like string keys to numpy arrays.
     :param str file: The path of the file to write the store to, or a
         file-like object with a ``write()`` method.
     :param str key_encoding: The encoding to use when converting the keys
@@ -83,11 +116,11 @@ def dump(data, file, key_encoding="utf-8", engine=PY_ENGINE):
     else:
         _raise_unknown_engine()
 
-    if hasattr(file, "write") and callable(file.write):
-        dump(data, file)
-    else:
+    try:
         with open(file, "wb") as f:
             dump(data, f)
+    except TypeError:
+        dump(data, file)
 
 
 def get_include():

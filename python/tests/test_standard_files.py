@@ -140,3 +140,12 @@ class TestStandardFilesPyEngineReadAll(StandardFilesMixin, unittest.TestCase):
 class TestStandardFilesCEngineReadAll(StandardFilesMixin, unittest.TestCase):
     engine = kas.C_ENGINE
     read_all = True
+
+
+class TestStandardFilesLoads(StandardFilesMixin, unittest.TestCase):
+
+    def read_file(self, filename):
+        full_path = os.path.join(self.test_data_path, filename)
+        with open(full_path, "rb") as f:
+            encoded = f.read()
+        return kas.loads(encoded)

@@ -415,7 +415,7 @@ class Store(Mapping):
 
     def close(self):
         if self._file is not None:
-            logger.debug("Closing file '{}'".format(self._file.name))
+            logger.debug(f"Closing file '{self._file}'")
             if self._file != self.filename:
                 self._file.close()
             self._file = None
