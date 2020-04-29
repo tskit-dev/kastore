@@ -19,6 +19,7 @@ extern "C" {
     #define KAS_UNUSED(x) KAS_UNUSED_ ## x
 #endif
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -38,7 +39,7 @@ An error occured during IO.
 */
 #define KAS_ERR_IO                                    -2
 /**
-A unrecognised mode string was passed to open().
+An unrecognised mode string was passed to open().
 */
 #define KAS_ERR_BAD_MODE                              -3
 /**
@@ -83,6 +84,14 @@ The requestion function cannot be called in the current mode.
 The requested type does not match the type of the stored values.
 */
 #define KAS_ERR_TYPE_MISMATCH                         -13
+/**
+End of file was reached while reading data.
+*/
+#define KAS_ERR_EOF                                   -14
+/**
+Unknown flags were provided to open.
+*/
+#define KAS_ERR_BAD_FLAGS                             -15
 /** @} */
 
 /* Flags for open */
@@ -135,12 +144,12 @@ The library major version. Incremented when breaking changes to the API or ABI a
 introduced. This includes any changes to the signatures of functions and the
 sizes and types of externally visible structs.
 */
-#define KAS_VERSION_MAJOR   1
+#define KAS_VERSION_MAJOR   2
 /**
-The library major version. Incremented when non-breaking backward-compatible changes
+The library minor version. Incremented when non-breaking backward-compatible changes
 to the API or ABI are introduced, i.e., the addition of a new function.
 */
-#define KAS_VERSION_MINOR   1
+#define KAS_VERSION_MINOR   0
 /**
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
@@ -173,8 +182,8 @@ typedef struct {
     size_t num_items;
     kaitem_t *items;
     FILE *file;
-    const char *filename;
     size_t file_size;
+    long file_offset;
     char *read_buffer;
 } kastore_t;
 
@@ -225,6 +234,32 @@ KAS_READ_ALL
 @return Return 0 on success or a negative value on failure.
 */
 int kastore_open(kastore_t *self, const char *filename, const char *mode, int flags);
+
+/**
+@brief Open a store from a given FILE pointer.
+
+@rst
+Behaviour, mode and flags follow that of :c:func:`kastore_open`,
+except append mode is not supported.
+The ``file`` argument must be opened in an appropriate mode (e.g. "r"
+for a kastore in "r" mode).  Files open with other modes will result
+in KAS_ERR_IO being returned when read/write operations are attempted.
+
+The FILE will not be closed when :c:func:`kastore_close` is called.
+If the KAS_READ_ALL flag is supplied, no ``seek`` operations will be
+performed on the FILE and so streams such as stdin, FIFOs etc are
+supported. The FILE pointer will be positioned exactly at the end
+of the kastore encoded bytes once reading is completed, and reading
+multiple stores from the same FILE sequentially is fully supported.
+@endrst
+
+@param self A pointer to a kastore object.
+@param file The FILE* to read/write the store from/to.
+@param mode The open mode: can be read ("r") or write ("w").
+@param flags The open flags.
+@return Return 0 on success or a negative value on failure.
+*/
+int kastore_openf(kastore_t *self, FILE *file, const char *mode, int flags);
 
 /**
 @brief Close an opened store, freeing all resources.

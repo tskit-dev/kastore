@@ -48,7 +48,11 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'breathe',
+    "sphinx_issues",
 ]
+
+# Github repo
+issues_github_path = "tskit-dev/kastore"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

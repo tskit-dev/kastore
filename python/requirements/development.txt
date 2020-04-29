@@ -9,3 +9,4 @@ numpy
 mock
 breathe
 sphinx_rtd_theme
+sphinx-issues

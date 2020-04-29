@@ -7,6 +7,11 @@
 
 #include "kastore.h"
 
+/* Private flag used to indicate when we have opened the file ourselves
+ * and need to free it. */
+#define OWN_FILE  (1 << 31)
+
+
 const char *
 kas_strerror(int err)
 {
@@ -25,6 +30,9 @@ kas_strerror(int err)
             break;
         case KAS_ERR_BAD_MODE:
             ret = "Bad open mode; must be \"r\", \"w\", or \"a\"";
+            break;
+        case KAS_ERR_BAD_FLAGS:
+            ret = "Unknow flags specified. Only KAS_READ_ALL or 0 allowed.";
             break;
         case KAS_ERR_NO_MEMORY:
             ret = "Out of memory";
@@ -57,6 +65,9 @@ kas_strerror(int err)
             break;
         case KAS_ERR_TYPE_MISMATCH:
             ret = "Mismatch between requested and stored types for array";
+            break;
+        case KAS_ERR_EOF:
+            ret = "Unexpected end of file";
             break;
     }
     return ret;
@@ -146,7 +157,15 @@ kastore_read_header(kastore_t *self)
 
     count = fread(header, KAS_HEADER_SIZE, 1, self->file);
     if (count == 0) {
-        ret = kastore_get_read_io_error(self);
+        /* If the file ends unexpectedly this could be a file format error.
+         * However, in the case of reading from a pipe, EOF indicates that the
+         * writer end has been closed. This is a condition the user needs to
+         * handle differently from a file format error. */
+        if (feof(self->file)) {
+            ret = KAS_ERR_EOF;
+        } else {
+            ret = kastore_get_read_io_error(self);
+        }
         goto out;
     }
     if (strncmp(header, KAS_MAGIC, 8) != 0) {
@@ -358,9 +377,10 @@ static int KAS_WARN_UNUSED
 kastore_read_file(kastore_t *self)
 {
     int ret = 0;
-    int err;
-    size_t count, size, j;
+    size_t count, size, offset, j;
     bool read_all = !!(self->flags & KAS_READ_ALL);
+
+    offset = KAS_HEADER_SIZE + self->num_items * KAS_ITEM_DESCRIPTOR_SIZE;
 
     size = self->file_size;
     if (!read_all) {
@@ -368,14 +388,12 @@ kastore_read_file(kastore_t *self)
         size = self->items[0].array_start;
     }
 
+    assert(size > offset);
+    size -= offset;
+
     self->read_buffer = malloc(size);
     if (self->read_buffer == NULL) {
         ret = KAS_ERR_NO_MEMORY;
-        goto out;
-    }
-    err = fseek(self->file, 0, SEEK_SET);
-    if (err != 0) {
-        ret = KAS_ERR_IO;
         goto out;
     }
     count = fread(self->read_buffer, size, 1, self->file);
@@ -385,9 +403,10 @@ kastore_read_file(kastore_t *self)
     }
     /* Assign the pointers for the keys and arrays */
     for (j = 0; j < self->num_items; j++) {
-        self->items[j].key = self->read_buffer + self->items[j].key_start;
+        self->items[j].key = self->read_buffer + self->items[j].key_start - offset;
         if (read_all) {
-            self->items[j].array = self->read_buffer + self->items[j].array_start;
+            self->items[j].array = self->read_buffer + self->items[j].array_start
+                - offset;
         }
     }
 out:
@@ -408,7 +427,7 @@ kastore_read_item(kastore_t *self, kaitem_t *item)
         goto out;
     }
     if (size > 0) {
-        err = fseek(self->file, (long) item->array_start, SEEK_SET);
+        err = fseek(self->file, self->file_offset + (long)item->array_start, SEEK_SET);
         if (err != 0) {
             ret = KAS_ERR_IO;
             goto out;
@@ -451,6 +470,16 @@ kastore_read(kastore_t *self)
 {
     int ret = 0;
 
+    if (!(self->flags & KAS_READ_ALL)) {
+        /* Record the current file offset, in case this is a multi-store file,
+         * so that we can seek to the correct location in kastore_read_item().
+         */
+        self->file_offset = ftell(self->file);
+        if (self->file_offset == -1) {
+            ret = KAS_ERR_IO;
+            goto out;
+        }
+    }
     ret = kastore_read_header(self);
     if (ret != 0) {
         goto out;
@@ -503,6 +532,7 @@ kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
     const char *file_mode;
     bool appending = false;
     kastore_t tmp;
+    FILE *file;
     int err;
 
     memset(self, 0, sizeof(*self));
@@ -512,23 +542,19 @@ kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
         goto out;
     }
     if (strncmp(mode, "r", 1) == 0) {
-        self->mode = KAS_READ;
         file_mode = "rb";
     } else if (strncmp(mode, "w", 1) == 0) {
-        self->mode = KAS_WRITE;
         file_mode = "wb";
     } else if (strncmp(mode, "a", 1) == 0) {
-        self->mode = KAS_WRITE;
+        mode = "w";
         file_mode = "wb";
         appending = true;
     } else {
         ret = KAS_ERR_BAD_MODE;
         goto out;
     }
-    self->flags = flags;
-    self->filename = filename;
     if (appending) {
-        ret = kastore_open(&tmp, self->filename, "r", KAS_READ_ALL);
+        ret = kastore_open(&tmp, filename, "r", KAS_READ_ALL);
         if (ret != 0) {
             goto out;
         }
@@ -540,20 +566,56 @@ kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
             ret = KAS_ERR_IO;
         }
     }
-    self->file = fopen(filename, file_mode);
-    if (self->file == NULL) {
+    file = fopen(filename, file_mode);
+    if (file == NULL) {
         ret = KAS_ERR_IO;
         goto out;
     }
-    if (self->mode == KAS_READ) {
-        ret = kastore_read(self);
-    } else if (appending) {
-        ret = kastore_insert_all(self, &tmp);
+    ret = kastore_openf(self, file, mode, flags);
+    if (ret != 0) {
+        (void)fclose(file);
+    } else {
+        self->flags |= OWN_FILE;
+        if (appending) {
+            ret = kastore_insert_all(self, &tmp);
+        }
     }
 out:
     if (appending) {
         kastore_close(&tmp);
     }
+    return ret;
+}
+
+int KAS_WARN_UNUSED
+kastore_openf(kastore_t *self, FILE *file, const char *mode, int flags)
+{
+    int ret = 0;
+
+    memset(self, 0, sizeof(*self));
+    if (strlen(mode) != 1) {
+        ret = KAS_ERR_BAD_MODE;
+        goto out;
+    }
+    if (strncmp(mode, "r", 1) == 0) {
+        self->mode = KAS_READ;
+    } else if (strncmp(mode, "w", 1) == 0) {
+        self->mode = KAS_WRITE;
+    } else {
+        ret = KAS_ERR_BAD_MODE;
+        goto out;
+    }
+    if (!(flags == 0 || flags == KAS_READ_ALL)) {
+        ret = KAS_ERR_BAD_FLAGS;
+        goto out;
+    }
+
+    self->flags = flags;
+    self->file = file;
+    if (self->mode == KAS_READ) {
+        ret = kastore_read(self);
+    }
+out:
     return ret;
 }
 
@@ -569,7 +631,9 @@ kastore_close(kastore_t *self)
             ret = kastore_write_file(self);
             if (ret != 0) {
                 /* Ignore errors on close now */
-                fclose(self->file);
+                if (self->flags & OWN_FILE) {
+                    fclose(self->file);
+                }
                 self->file = NULL;
             }
         }
@@ -592,7 +656,7 @@ kastore_close(kastore_t *self)
         }
     }
     kas_safe_free(self->items);
-    if (self->file != NULL) {
+    if (self->file != NULL && (self->flags & OWN_FILE)) {
         err = fclose(self->file);
         if (err != 0) {
             ret = KAS_ERR_IO;
@@ -1009,7 +1073,7 @@ kastore_print_state(kastore_t *self, FILE *out)
     fprintf(out, "flags = %d\n", self->flags);
     fprintf(out, "num_items = %zu\n", self->num_items);
     fprintf(out, "file_size = %zu\n", self->file_size);
-    fprintf(out, "filename = '%s'\n", self->filename);
+    fprintf(out, "own_file  = %d\n", !! (self->flags & OWN_FILE));
     fprintf(out, "file = '%p'\n", (void *) self->file);
     fprintf(out, "============================\n");
     for (j = 0; j < self->num_items; j++) {

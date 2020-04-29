@@ -16,7 +16,6 @@ The file format layout is as follows.
 """
 import struct
 import logging
-import mmap
 import os
 from collections.abc import Mapping
 
@@ -141,18 +140,11 @@ class ItemDescriptor(object):
         return cls(type_, key_start, key_len, array_start, array_len)
 
 
-def dump(arrays, filename, key_encoding="utf-8"):
-    with open(filename, "wb") as f:
-        _dump(arrays, f, key_encoding)
-
-
-def _dump(arrays, fileobj, key_encoding):
+def dump(arrays, fileobj, key_encoding="utf-8"):
     """
     Writes the arrays in the specified mapping to the key-array-store file.
     """
-    # This is really overly strict, but Python2 doesn't support
-    # collections.abc.Mapping.
-    if not isinstance(arrays, dict):
+    if not isinstance(arrays, Mapping):
         raise TypeError("Input must be dict-like")
     for key, array in arrays.items():
         if len(key) == 0:
@@ -214,19 +206,19 @@ def write_file(fileobj, descriptors, file_size):
     header[12:16] = struct.pack("<H", num_items)
     header[16:24] = struct.pack("<Q", file_size)
     # The rest of the header is reserved.
-    fileobj.write(header)
-    assert fileobj.tell() == HEADER_SIZE
+    nbytes = fileobj.write(header)
+    assert nbytes == HEADER_SIZE
 
     # Now write the descriptors.
     for descriptor in descriptors:
-        fileobj.write(descriptor.pack())
+        nbytes += fileobj.write(descriptor.pack())
     offset = HEADER_SIZE + num_items * ItemDescriptor.size
-    assert fileobj.tell() == offset
+    assert nbytes == offset
     # Write the keys and arrays
     for descriptor in descriptors:
-        fileobj.write(descriptor.key)
+        nbytes += fileobj.write(descriptor.key)
         offset += descriptor.key_len
-    assert fileobj.tell() == offset
+    assert nbytes == offset
     for descriptor in descriptors:
         # Because of the alignment requirements for array storage we
         # need to add in some padding between arrays.
@@ -237,8 +229,8 @@ def write_file(fileobj, descriptors, file_size):
         offset = descriptor.array_start + len(data)
 
 
-def load(filename, read_all=False, key_encoding="utf-8"):
-    return Store(filename, read_all=read_all, key_encoding=key_encoding)
+def load(file, read_all=False, key_encoding="utf-8"):
+    return Store(file, read_all=read_all, key_encoding=key_encoding)
 
 
 class ValueInfo(object):
@@ -258,27 +250,48 @@ class Store(Mapping):
     """
     Dictionary-like object giving dynamic access to the data in a kastore.
     """
-    def __init__(self, filename, read_all=False, key_encoding="utf8"):
-        self.filename = filename
+    def __init__(self, file, read_all=False, key_encoding="utf8"):
+
+        # Get ourselves a local version of the file. The semantics here are complex
+        # because need to support a range of inputs and the free behaviour is
+        # slightly different on each.
+        self._file = None
+        self._local_file = True
+        try:
+            # First, see if we can interpret the argument as a pathlike object.
+            path = os.fspath(file)
+            self._file = open(path, "rb")
+        except TypeError:
+            pass
+        if self._file is None:
+            # Now we try to open file. If it's not a pathlike object, it could be
+            # an integer fd or object with a fileno method. In this case we
+            # must make sure that close is **not** called on the fd.
+            try:
+                self._file = open(file, "rb", closefd=False, buffering=0)
+            except TypeError:
+                pass
+        if self._file is None:
+            # Assume that this is a file **but** we haven't opened it, so we must
+            # not close it.
+            if not hasattr(file, "write"):
+                raise TypeError("file object must have a write method")
+            self._file = file
+            self._local_file = False
+
         self.key_encoding = key_encoding
         self._descriptor_map = None
-        # Make sure _file and _buffer are defined so that we can access them in
-        # the destructor below.
-        self._file = None
-        self._buffer = None
+        self._array_map = {}
         self._read_all = read_all
-        self._file = open(self.filename, "rb")
-        self._file_size = os.fstat(self._file.fileno()).st_size
-        if self._file_size == 0:
-            raise exceptions.FileFormatError("Empty file")
-        if self._read_all:
-            self._buffer = self._file.read()
-        else:
-            self._buffer = mmap.mmap(self._file.fileno(), 0, access=mmap.ACCESS_READ)
+        self._file_offset = 0
+        if not read_all:
+            # Record the current file offset, in case this is a multi-store file,
+            # so that we can seek to the correct location in __getitem__().
+            self._file_offset = self._file.tell()
         self._read_file()
 
-    def _read_file(self):
-        header = self._buffer[:HEADER_SIZE]
+    def _read_header(self):
+        header = self._read(HEADER_SIZE, allow_eof=True)
         if header[0:8] != MAGIC:
             raise exceptions.FileFormatError("Magic number mismatch")
         version_major = struct.unpack("<H", header[8:10])[0]
@@ -290,14 +303,18 @@ class Store(Mapping):
             raise exceptions.VersionTooNewError()
         num_items, file_size = struct.unpack("<IQ", header[12:24])
         logger.debug("Loading {} items from {} bytes".format(num_items, file_size))
-        if self._file_size != file_size:
+        if file_size < HEADER_SIZE:
             raise exceptions.FileFormatError("Bad file size in header")
-        descriptor_block_size = num_items * ItemDescriptor.size
-        descriptor_block = self._buffer[HEADER_SIZE: HEADER_SIZE + descriptor_block_size]
+        return num_items, file_size
 
-        if len(descriptor_block) != descriptor_block_size:
-            raise exceptions.FileFormatError("Truncated file")
+    def _read_descriptors(self, num_items, file_size):
+        descriptor_block_size = num_items * ItemDescriptor.size
+        if HEADER_SIZE + descriptor_block_size > file_size:
+            raise exceptions.FileFormatError("Bad file size in header")
+
+        descriptor_block = self._read(descriptor_block_size)
         offset = 0
+        array_end = HEADER_SIZE
         descriptors = []
         for _ in range(num_items):
             descriptor = ItemDescriptor.unpack(
@@ -311,39 +328,89 @@ class Store(Mapping):
             # Check the descriptor addresses are within the file.
             if descriptor.key_start + descriptor.key_len > file_size:
                 raise exceptions.FileFormatError("Key address outside file")
+            if descriptor.array_start < HEADER_SIZE + descriptor_block_size:
+                raise exceptions.FileFormatError("Array address out of bounds")
             array_end = (
                 descriptor.array_start +
                 type_size(descriptor.type) * descriptor.array_len)
             if array_end > file_size:
                 raise exceptions.FileFormatError("Array address outside file")
+        if array_end != file_size:
+            raise exceptions.FileFormatError("Bad file size in header")
+        return descriptors
 
-        # Read the keys.
-        offset = HEADER_SIZE + descriptor_block_size
-        for descriptor in descriptors:
-            if descriptor.key_start != offset:
-                raise exceptions.FileFormatError("Keys not packed sequentially")
-            key = self._buffer[offset: offset + descriptor.key_len]
-            descriptor.key = key.decode(self.key_encoding)
-            offset += descriptor.key_len
+    def _read_file(self):
+        num_items, file_size = self._read_header()
+        descriptors = self._read_descriptors(num_items, file_size)
 
-        # Check the arrays.
-        for descriptor in descriptors:
-            remainder = offset % ARRAY_ALIGN
-            if remainder != 0:
-                offset += ARRAY_ALIGN - remainder
-            if descriptor.array_start % ARRAY_ALIGN != 0:
-                raise exceptions.FileFormatError("Arrays must be 8 byte aligned")
-            if descriptor.array_start != offset:
-                raise exceptions.FileFormatError(
-                    "Arrays must sequentially packed and 8 byte aligned")
-            offset += descriptor.array_len * type_size(descriptor.type)
+        if num_items > 0:
+            offset = HEADER_SIZE + num_items * ItemDescriptor.size
+            if self._read_all:
+                size = file_size
+            else:
+                # Read only the keys.
+                size = descriptors[0].array_start
+            assert size > offset
+            size -= offset
+            buf = self._read(size)
+            buf_start = offset  # buffer starts at this position in the file
+
+            # Read the keys.
+            for descriptor in descriptors:
+                if descriptor.key_start != offset:
+                    raise exceptions.FileFormatError("Keys not packed sequentially")
+                buf_offset = descriptor.key_start - buf_start
+                key = buf[buf_offset: buf_offset + descriptor.key_len]
+                descriptor.key = key.decode(self.key_encoding)
+                offset += descriptor.key_len
+
+            # Check the arrays.
+            for descriptor in descriptors:
+                remainder = offset % ARRAY_ALIGN
+                if remainder != 0:
+                    offset += ARRAY_ALIGN - remainder
+                if descriptor.array_start % ARRAY_ALIGN != 0:
+                    raise exceptions.FileFormatError("Arrays must be 8 byte aligned")
+                if descriptor.array_start != offset:
+                    raise exceptions.FileFormatError(
+                        "Arrays must be sequentially packed and 8 byte aligned")
+                offset += descriptor.array_len * type_size(descriptor.type)
 
         # Create the mapping for descriptors.
         self._descriptor_map = {descriptor.key: descriptor for descriptor in descriptors}
 
+        if self._read_all:
+            # Get the arrays from the buffer.
+            for descriptor in descriptors:
+                buf_offset = descriptor.array_start - buf_start
+                size = type_size(descriptor.type) * descriptor.array_len
+                data = buf[buf_offset: buf_offset + size]
+                self._cache_array(descriptor, data)
+
+    def _cache_array(self, descriptor, data):
+        dtype = type_to_np_dtype_map[descriptor.type]
+        array = np.frombuffer(data, dtype=dtype)
+        self._array_map[descriptor.key] = array
+        logger.debug("Loaded '{}'".format(descriptor.key))
+
     def _check_open(self):
-        if self._buffer is None:
+        if self._file is None:
             raise exceptions.StoreClosedError()
+
+    def _read(self, size, allow_eof=False):
+        """
+        Reads exactly size bytes from the file and returns them.
+        """
+        data = b""
+        while len(data) < size:
+            chunk = self._file.read(size - len(data))
+            data += chunk
+            if len(chunk) == 0:  # EOF
+                if allow_eof:
+                    raise EOFError("End of file")
+                else:
+                    raise exceptions.FileFormatError("Truncated file")
+        return data
 
     def info(self, key):
         self._check_open()
@@ -355,13 +422,13 @@ class Store(Mapping):
 
     def __getitem__(self, key):
         self._check_open()
-        descriptor = self._descriptor_map[key]
-        size = type_size(descriptor.type) * descriptor.array_len
-        data = self._buffer[descriptor.array_start: descriptor.array_start + size]
-        dtype = type_to_np_dtype_map[descriptor.type]
-        array = np.frombuffer(data, dtype=dtype)
-        logger.debug("Loaded '{}'".format(descriptor.key))
-        return array
+        if key not in self._array_map:
+            descriptor = self._descriptor_map[key]
+            self._file.seek(self._file_offset + descriptor.array_start)
+            size = type_size(descriptor.type) * descriptor.array_len
+            data = self._read(size)
+            self._cache_array(descriptor, data)
+        return self._array_map[key]
 
     def __len__(self):
         self._check_open()
@@ -373,13 +440,9 @@ class Store(Mapping):
             yield key
 
     def close(self):
-        if not self._read_all and self._buffer is not None:
-            logger.debug("Closing mmap '{}'".format(self._buffer))
-            self._buffer.close()
-        self._buffer = None
         if self._file is not None:
-            logger.debug("Closing file '{}'".format(self._file.name))
-            self._file.close()
+            if self._local_file:
+                self._file.close()
             self._file = None
 
     def __enter__(self):

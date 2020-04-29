@@ -36,5 +36,6 @@ if not meson.is_subproject()
             '-Wl,--wrap=fwrite', 
             '-Wl,--wrap=fread', 
             '-Wl,--wrap=fclose',
+            '-Wl,--wrap=ftell',
             '-Wl,--wrap=fseek'])
 endif

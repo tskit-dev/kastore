@@ -8,7 +8,9 @@ Kastore provides a simple Python interface to loading and storing
 key-array mappings in :ref:`kastore format <sec_format>`.
 
 .. autofunction:: kastore.load
+.. autofunction:: kastore.loads
 .. autofunction:: kastore.dump
+.. autofunction:: kastore.dumps
 .. autofunction:: kastore.get_include
 
 

@@ -32,6 +32,9 @@ handle_library_error(int err)
         case KAS_ERR_VERSION_TOO_NEW:
             PyErr_SetNone(_kastore_VersionTooNewError);
             break;
+        case KAS_ERR_EOF:
+            PyErr_Format(PyExc_EOFError, "Unexpected end of file");
+            break;
         default:
             PyErr_Format(PyExc_ValueError, "Error occured: %d: %s",
                     err, kas_strerror(err));
@@ -236,28 +239,69 @@ out:
     return ret;
 }
 
+static FILE *
+make_file(PyObject *fileobj, const char *mode)
+{
+    FILE *ret = NULL;
+    FILE *file = NULL;
+    int fileobj_fd, new_fd;
+
+    fileobj_fd = PyObject_AsFileDescriptor(fileobj);
+    if (fileobj_fd == -1) {
+        goto out;
+    }
+    new_fd = dup(fileobj_fd);
+    if (new_fd == -1) {
+        PyErr_SetFromErrno(PyExc_OSError);
+        goto out;
+    }
+    file = fdopen(new_fd, mode);
+    if (file == NULL) {
+        (void) close(new_fd);
+        PyErr_SetFromErrno(PyExc_OSError);
+        goto out;
+    }
+    ret = file;
+out:
+    return ret;
+}
+
 static PyObject *
 kastore_load(PyObject *self, PyObject *args, PyObject *kwds)
 {
     int err;
     PyObject *ret = NULL;
-    char *filename;
     kastore_t store;
     PyObject *data = NULL;
-    static char *kwlist[] = {"filename", "read_all", NULL};
+    PyObject *fileobj = NULL;
+    FILE *file = NULL;
+    static char *kwlist[] = {"file", "read_all", NULL};
     int read_all = 0;
     int flags = 0;
 
     memset(&store, 0, sizeof(store));
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|i:load", kwlist,
-                &filename, &read_all)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|i:load", kwlist,
+                &fileobj, &read_all)) {
         goto out;
     }
     if (read_all) {
         flags = KAS_READ_ALL;
     }
-    err = kastore_open(&store, filename, "r", flags);
+    file = make_file(fileobj, "rb");
+    if (file == NULL) {
+        goto out;
+    }
+    /* Set unbuffered mode to ensure no more bytes are read than requested.
+     * Buffered reads could read beyond the end of the current store in a
+     * multi-store file or stream. This data would be discarded when we
+     * fclose() the file below, such that attempts to load the next store
+     * will fail. */
+    if (setvbuf(file, NULL, _IONBF, 0) != 0) {
+        PyErr_SetFromErrno(PyExc_OSError);
+        goto out;
+    }
+    err = kastore_openf(&store, file, "r", flags);
     if (err != 0) {
         handle_library_error(err);
         goto out;
@@ -274,8 +318,11 @@ kastore_load(PyObject *self, PyObject *args, PyObject *kwds)
     data = NULL;
 out:
     /* In the error case, we ignore errors that occur here. It's OK to call
-     * close on store that has already been closed. */
+     * close on a store that has already been closed. */
     kastore_close(&store);
+    if (file != NULL) {
+        (void) fclose(file);
+    }
     Py_XDECREF(data);
     return ret;
 }
@@ -285,18 +332,24 @@ kastore_dump(PyObject *self, PyObject *args, PyObject *kwds)
 {
     int err;
     PyObject *ret = NULL;
-    char *filename;
     kastore_t store;
     PyObject *data = NULL;
-    static char *kwlist[] = {"data", "filename", NULL};
+    PyObject *fileobj = NULL;
+    FILE *file = NULL;
+    static char *kwlist[] = {"data", "file", NULL};
 
     memset(&store, 0, sizeof(store));
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!s:dump", kwlist,
-                &PyDict_Type, &data, &filename)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!O:dump", kwlist,
+                &PyDict_Type, &data, &fileobj)) {
         goto out;
     }
-    err = kastore_open(&store, filename, "w", 0);
+
+    file = make_file(fileobj, "wb");
+    if (file == NULL) {
+        goto out;
+    }
+    err = kastore_openf(&store, file, "w", 0);
     if (err != 0) {
         handle_library_error(err);
         goto out;
@@ -312,8 +365,11 @@ kastore_dump(PyObject *self, PyObject *args, PyObject *kwds)
     ret = Py_BuildValue("");
 out:
     /* In the error case, we ignore errors that occur here. It's OK to call
-     * close on store that has already been closed. */
+     * close on a store that has already been closed. */
     kastore_close(&store);
+    if (file != NULL) {
+        (void) fclose(file);
+    }
     return ret;
 }
 

@@ -60,6 +60,20 @@ __wrap_fseek(FILE *stream, long offset, int whence)
     return __real_fseek(stream, offset, whence);
 }
 
+long __wrap_ftell(FILE *stream, long offset, int whence);
+long __real_ftell(FILE *stream, long offset, int whence);
+int _ftell_fail_at = -1;
+int _ftell_count = 0;
+long
+__wrap_ftell(FILE *stream, long offset, int whence)
+{
+    if (_ftell_fail_at == _ftell_count) {
+        return -1;
+    }
+    _ftell_count++;
+    return __real_ftell(stream, offset, whence);
+}
+
 int __wrap_fclose(FILE *stream);
 int __real_fclose(FILE *stream);
 int _fclose_fail_at = -1;
@@ -270,27 +284,6 @@ test_open_read_fread(void)
 }
 
 static void
-test_open_read_fseek(void)
-{
-    kastore_t store;
-    int ret = 0;
-    const char *filename = "test-data/v1/all_types_1_elements.kas";
-    size_t f;
-    int flags[] = {0, KAS_READ_ALL};
-
-    /* Both code paths will fail on open */
-    for (f = 0; f < sizeof(flags) / sizeof(*flags); f++) {
-        _fseek_count = 0;
-        _fseek_fail_at = 0;
-        ret = kastore_open(&store, filename, "r", flags[f]);
-        CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
-        kastore_close(&store);
-    }
-    /* Make sure we reset this for other functions */
-    _fseek_fail_at = -1;
-}
-
-static void
 test_get_fseek(void)
 {
     kastore_t store;
@@ -308,6 +301,22 @@ test_get_fseek(void)
     kastore_close(&store);
     /* Make sure we reset this for other functions */
     _fseek_fail_at = -1;
+}
+
+static void
+test_get_ftell(void)
+{
+    kastore_t store;
+    int ret = 0;
+    const char *filename = "test-data/v1/all_types_1_elements.kas";
+
+    _ftell_count = 0;
+    _ftell_fail_at = 0;
+    ret = kastore_open(&store, filename, "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    kastore_close(&store);
+    /* Make sure we reset this for other functions */
+    _ftell_fail_at = -1;
 }
 
 static void
@@ -389,8 +398,8 @@ main(int argc, char **argv)
         {"test_read_fclose", test_read_fclose},
         {"test_append_fclose", test_append_fclose},
         {"test_open_read_fread", test_open_read_fread},
-        {"test_open_read_fseek", test_open_read_fseek},
         {"test_get_fseek", test_get_fseek},
+        {"test_get_ftell", test_get_ftell},
         {"test_get_fread", test_get_fread},
         CU_TEST_INFO_NULL,
     };
