@@ -9,9 +9,14 @@
 #include <stdbool.h>
 #include "kastore.h"
 
-static PyObject *_kastore_FileFormatError;
-static PyObject *_kastore_VersionTooOldError;
-static PyObject *_kastore_VersionTooNewError;
+/* TskitException is the superclass of all exceptions that can be thrown by
+ * tskit. We define it here in the low-level library so that exceptions defined
+ * here and in the high-level library can inherit from it.
+ */
+static PyObject *KastoreException;
+static PyObject *KastoreFileFormatError;
+static PyObject *KastoreVersionTooOldError;
+static PyObject *KastoreVersionTooNewError;
 
 static void
 handle_library_error(int err)
@@ -21,16 +26,16 @@ handle_library_error(int err)
             PyErr_SetFromErrno(PyExc_OSError);
             break;
         case KAS_ERR_BAD_FILE_FORMAT:
-            PyErr_Format(_kastore_FileFormatError, "Bad file format");
+            PyErr_Format(KastoreFileFormatError, "Bad file format");
             break;
         case KAS_ERR_BAD_TYPE:
-            PyErr_Format(_kastore_FileFormatError, "Unknown data type");
+            PyErr_Format(KastoreFileFormatError, "Unknown data type");
             break;
         case KAS_ERR_VERSION_TOO_OLD:
-            PyErr_SetNone(_kastore_VersionTooOldError);
+            PyErr_SetNone(KastoreVersionTooOldError);
             break;
         case KAS_ERR_VERSION_TOO_NEW:
-            PyErr_SetNone(_kastore_VersionTooNewError);
+            PyErr_SetNone(KastoreVersionTooNewError);
             break;
         case KAS_ERR_EOF:
             PyErr_Format(PyExc_EOFError, "Unexpected end of file");
@@ -402,15 +407,21 @@ PyInit__kastore(void)
     /* Initialise numpy */
     import_array();
 
-    _kastore_FileFormatError = PyErr_NewException("_kastore.FileFormatError", NULL, NULL);
-    Py_INCREF(_kastore_FileFormatError);
-    PyModule_AddObject(module, "FileFormatError", _kastore_FileFormatError);
-    _kastore_VersionTooOldError = PyErr_NewException("_kastore.VersionTooOldError", NULL, NULL);
-    Py_INCREF(_kastore_VersionTooOldError);
-    PyModule_AddObject(module, "VersionTooOldError", _kastore_VersionTooOldError);
-    _kastore_VersionTooNewError = PyErr_NewException("_kastore.VersionTooNewError", NULL, NULL);
-    Py_INCREF(_kastore_VersionTooNewError);
-    PyModule_AddObject(module, "VersionTooNewError", _kastore_VersionTooNewError);
+    KastoreException = PyErr_NewException("_kastore.KastoreException", NULL, NULL);
+    Py_INCREF(KastoreException);
+    PyModule_AddObject(module, "KastoreException", KastoreException);
+
+    KastoreFileFormatError = PyErr_NewException("_kastore.FileFormatError", KastoreException, NULL);
+    Py_INCREF(KastoreFileFormatError);
+    PyModule_AddObject(module, "FileFormatError", KastoreFileFormatError);
+
+    KastoreVersionTooOldError = PyErr_NewException("_kastore.VersionTooOldError", KastoreException, NULL);
+    Py_INCREF(KastoreVersionTooOldError);
+    PyModule_AddObject(module, "VersionTooOldError", KastoreVersionTooOldError);
+
+    KastoreVersionTooNewError = PyErr_NewException("_kastore.VersionTooNewError", KastoreException, NULL);
+    Py_INCREF(KastoreVersionTooNewError);
+    PyModule_AddObject(module, "VersionTooNewError", KastoreVersionTooNewError);
 
     /* Sanity check: we've compiled the kastore code into this module, so there's no
      * way the versions could have changed */

@@ -255,3 +255,24 @@ class TestOpenSemantics(unittest.TestCase):
             with self.assertRaises(TypeError):
                 with kas._open_file(bad_type, "wb"):
                     pass
+
+
+class TestExceptions(unittest.TestCase):
+
+    def test_inheritance(self):
+        # Make sure all our exceptions are subclasses of KastoreException.
+        exceptions = [
+            kas.FileFormatError,
+            kas.VersionTooNewError,
+            kas.VersionTooOldError,
+            kas.StoreClosedError,
+        ]
+        for exc_class in exceptions:
+            self.assertTrue(issubclass(exc_class, kas.KastoreException))
+
+    def test_format_error(self):
+        with self.assertRaises(kas.FileFormatError):
+            kas.loads(b"x" * 1024)
+        # This is also a KastoreException
+        with self.assertRaises(kas.KastoreException):
+            kas.loads(b"x" * 1024)

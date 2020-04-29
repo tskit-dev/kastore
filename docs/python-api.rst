@@ -13,6 +13,14 @@ key-array mappings in :ref:`kastore format <sec_format>`.
 .. autofunction:: kastore.dumps
 .. autofunction:: kastore.get_include
 
+**********
+Exceptions
+**********
+
+.. autoexception:: kastore.KastoreException
+.. autoexception:: kastore.FileFormatError
+.. autoexception:: kastore.VersionTooNewError
+.. autoexception:: kastore.VersionTooOldError
 
 *******
 Example
