@@ -142,6 +142,16 @@ class TestOutput(unittest.TestCase):
         }
         return data
 
+    def test_list_empty(self):
+        kas.dump({}, self.temp_file)
+        stdout, stderr = self.get_output(["ls", self.temp_file])
+        self.assertEqual(len(stderr), 0)
+        self.assertEqual(len(stdout), 0)
+        for opts in ["-l", "-lH"]:
+            stdout, stderr = self.get_output(["ls", opts, self.temp_file])
+            self.assertEqual(len(stderr), 0)
+            self.assertEqual(len(stdout), 0)
+
     def test_list(self):
         data = self.get_example_data()
         kas.dump(data, self.temp_file)
