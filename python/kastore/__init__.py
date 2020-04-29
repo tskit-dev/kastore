@@ -4,9 +4,7 @@ import contextlib
 import os.path
 
 from . import store
-from . exceptions import FileFormatError
-from . exceptions import VersionTooOldError
-from . exceptions import VersionTooNewError
+from . exceptions import *  # noqa
 from . import _version
 __version__ = _version.kastore_version
 
@@ -120,17 +118,8 @@ def load(file, read_all=False, key_encoding=DEFAULT_KEY_ENCODING, engine=PY_ENGI
 
     elif engine == C_ENGINE:
         _check_low_level_module()
-        try:
-            with _open_file(file, "rb") as f:
-                ret = _kastore.load(f, read_all=read_all)
-        # TODO we can avoid this by importing the low-level Exceptions into the
-        # exceptions module like we do in Tskit.
-        except _kastore.FileFormatError as e:
-            raise FileFormatError(str(e))
-        except _kastore.VersionTooOldError:
-            raise VersionTooOldError()
-        except _kastore.VersionTooNewError:
-            raise VersionTooNewError()
+        with _open_file(file, "rb") as f:
+            ret = _kastore.load(f, read_all=read_all)
     else:
         _raise_unknown_engine()
     return ret

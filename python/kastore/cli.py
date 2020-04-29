@@ -25,6 +25,9 @@ def setup_logging(args):
 
 def _list(store, args):
     keys = sorted(store.keys())
+    if len(keys) == 0:
+        # Early exit to simplify logic below
+        return
     if args.long:
         sizes = []
         dtypes = []
