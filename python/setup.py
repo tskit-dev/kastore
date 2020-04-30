@@ -50,7 +50,7 @@ setup(
     author_email="jerome.kelleher@well.ox.ac.uk",
     python_requires=">=3.5",
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "License :: OSI Approved :: MIT License",
