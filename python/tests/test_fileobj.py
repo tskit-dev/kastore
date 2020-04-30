@@ -11,10 +11,14 @@ import socketserver
 import socket
 import queue
 import traceback
+import platform
 
 import numpy as np
 
 import kastore as kas
+
+
+IS_WINDOWS = platform.system() == "Windows"
 
 
 class DictVerifyMixin(object):
@@ -364,17 +368,21 @@ class TestFileobjPyEngine(FileobjMixin, unittest.TestCase):
     engine = kas.PY_ENGINE
 
 
+@unittest.skipIf(IS_WINDOWS, "FIFOs don't exist on Windows")
 class TestStreamingCEngine(StreamingMixin, unittest.TestCase):
     engine = kas.C_ENGINE
 
 
+@unittest.skipIf(IS_WINDOWS, "FIFOs don't exist on Windows")
 class TestStreamingPyEngine(StreamingMixin, unittest.TestCase):
     engine = kas.PY_ENGINE
 
 
+@unittest.skipIf(IS_WINDOWS, "Deadlocking on Windows")
 class TestSocketCEngine(SocketMixin, unittest.TestCase):
     engine = kas.C_ENGINE
 
 
+@unittest.skipIf(IS_WINDOWS, "Deadlocking on Windows")
 class TestSocketPyEngine(SocketMixin, unittest.TestCase):
     engine = kas.PY_ENGINE
