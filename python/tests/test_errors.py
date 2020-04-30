@@ -1,11 +1,11 @@
 """
 Tests for error conditions.
 """
-import unittest
-import tempfile
 import os
 import platform
 import struct
+import tempfile
+import unittest
 
 import numpy as np
 
@@ -15,10 +15,11 @@ import kastore.store as store
 IS_WINDOWS = platform.system() == "Windows"
 
 
-class InterfaceMixin(object):
+class InterfaceMixin:
     """
     Exercise the low-level interface.
     """
+
     def setUp(self):
         fd, path = tempfile.mkstemp(prefix="kas_test_errors")
         os.close(fd)
@@ -30,20 +31,18 @@ class InterfaceMixin(object):
     def test_bad_dicts(self):
         for bad_dict in [[], "w34", None, 1]:
             self.assertRaises(
-                TypeError, kas.dump, bad_dict, self.temp_file, engine=self.engine)
+                TypeError, kas.dump, bad_dict, self.temp_file, engine=self.engine
+            )
             self.assertRaises(
-                TypeError, kas.dump, bad_dict, self.temp_file, engine=self.engine)
+                TypeError, kas.dump, bad_dict, self.temp_file, engine=self.engine
+            )
 
     def test_bad_filename_type(self):
         for bad_filename in [[], None, {}]:
-            self.assertRaises(
-                TypeError, kas.dump, {}, bad_filename, engine=self.engine)
-            self.assertRaises(
-                TypeError, kas.dump, {}, bad_filename, engine=self.engine)
-            self.assertRaises(
-                TypeError, kas.load, bad_filename, engine=self.engine)
-            self.assertRaises(
-                TypeError, kas.load, bad_filename, engine=self.engine)
+            self.assertRaises(TypeError, kas.dump, {}, bad_filename, engine=self.engine)
+            self.assertRaises(TypeError, kas.dump, {}, bad_filename, engine=self.engine)
+            self.assertRaises(TypeError, kas.load, bad_filename, engine=self.engine)
+            self.assertRaises(TypeError, kas.load, bad_filename, engine=self.engine)
 
     def test_bad_keys(self):
         a = np.zeros(1)
@@ -55,18 +54,21 @@ class InterfaceMixin(object):
         kas.dump({"a": []}, self.temp_file, engine=self.engine)
         for bad_array in [kas, lambda x: x, "1234", None, [[0, 1], [0, 2]]]:
             self.assertRaises(
-                ValueError, kas.dump, {"a": bad_array},
-                self.temp_file, engine=self.engine)
+                ValueError,
+                kas.dump,
+                {"a": bad_array},
+                self.temp_file,
+                engine=self.engine,
+            )
         # TODO add tests for arrays in fortran order and so on.
 
     def test_file_not_found(self):
         a = np.zeros(1)
         for bad_file in ["no_such_file", "/no/such/file"]:
-            self.assertRaises(
-                FileNotFoundError, kas.load, bad_file, engine=self.engine)
+            self.assertRaises(FileNotFoundError, kas.load, bad_file, engine=self.engine)
         self.assertRaises(
-            FileNotFoundError, kas.dump, {"a": a}, "/no/such/file",
-            engine=self.engine)
+            FileNotFoundError, kas.dump, {"a": a}, "/no/such/file", engine=self.engine
+        )
 
     def test_file_is_a_directory(self):
         tmp_dir = tempfile.mkdtemp()
@@ -75,9 +77,9 @@ class InterfaceMixin(object):
             if IS_WINDOWS:
                 exception = PermissionError
             self.assertRaises(
-                exception, kas.dump, {"a": []}, tmp_dir, engine=self.engine)
-            self.assertRaises(
-                exception, kas.load, tmp_dir, engine=self.engine)
+                exception, kas.dump, {"a": []}, tmp_dir, engine=self.engine
+            )
+            self.assertRaises(exception, kas.load, tmp_dir, engine=self.engine)
         finally:
             os.rmdir(tmp_dir)
 
@@ -94,6 +96,7 @@ class TestEngines(unittest.TestCase):
     """
     Check that we correctly identify bad engines
     """
+
     bad_engines = [None, {}, "no such engine", b"not an engine"]
 
     def test_bad_engine_dump(self):
@@ -105,10 +108,11 @@ class TestEngines(unittest.TestCase):
             self.assertRaises(ValueError, kas.load, "", engine=bad_engine)
 
 
-class FileFormatsMixin(object):
+class FileFormatsMixin:
     """
     Common utilities for tests on the file format.
     """
+
     def setUp(self):
         fd, path = tempfile.mkstemp(prefix="kas_malformed_files")
         os.close(fd)
@@ -128,38 +132,47 @@ class MalformedFilesMixin(FileFormatsMixin):
     """
     Tests for various types of malformed intput files.
     """
+
     def test_empty_file(self):
         with open(self.temp_file, "w"):
             pass
         self.assertEqual(os.path.getsize(self.temp_file), 0)
         self.assertRaises(
-            EOFError, kas.load, self.temp_file, engine=self.engine,
-            read_all=self.read_all)
+            EOFError,
+            kas.load,
+            self.temp_file,
+            engine=self.engine,
+            read_all=self.read_all,
+        )
 
     def test_bad_magic(self):
         self.write_file()
-        with open(self.temp_file, 'rb') as f:
+        with open(self.temp_file, "rb") as f:
             buff = bytearray(f.read())
         before_len = len(buff)
-        buff[0:8] = b'12345678'
+        buff[0:8] = b"12345678"
         self.assertEqual(len(buff), before_len)
-        with open(self.temp_file, 'wb') as f:
+        with open(self.temp_file, "wb") as f:
             f.write(buff)
         self.assertRaises(
-            kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-            read_all=self.read_all)
+            kas.FileFormatError,
+            kas.load,
+            self.temp_file,
+            engine=self.engine,
+            read_all=self.read_all,
+        )
 
     def test_bad_file_size(self):
         for num_items in range(10):
-            for offset in [-2, -1, 1, 2**10]:
+            for offset in [-2, -1, 1, 2 ** 10]:
                 self.write_file(num_items)
                 file_size = os.path.getsize(self.temp_file)
-                with open(self.temp_file, 'rb') as f:
+                with open(self.temp_file, "rb") as f:
                     buff = bytearray(f.read())
                 before_len = len(buff)
                 buff[16:24] = struct.pack("<Q", file_size + offset)
                 self.assertEqual(len(buff), before_len)
-                with open(self.temp_file, 'wb') as f:
+                with open(self.temp_file, "wb") as f:
                     f.write(buff)
                 with self.assertRaises(kas.FileFormatError):
                     kas.load(self.temp_file, engine=self.engine, read_all=self.read_all)
@@ -167,24 +180,25 @@ class MalformedFilesMixin(FileFormatsMixin):
     def test_truncated_file_descriptors(self):
         for num_items in range(2, 5):
             self.write_file(num_items)
-            with open(self.temp_file, 'rb') as f:
+            with open(self.temp_file, "rb") as f:
                 buff = bytearray(f.read())
-            with open(self.temp_file, 'wb') as f:
-                f.write(buff[:num_items * store.ITEM_DESCRIPTOR_SIZE - 1])
+            with open(self.temp_file, "wb") as f:
+                f.write(buff[: num_items * store.ITEM_DESCRIPTOR_SIZE - 1])
             with self.assertRaises(kas.FileFormatError):
                 kas.load(self.temp_file, engine=self.engine, read_all=self.read_all)
 
     def test_truncated_file_data(self):
         for num_items in range(2, 5):
             self.write_file(num_items)
-            with open(self.temp_file, 'rb') as f:
+            with open(self.temp_file, "rb") as f:
                 buff = bytearray(f.read())
-            with open(self.temp_file, 'wb') as f:
+            with open(self.temp_file, "wb") as f:
                 f.write(buff[:-1])
             with self.assertRaises(kas.FileFormatError):
                 # Must call dict to ensure all the keys are loaded.
                 dict(
-                    kas.load(self.temp_file, engine=self.engine, read_all=self.read_all))
+                    kas.load(self.temp_file, engine=self.engine, read_all=self.read_all)
+                )
 
     def test_bad_item_types(self):
         items = {"a": []}
@@ -207,8 +221,12 @@ class MalformedFilesMixin(FileFormatsMixin):
             with open(self.temp_file, "wb") as f:
                 store.write_file(f, descriptors, file_size)
             self.assertRaises(
-                kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-                read_all=self.read_all)
+                kas.FileFormatError,
+                kas.load,
+                self.temp_file,
+                engine=self.engine,
+                read_all=self.read_all,
+            )
 
     def test_bad_key_non_sequential(self):
         items = {"a": np.arange(100), "b": []}
@@ -219,8 +237,12 @@ class MalformedFilesMixin(FileFormatsMixin):
             with open(self.temp_file, "wb") as f:
                 store.write_file(f, descriptors, file_size)
             self.assertRaises(
-                kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-                read_all=self.read_all)
+                kas.FileFormatError,
+                kas.load,
+                self.temp_file,
+                engine=self.engine,
+                read_all=self.read_all,
+            )
 
     def test_bad_array_initial_offset(self):
         items = {"a": np.arange(100)}
@@ -231,8 +253,12 @@ class MalformedFilesMixin(FileFormatsMixin):
             with open(self.temp_file, "wb") as f:
                 store.write_file(f, descriptors, file_size)
             self.assertRaises(
-                kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-                read_all=self.read_all)
+                kas.FileFormatError,
+                kas.load,
+                self.temp_file,
+                engine=self.engine,
+                read_all=self.read_all,
+            )
 
     def test_bad_array_non_sequential(self):
         items = {"a": np.arange(100), "b": []}
@@ -242,8 +268,12 @@ class MalformedFilesMixin(FileFormatsMixin):
             with open(self.temp_file, "wb") as f:
                 store.write_file(f, descriptors, file_size)
             self.assertRaises(
-                kas.FileFormatError, kas.load, self.temp_file, engine=self.engine,
-                read_all=self.read_all)
+                kas.FileFormatError,
+                kas.load,
+                self.temp_file,
+                engine=self.engine,
+                read_all=self.read_all,
+            )
 
     def test_bad_array_alignment(self):
         items = {"a": np.arange(100, dtype=np.int8), "b": []}
@@ -290,26 +320,30 @@ class FileVersionsMixin(FileFormatsMixin):
     """
     Tests for the file major version.
     """
+
     def verify_major_version(self, version):
         self.write_file()
-        with open(self.temp_file, 'rb') as f:
+        with open(self.temp_file, "rb") as f:
             buff = bytearray(f.read())
         before_len = len(buff)
         buff[8:10] = struct.pack("<H", version)
         self.assertEqual(len(buff), before_len)
-        with open(self.temp_file, 'wb') as f:
+        with open(self.temp_file, "wb") as f:
             f.write(buff)
         kas.load(self.temp_file, engine=self.engine, read_all=self.read_all)
 
     def test_major_version_too_old(self):
         self.assertRaises(
-            kas.VersionTooOldError, self.verify_major_version, store.VERSION_MAJOR - 1)
+            kas.VersionTooOldError, self.verify_major_version, store.VERSION_MAJOR - 1
+        )
 
     def test_major_version_too_new(self):
         for j in range(1, 5):
             self.assertRaises(
-                kas.VersionTooNewError, self.verify_major_version,
-                store.VERSION_MAJOR + j)
+                kas.VersionTooNewError,
+                self.verify_major_version,
+                store.VERSION_MAJOR + j,
+            )
 
 
 class TestFileVersionsPyEngine(FileVersionsMixin, unittest.TestCase):

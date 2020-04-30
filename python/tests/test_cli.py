@@ -2,19 +2,19 @@
 Test cases for the kastore CLI.
 """
 import io
+import logging
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
-import subprocess
-import logging
 
-import numpy as np
 import mock
+import numpy as np
 
 import kastore as kas
-import kastore.cli as cli
 import kastore.__main__ as main
+import kastore.cli as cli
 
 
 def capture_output(func, *args, **kwargs):
@@ -43,6 +43,7 @@ class TestMain(unittest.TestCase):
     """
     Simple tests for the main function.
     """
+
     def test_cli_main(self):
         with mock.patch("argparse.ArgumentParser.parse_args") as mocked_parse:
             cli.kastore_main()
@@ -58,6 +59,7 @@ class TestListArgumentParser(unittest.TestCase):
     """
     Tests the parser to ensure it parses input values correctly.
     """
+
     def parse_args(self, args):
         parser = cli.get_kastore_parser()
         return parser.parse_args(args)
@@ -89,6 +91,7 @@ class TestDumpArgumentParser(unittest.TestCase):
     """
     Tests the parser to ensure it parses input values correctly.
     """
+
     def parse_args(self, args):
         parser = cli.get_kastore_parser()
         return parser.parse_args(args)
@@ -103,10 +106,11 @@ class TestDirectOutput(unittest.TestCase):
     """
     Tests for some of the argparse inherited functionality
     """
+
     def run_command(self, cmd):
         stdout = subprocess.check_output(
-            [sys.executable, "-m", "kastore"] + cmd,
-            stderr=subprocess.STDOUT)
+            [sys.executable, "-m", "kastore"] + cmd, stderr=subprocess.STDOUT
+        )
         return stdout.decode()
 
     def test_help(self):
@@ -123,6 +127,7 @@ class TestOutput(unittest.TestCase):
     """
     Tests that the output of the various tests is good.
     """
+
     def setUp(self):
         fd, self.temp_file = tempfile.mkstemp(prefix="htsget_cli_test_")
         os.close(fd)
@@ -136,10 +141,7 @@ class TestOutput(unittest.TestCase):
         return capture_output(args.runner, args)
 
     def get_example_data(self):
-        data = {
-            str("A"): np.arange(100),
-            str("B"): np.zeros(10, dtype=int)
-        }
+        data = {"A": np.arange(100), "B": np.zeros(10, dtype=int)}
         return data
 
     def test_list_empty(self):
@@ -197,7 +199,7 @@ class TestOutput(unittest.TestCase):
         # here in this class
         data = self.get_example_data()
         kas.dump(data, self.temp_file)
-        log_format = '%(asctime)s %(message)s'
+        log_format = "%(asctime)s %(message)s"
         with mock.patch("logging.basicConfig") as mocked_config:
             stdout, stderr = self.get_output(args + ["ls", self.temp_file])
             mocked_config.assert_called_once_with(level=level, format=log_format)

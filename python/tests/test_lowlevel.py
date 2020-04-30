@@ -1,10 +1,10 @@
 """
 Tests for the low-level C interface
 """
-import unittest
-import tempfile
 import os
 import platform
+import tempfile
+import unittest
 
 import numpy as np
 
@@ -53,7 +53,6 @@ class TestBasicOperation(unittest.TestCase):
 
 @unittest.skipIf(IS_WINDOWS, "Not worth making this work on windows")
 class TestInputs(unittest.TestCase):
-
     def test_bad_numeric(self):
         for fd in ["1", 1.0, 2.0]:
             with self.assertRaises(TypeError):
@@ -74,7 +73,7 @@ class TestInputs(unittest.TestCase):
             _kastore.load(bad_fd)
 
     def test_bad_file_mode(self):
-        with open(os.devnull, "r") as f:
+        with open(os.devnull) as f:
             with self.assertRaises(OSError):
                 _kastore.dump({}, f)
         with open(os.devnull, "w") as f:

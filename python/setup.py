@@ -1,6 +1,8 @@
-import os.path
 import codecs
-from setuptools import setup, Extension
+import os.path
+
+from setuptools import Extension
+from setuptools import setup
 from setuptools.command.build_ext import build_ext
 
 
@@ -10,21 +12,23 @@ class local_build_ext(build_ext):
     def finalize_options(self):
         build_ext.finalize_options(self)
         import builtins
+
         # Prevent numpy from thinking it is still in its setup process:
         builtins.__NUMPY_SETUP__ = False
         import numpy
+
         self.include_dirs.append(numpy.get_include())
 
 
 _kastore_module = Extension(
-    '_kastore',
+    "_kastore",
     sources=["_kastoremodule.c", "lib/kastore.c"],
     extra_compile_args=["-std=c99"],
     include_dirs=["lib"],
 )
 
 here = os.path.abspath(os.path.dirname(__file__))
-with codecs.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
+with codecs.open(os.path.join(here, "README.rst"), encoding="utf-8") as f:
     long_description = f.read()
 
 # After exec'ing this file we have kastore_version defined.
@@ -36,42 +40,36 @@ with open(version_file) as f:
 numpy_ver = "numpy>=1.7"
 
 setup(
-    name='kastore',
-    description='A write-once-read-many store for simple numerical data',
+    name="kastore",
+    description="A write-once-read-many store for simple numerical data",
     long_description=long_description,
-    url='https://github.com/tskit-dev/kastore',
-    author='tskit developers',
+    url="https://github.com/tskit-dev/kastore",
+    author="tskit developers",
     version=kastore_version,
     # TODO setup a tskit developers email address.
-    author_email='jerome.kelleher@well.ox.ac.uk',
-    python_requires='>=3.5',
+    author_email="jerome.kelleher@well.ox.ac.uk",
+    python_requires=">=3.5",
     classifiers=[
-        'Development Status :: 3 - Alpha',
-        'Intended Audience :: Developers',
-        'Topic :: Scientific/Engineering :: Bio-Informatics',
-        'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3 :: Only',
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "Topic :: Scientific/Engineering :: Bio-Informatics",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3 :: Only",
     ],
-    keywords='Binary store numerical arrays',
-    packages=['kastore'],
+    keywords="Binary store numerical arrays",
+    packages=["kastore"],
     include_package_data=True,
     ext_modules=[_kastore_module],
-    install_requires=[numpy_ver, 'humanize'],
-    entry_points={
-        'console_scripts': [
-            'kastore=kastore.__main__:main',
-        ],
-    },
+    install_requires=[numpy_ver, "humanize"],
+    entry_points={"console_scripts": ["kastore=kastore.__main__:main"]},
     project_urls={
-        'Bug Reports': 'https://github.com/tskit-dev/kastore/issues',
-        'Source': 'https://github.com/tskit-dev/kastore',
+        "Bug Reports": "https://github.com/tskit-dev/kastore/issues",
+        "Source": "https://github.com/tskit-dev/kastore",
     },
     setup_requires=[numpy_ver],
-    cmdclass={
-        'build_ext': local_build_ext
-    }
+    cmdclass={"build_ext": local_build_ext},
 )

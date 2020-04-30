@@ -1,11 +1,12 @@
+import contextlib
 import functools
 import io
-import contextlib
 import os.path
 
-from . import store
-from . exceptions import *  # noqa
 from . import _version
+from . import store
+from .exceptions import *  # noqa
+
 __version__ = _version.kastore_version
 
 _kastore_loaded = True

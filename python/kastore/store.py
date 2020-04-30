@@ -14,9 +14,9 @@ The file format layout is as follows.
 + 8 byte bounaries.
 +===================================+
 """
-import struct
 import logging
 import os
+import struct
 from collections.abc import Mapping
 
 import numpy as np
@@ -86,7 +86,7 @@ def type_size(ka_type):
     return size_map[ka_type]
 
 
-class ItemDescriptor(object):
+class ItemDescriptor:
     """
     The information required to recover a single key-value pair from the
     file. Each descriptor is a block of 64 bytes, which stores:
@@ -102,10 +102,12 @@ class ItemDescriptor(object):
     For example, we may wish to add an 'encoding' field in the future,
     which allows for things like simple run-length encoding and so on.
     """
+
     size = ITEM_DESCRIPTOR_SIZE
 
     def __init__(
-            self, type_, key_start=None, key_len=None, array_start=None, array_len=None):
+        self, type_, key_start=None, key_len=None, array_start=None, array_len=None
+    ):
         self.type = type_
         self.key_start = key_start
         self.key_len = key_len
@@ -116,8 +118,8 @@ class ItemDescriptor(object):
 
     def __str__(self):
         return "type={};key_start={};key_len={};array_start={};array_len={}".format(
-                self.type, self.key_start, self.key_len, self.array_start,
-                self.array_len)
+            self.type, self.key_start, self.key_len, self.array_start, self.array_len
+        )
 
     def pack(self):
         descriptor = bytearray(ITEM_DESCRIPTOR_SIZE)
@@ -146,7 +148,7 @@ def dump(arrays, fileobj, key_encoding="utf-8"):
     """
     if not isinstance(arrays, Mapping):
         raise TypeError("Input must be dict-like")
-    for key, array in arrays.items():
+    for key in arrays.keys():
         if len(key) == 0:
             raise ValueError("Empty keys not supported")
     descriptors, file_size = pack_items(arrays, key_encoding)
@@ -184,7 +186,7 @@ def pack_items(arrays, key_encoding="utf-8"):
         descriptors.append(descriptor)
     # Now pack the arrays in densely after the keys 8 byte aligned
     for descriptor in descriptors:
-        remainder = (offset % ARRAY_ALIGN)
+        remainder = offset % ARRAY_ALIGN
         if remainder != 0:
             offset += ARRAY_ALIGN - remainder
         descriptor.array_start = offset
@@ -223,7 +225,7 @@ def write_file(fileobj, descriptors, file_size):
         # Because of the alignment requirements for array storage we
         # need to add in some padding between arrays.
         padding = descriptor.array_start - offset
-        fileobj.write(b'\0' * padding)
+        fileobj.write(b"\0" * padding)
         data = bytes(descriptor.array.data)
         fileobj.write(data)
         offset = descriptor.array_start + len(data)
@@ -233,23 +235,25 @@ def load(file, read_all=False, key_encoding="utf-8"):
     return Store(file, read_all=read_all, key_encoding=key_encoding)
 
 
-class ValueInfo(object):
+class ValueInfo:
     """
     Simple class encapsulating information about a store array.
     """
+
     def __init__(self, dtype, shape, size):
         self.dtype = dtype
         self.shape = shape
         self.size = size
 
     def __str__(self):
-        return "dtype={} shape={}, size={}".format(self.dtype, self.shape, self.size)
+        return f"dtype={self.dtype} shape={self.shape}, size={self.size}"
 
 
 class Store(Mapping):
     """
     Dictionary-like object giving dynamic access to the data in a kastore.
     """
+
     def __init__(self, file, read_all=False, key_encoding="utf8"):
 
         # Get ourselves a local version of the file. The semantics here are complex
@@ -296,13 +300,13 @@ class Store(Mapping):
             raise exceptions.FileFormatError("Magic number mismatch")
         version_major = struct.unpack("<H", header[8:10])[0]
         version_minor = struct.unpack("<H", header[10:12])[0]
-        logger.debug("Loading file version {}.{}".format(version_major, version_minor))
+        logger.debug(f"Loading file version {version_major}.{version_minor}")
         if version_major < VERSION_MAJOR:
             raise exceptions.VersionTooOldError()
         elif version_major > VERSION_MAJOR:
             raise exceptions.VersionTooNewError()
         num_items, file_size = struct.unpack("<IQ", header[12:24])
-        logger.debug("Loading {} items from {} bytes".format(num_items, file_size))
+        logger.debug(f"Loading {num_items} items from {file_size} bytes")
         if file_size < HEADER_SIZE:
             raise exceptions.FileFormatError("Bad file size in header")
         return num_items, file_size
@@ -318,7 +322,8 @@ class Store(Mapping):
         descriptors = []
         for _ in range(num_items):
             descriptor = ItemDescriptor.unpack(
-                descriptor_block[offset: offset + ItemDescriptor.size])
+                descriptor_block[offset : offset + ItemDescriptor.size]
+            )
             descriptors.append(descriptor)
             offset += ItemDescriptor.size
             # Check the type.
@@ -331,8 +336,9 @@ class Store(Mapping):
             if descriptor.array_start < HEADER_SIZE + descriptor_block_size:
                 raise exceptions.FileFormatError("Array address out of bounds")
             array_end = (
-                descriptor.array_start +
-                type_size(descriptor.type) * descriptor.array_len)
+                descriptor.array_start
+                + type_size(descriptor.type) * descriptor.array_len
+            )
             if array_end > file_size:
                 raise exceptions.FileFormatError("Array address outside file")
         if array_end != file_size:
@@ -360,7 +366,7 @@ class Store(Mapping):
                 if descriptor.key_start != offset:
                     raise exceptions.FileFormatError("Keys not packed sequentially")
                 buf_offset = descriptor.key_start - buf_start
-                key = buf[buf_offset: buf_offset + descriptor.key_len]
+                key = buf[buf_offset : buf_offset + descriptor.key_len]
                 descriptor.key = key.decode(self.key_encoding)
                 offset += descriptor.key_len
 
@@ -373,25 +379,28 @@ class Store(Mapping):
                     raise exceptions.FileFormatError("Arrays must be 8 byte aligned")
                 if descriptor.array_start != offset:
                     raise exceptions.FileFormatError(
-                        "Arrays must be sequentially packed and 8 byte aligned")
+                        "Arrays must be sequentially packed and 8 byte aligned"
+                    )
                 offset += descriptor.array_len * type_size(descriptor.type)
 
         # Create the mapping for descriptors.
-        self._descriptor_map = {descriptor.key: descriptor for descriptor in descriptors}
+        self._descriptor_map = {
+            descriptor.key: descriptor for descriptor in descriptors
+        }
 
         if self._read_all:
             # Get the arrays from the buffer.
             for descriptor in descriptors:
                 buf_offset = descriptor.array_start - buf_start
                 size = type_size(descriptor.type) * descriptor.array_len
-                data = buf[buf_offset: buf_offset + size]
+                data = buf[buf_offset : buf_offset + size]
                 self._cache_array(descriptor, data)
 
     def _cache_array(self, descriptor, data):
         dtype = type_to_np_dtype_map[descriptor.type]
         array = np.frombuffer(data, dtype=dtype)
         self._array_map[descriptor.key] = array
-        logger.debug("Loaded '{}'".format(descriptor.key))
+        logger.debug(f"Loaded '{descriptor.key}'")
 
     def _check_open(self):
         if self._file is None:
@@ -417,7 +426,7 @@ class Store(Mapping):
         descriptor = self._descriptor_map[key]
         dtype = type_to_np_dtype_map[descriptor.type]
         size = type_size(descriptor.type) * descriptor.array_len
-        shape = descriptor.array_len,
+        shape = (descriptor.array_len,)
         return ValueInfo(dtype, shape, size)
 
     def __getitem__(self, key):
@@ -436,8 +445,7 @@ class Store(Mapping):
 
     def __iter__(self):
         self._check_open()
-        for key in self._descriptor_map.keys():
-            yield key
+        yield from self._descriptor_map.keys()
 
     def close(self):
         if self._file is not None:

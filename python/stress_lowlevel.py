@@ -3,17 +3,17 @@ Code to stress the low-level API as much as possible to expose
 any memory leaks or error handling issues.
 """
 import argparse
-import unittest
+import os
 import random
 import resource
-import os
 import sys
 import time
+import unittest
 
 import tests.test_errors as test_errors
 import tests.test_file_format as test_file_format
-import tests.test_storage as test_storage
 import tests.test_lowlevel as test_lowlevel
+import tests.test_storage as test_storage
 
 
 def main():
@@ -24,10 +24,14 @@ def main():
         "lowlevel": test_lowlevel,
     }
     parser = argparse.ArgumentParser(
-        description="Run tests in a loop to stress low-level interface")
+        description="Run tests in a loop to stress low-level interface"
+    )
     parser.add_argument(
-        "-m", "--module", help="Run tests only on this module",
-        choices=list(modules.keys()))
+        "-m",
+        "--module",
+        help="Run tests only on this module",
+        choices=list(modules.keys()),
+    )
     args = parser.parse_args()
     test_modules = list(modules.values())
     if args.module is not None:
@@ -39,7 +43,7 @@ def main():
     min_rss = 1e100
     iteration = 0
     last_print = time.time()
-    devnull = open(os.devnull, 'w')
+    devnull = open(os.devnull, "w")
     while True:
         # We don't want any random variation in the amount of memory
         # used from test-to-test.
@@ -61,10 +65,18 @@ def main():
         # We don't want to flood stdout, so we rate-limit to 1 per second.
         if time.time() - last_print > 1:
             print(
-                iteration, result.testsRun, len(result.failures),
-                len(result.errors), len(result.skipped),
-                rusage.ru_maxrss, min_rss,  max_rss, max_rss_iter,
-                sep="\t", end="\r")
+                iteration,
+                result.testsRun,
+                len(result.failures),
+                len(result.errors),
+                len(result.skipped),
+                rusage.ru_maxrss,
+                min_rss,
+                max_rss,
+                max_rss_iter,
+                sep="\t",
+                end="\r",
+            )
             last_print = time.time()
             sys.stdout.flush()
 

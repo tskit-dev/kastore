@@ -20,7 +20,7 @@ def setup_logging(args):
         log_level = logging.INFO
     elif args.verbose >= 2:
         log_level = logging.DEBUG
-    logging.basicConfig(format='%(asctime)s %(message)s', level=log_level)
+    logging.basicConfig(format="%(asctime)s %(message)s", level=log_level)
 
 
 def _list(store, args):
@@ -46,9 +46,8 @@ def _list(store, args):
         size_colsize = max(map(len, sizes))
         for key, dtype, length, size in zip(keys, dtypes, lengths, sizes):
             row = "{:<{}} {:>{}} {:>{}} {}".format(
-                dtype, dtype_colsize,
-                length, length_colsize,
-                size, size_colsize, key)
+                dtype, dtype_colsize, length, length_colsize, size, size_colsize, key
+            )
             print(row)
     else:
         for key in keys:
@@ -58,7 +57,7 @@ def _list(store, args):
 def _dump(store, args):
     array = store[args.array]
     for value in array:
-        s = "{}".format(value)
+        s = f"{value}"
         # We should just print this out directly but it makes testing the output
         # in Python2 very awkward.
         print(s)
@@ -86,32 +85,34 @@ def add_array_argument(parser):
 
 def get_kastore_parser():
     top_parser = argparse.ArgumentParser(
-        description="Command line utility for kastore files.")
+        description="Command line utility for kastore files."
+    )
     top_parser.add_argument(
-        "-V", "--version", action='version',
-        version='%(prog)s {}'.format(kastore.__version__))
+        "-V", "--version", action="version", version=f"%(prog)s {kastore.__version__}"
+    )
     top_parser.add_argument(
-        '--verbose', '-v', action='count', default=0,
-        help="Increase verbosity.")
+        "--verbose", "-v", action="count", default=0, help="Increase verbosity."
+    )
     # This is required to get uniform behaviour in Python2 and Python3
     subparsers = top_parser.add_subparsers(dest="subcommand")
     subparsers.required = True
 
-    parser = subparsers.add_parser(
-        "ls",
-        help="List the contents of a store")
+    parser = subparsers.add_parser("ls", help="List the contents of a store")
     add_store_argument(parser)
     parser.add_argument(
-        "--long", "-l", action="store_true",
-        help="Show details about arrays")
+        "--long", "-l", action="store_true", help="Show details about arrays"
+    )
     parser.add_argument(
-        "--human-readable", "-H", action="store_true",
-        help="Show array sizes in human-readable format.")
+        "--human-readable",
+        "-H",
+        action="store_true",
+        help="Show array sizes in human-readable format.",
+    )
     parser.set_defaults(runner=run_list)
 
     parser = subparsers.add_parser(
-        "dump",
-        help="Dump an array within the file to stdout")
+        "dump", help="Dump an array within the file to stdout"
+    )
     add_store_argument(parser)
     add_array_argument(parser)
     parser.set_defaults(runner=run_dump)
