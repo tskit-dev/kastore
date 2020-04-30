@@ -1,14 +1,14 @@
 """
 Tests checking that the file format is as it should be.
 """
-import unittest
-import tempfile
 import os
 import struct
+import tempfile
+import unittest
 
-import numpy as np
 import hypothesis
 import hypothesis.strategies as hst
+import numpy as np
 
 import kastore as kas
 import kastore.store as store
@@ -26,15 +26,17 @@ class TestFileSignature(unittest.TestCase):
     """
     Checks the file signature is what we think it should be.
     """
+
     def test_form(self):
         self.assertEqual(len(store.MAGIC), 8)
-        self.assertEqual(b'\211KAS\r\n\032\n', store.MAGIC)
+        self.assertEqual(b"\211KAS\r\n\032\n", store.MAGIC)
 
 
-class FormatMixin(object):
+class FormatMixin:
     """
     Tests for the file format.
     """
+
     def setUp(self):
         fd, self.temp_file = tempfile.mkstemp(suffix=".kas", prefix="kas_rt_test")
         os.close(fd)
@@ -45,8 +47,10 @@ class FormatMixin(object):
     def test_header_format(self):
         for n in range(10):
             kas.dump(
-                {str(j): np.zeros(1) for j in range(n)}, self.temp_file,
-                engine=self.engine)
+                {str(j): np.zeros(1) for j in range(n)},
+                self.temp_file,
+                engine=self.engine,
+            )
             with open(self.temp_file, "rb") as f:
                 contents = f.read()
             self.assertEqual(contents[0:8], store.MAGIC)
@@ -55,10 +59,11 @@ class FormatMixin(object):
             self.assertEqual(minor, store.VERSION_MINOR)
             self.assertEqual(num_items, n)
             self.assertEqual(size, len(contents))
-            trailer = contents[24: store.HEADER_SIZE]
+            trailer = contents[24 : store.HEADER_SIZE]
             # The remainder should be zeros.
             self.assertEqual(
-                trailer, bytearray([0 for _ in range(store.HEADER_SIZE - 24)]))
+                trailer, bytearray([0 for _ in range(store.HEADER_SIZE - 24)])
+            )
 
     def test_zero_items(self):
         kas.dump({}, self.temp_file, engine=self.engine)
@@ -69,22 +74,27 @@ class FormatMixin(object):
     def test_item_descriptor_format(self):
         for n in range(10):
             kas.dump(
-                {str(j): j * np.ones(j) for j in range(n)}, self.temp_file,
-                engine=self.engine)
+                {str(j): j * np.ones(j) for j in range(n)},
+                self.temp_file,
+                engine=self.engine,
+            )
             with open(self.temp_file, "rb") as f:
                 contents = f.read()
             self.assertEqual(struct.unpack("<I", contents[12:16])[0], n)
             offset = store.HEADER_SIZE
-            for j in range(n):
-                descriptor = contents[offset: offset + store.ITEM_DESCRIPTOR_SIZE]
+            for _ in range(n):
+                descriptor = contents[offset : offset + store.ITEM_DESCRIPTOR_SIZE]
+                offset += store.ITEM_DESCRIPTOR_SIZE
                 type_ = struct.unpack("<B", descriptor[0:1])[0]
                 key_start, key_len, array_start, array_len = struct.unpack(
-                    "<QQQQ", descriptor[8:40])
-                trailer = descriptor[40: store.ITEM_DESCRIPTOR_SIZE]
+                    "<QQQQ", descriptor[8:40]
+                )
+                trailer = descriptor[40 : store.ITEM_DESCRIPTOR_SIZE]
                 # The remainder should be zeros.
                 self.assertEqual(
                     trailer,
-                    bytearray([0 for _ in range(store.ITEM_DESCRIPTOR_SIZE - 40)]))
+                    bytearray([0 for _ in range(store.ITEM_DESCRIPTOR_SIZE - 40)]),
+                )
                 self.assertEqual(descriptor[1:4], bytearray([0, 0, 0]))
                 self.assertEqual(type_, store.FLOAT64)
                 self.assertGreater(key_start, 0)
@@ -100,7 +110,8 @@ class FormatMixin(object):
         descriptors = []
         for _ in range(len(data)):
             descriptor = store.ItemDescriptor.unpack(
-                contents[offset: offset + store.ItemDescriptor.size])
+                contents[offset : offset + store.ItemDescriptor.size]
+            )
             descriptors.append(descriptor)
             offset += store.ItemDescriptor.size
         # Keys must be sorted lexicographically.
@@ -109,7 +120,7 @@ class FormatMixin(object):
         offset = store.HEADER_SIZE + len(data) * store.ITEM_DESCRIPTOR_SIZE
         for d, key in zip(descriptors, sorted_keys):
             self.assertEqual(d.key_start, offset)
-            unpacked_key = contents[d.key_start: d.key_start + d.key_len]
+            unpacked_key = contents[d.key_start : d.key_start + d.key_len]
             self.assertEqual(key.encode("utf8"), unpacked_key)
             offset += d.key_len
         # Arrays should be packed sequentially immediately after the keys on
@@ -121,8 +132,9 @@ class FormatMixin(object):
             self.assertEqual(d.array_start, offset)
             nbytes = d.array_len * store.type_size(d.type)
             array = np.frombuffer(
-                contents[d.array_start: d.array_start + nbytes],
-                dtype=store.type_to_np_dtype_map[d.type])
+                contents[d.array_start : d.array_start + nbytes],
+                dtype=store.type_to_np_dtype_map[d.type],
+            )
             np.testing.assert_equal(data[key], array)
             offset += nbytes
 
@@ -137,7 +149,8 @@ class FormatMixin(object):
     # Note that hypothesis seems to be leaking memory, so when we're running tests
     # against the C API for memory leaks this must be commented out.
     @hypothesis.given(
-        keys=hst.sets(hst.text(alphabet=key_alphabet, min_size=1), min_size=1))
+        keys=hst.sets(hst.text(alphabet=key_alphabet, min_size=1), min_size=1)
+    )
     def test_many_keys(self, keys):
         data = {key: np.ones(j, dtype=np.int32) * j for j, key in enumerate(keys)}
         self.validate_storage(data)
@@ -155,6 +168,7 @@ class TestAlignedPacking(unittest.TestCase):
     """
     Tests that we are correctly computing alignments for the arrays.
     """
+
     def test_descriptor_str(self):
         items = {"a": np.array([1], dtype=np.int8)}
         descriptors, file_size = store.pack_items(items)
@@ -269,8 +283,17 @@ class TestEnginesProduceIdenticalFiles(unittest.TestCase):
 
     def verify_all_dtypes(self, n):
         dtypes = [
-            "int8", "uint8", "int16", "uint16", "uint32", "int32", "uint64", "int64",
-            "float32", "float64"]
+            "int8",
+            "uint8",
+            "int16",
+            "uint16",
+            "uint32",
+            "int32",
+            "uint64",
+            "int64",
+            "float32",
+            "float64",
+        ]
         data = {dtype: np.arange(n, dtype=dtype) for dtype in dtypes}
         self.verify(data)
 

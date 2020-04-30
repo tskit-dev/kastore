@@ -34,10 +34,7 @@ to a file and load them again.
     import kastore
     import numpy as np
 
-    data = {
-        "one": np.arange(5, dtype=np.int8),
-        "two": np.arange(5, dtype=np.uint64)
-    }
+    data = {"one": np.arange(5, dtype=np.int8), "two": np.arange(5, dtype=np.uint64)}
     kastore.dump(data, "tmp.kas")
 
     d2 = kastore.load("tmp.kas")

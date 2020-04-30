@@ -1,11 +1,11 @@
 """
 Basic tests for the information API.
 """
-import unittest
+import io
+import os
 import pathlib
 import tempfile
-import os
-import io
+import unittest
 
 import numpy as np
 
@@ -17,6 +17,7 @@ class InterfaceTest(unittest.TestCase):
     """
     Superclass of tests that assess the kastore module interface.
     """
+
     def setUp(self):
         fd, path = tempfile.mkstemp(prefix="kas_test_info")
         os.close(fd)
@@ -53,7 +54,15 @@ class TestBasicInfo(InterfaceTest):
 
     def test_all_dtypes(self):
         dtypes = [
-            "int8", "uint8", "uint32", "int32", "uint64", "int64", "float32", "float64"]
+            "int8",
+            "uint8",
+            "uint32",
+            "int32",
+            "uint64",
+            "int64",
+            "float32",
+            "float64",
+        ]
         for n in range(10):
             data = {dtype: np.arange(n, dtype=dtype) for dtype in dtypes}
             self.verify(data)
@@ -63,6 +72,7 @@ class TestClosedStore(InterfaceTest):
     """
     Checks that a closed store is no longer accessible.
     """
+
     def verify_closed(self, store):
         self.assertRaises(exceptions.StoreClosedError, store.get, "a")
         self.assertRaises(exceptions.StoreClosedError, store.info, "a")
@@ -93,6 +103,7 @@ class StoreRoundTripMixin:
     """
     We should be able to feed the output of load directly to dump.
     """
+
     def verify(self, data):
         kas.dump(data, self.temp_file, engine=self.engine)
         copy = kas.load(self.temp_file, engine=self.engine)
@@ -119,6 +130,7 @@ class TestBytesIOInput(InterfaceTest):
     """
     Tests that we get the expected behaviour when using BytesIO.
     """
+
     def test_py_engine_single(self):
         data = {"a": np.arange(10), "b": np.zeros(100)}
         fileobj = io.BytesIO()
@@ -131,10 +143,10 @@ class TestBytesIOInput(InterfaceTest):
         data = {"a": np.arange(10), "b": np.zeros(100)}
         n = 10
         fileobj = io.BytesIO()
-        for j in range(n):
+        for _ in range(n):
             kas.dump(data, fileobj, engine=kas.PY_ENGINE)
         fileobj.seek(0)
-        for j in range(n):
+        for _ in range(n):
             data_2 = kas.load(fileobj, read_all=True, engine=kas.PY_ENGINE)
             self.verify_dicts_equal(data, data_2)
 
@@ -151,6 +163,7 @@ class TestGetInclude(unittest.TestCase):
     """
     Check that the get_include works as expected.
     """
+
     def test_output(self):
         include_dir = kas.get_include()
         self.assertTrue(os.path.exists(include_dir))
@@ -163,6 +176,7 @@ class TestMissingCEngine(InterfaceTest):
     """
     Tests that we handle the missing low level module smoothly.
     """
+
     def test_dump(self):
         data = {"a": np.zeros(1)}
         try:
@@ -187,6 +201,7 @@ class TestOpenSemantics(unittest.TestCase):
     """
     Tests that we can open file-like objects with the correct semantics.
     """
+
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
 
@@ -196,7 +211,7 @@ class TestOpenSemantics(unittest.TestCase):
     def verify_path(self, path):
         with kas._open_file(path, "w") as f:
             f.write("xyz")
-        with open(path, "r") as f:
+        with open(path) as f:
             self.assertEqual(f.read(), "xyz")
 
     def test_string(self):
@@ -228,7 +243,7 @@ class TestOpenSemantics(unittest.TestCase):
         with open(path, "w") as f_input:
             with kas._open_file(f_input, "w") as f:
                 f.write("xyz")
-        with open(path, "r") as f:
+        with open(path) as f:
             self.assertEqual(f.read(), "xyz")
 
     def test_temp_file(self):
@@ -258,7 +273,6 @@ class TestOpenSemantics(unittest.TestCase):
 
 
 class TestExceptions(unittest.TestCase):
-
     def test_inheritance(self):
         # Make sure all our exceptions are subclasses of KastoreException.
         exceptions = [
