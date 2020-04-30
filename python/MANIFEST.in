@@ -1,4 +1,4 @@
 include lib/kastore.h
-recursive-include kastore/include/ *.h
+recursive-include kastore/include *.h
 include LICENSE
 include kastore/_version.py
