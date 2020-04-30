@@ -9,8 +9,7 @@
 
 /* Private flag used to indicate when we have opened the file ourselves
  * and need to free it. */
-#define OWN_FILE  (1 << 31)
-
+#define OWN_FILE (1 << 31)
 
 const char *
 kas_strerror(int err)
@@ -24,7 +23,7 @@ kas_strerror(int err)
         case KAS_ERR_IO:
             if (errno != 0) {
                 ret = strerror(errno);
-            }  else {
+            } else {
                 ret = "I/O error with errno unset. Please file a bug report";
             }
             break;
@@ -42,11 +41,11 @@ kas_strerror(int err)
             break;
         case KAS_ERR_VERSION_TOO_OLD:
             ret = "File format version is too old. Please upgrade using "
-                "'kas upgrade <filename>'";
+                  "'kas upgrade <filename>'";
             break;
         case KAS_ERR_VERSION_TOO_NEW:
             ret = "File format version is too new. Please upgrade your "
-                "kastore library version";
+                  "kastore library version";
             break;
         case KAS_ERR_BAD_TYPE:
             ret = "Unknown data type";
@@ -87,17 +86,18 @@ kas_version(void)
 static size_t
 type_size(int type)
 {
-    const size_t type_size_map[] = {1, 1, 2, 2, 4, 4, 8, 8, 4, 8};
+    const size_t type_size_map[] = { 1, 1, 2, 2, 4, 4, 8, 8, 4, 8 };
     assert(type < KAS_NUM_TYPES);
     return type_size_map[type];
 }
 
 /* Compare item keys lexicographically. */
 static int
-compare_items(const void *a, const void *b) {
+compare_items(const void *a, const void *b)
+{
     const kaitem_t *ia = (const kaitem_t *) a;
     const kaitem_t *ib = (const kaitem_t *) b;
-    size_t len = ia->key_len < ib->key_len? ia->key_len: ib->key_len;
+    size_t len = ia->key_len < ib->key_len ? ia->key_len : ib->key_len;
     int ret = memcmp(ia->key, ib->key, len);
     if (ret == 0) {
         ret = (ia->key_len > ib->key_len) - (ia->key_len < ib->key_len);
@@ -341,7 +341,7 @@ kastore_write_data(kastore_t *self)
 {
     int ret = 0;
     size_t j, size, offset, padding;
-    char pad[KAS_ARRAY_ALIGN] = {0, 0, 0, 0, 0, 0, 0};
+    char pad[KAS_ARRAY_ALIGN] = { 0, 0, 0, 0, 0, 0, 0 };
 
     offset = KAS_HEADER_SIZE + self->num_items * KAS_ITEM_DESCRIPTOR_SIZE;
 
@@ -405,8 +405,8 @@ kastore_read_file(kastore_t *self)
     for (j = 0; j < self->num_items; j++) {
         self->items[j].key = self->read_buffer + self->items[j].key_start - offset;
         if (read_all) {
-            self->items[j].array = self->read_buffer + self->items[j].array_start
-                - offset;
+            self->items[j].array
+                = self->read_buffer + self->items[j].array_start - offset;
         }
     }
 out:
@@ -421,13 +421,13 @@ kastore_read_item(kastore_t *self, kaitem_t *item)
     size_t size = item->array_len * type_size(item->type);
     size_t count;
 
-    item->array = malloc(size == 0? 1: size);
+    item->array = malloc(size == 0 ? 1 : size);
     if (item->array == NULL) {
         ret = KAS_ERR_NO_MEMORY;
         goto out;
     }
     if (size > 0) {
-        err = fseek(self->file, self->file_offset + (long)item->array_start, SEEK_SET);
+        err = fseek(self->file, self->file_offset + (long) item->array_start, SEEK_SET);
         if (err != 0) {
             ret = KAS_ERR_IO;
             goto out;
@@ -515,8 +515,8 @@ kastore_insert_all(kastore_t *self, kastore_t *other)
 
     for (j = 0; j < other->num_items; j++) {
         item = other->items[j];
-        ret = kastore_put(self, item.key, item.key_len, item.array, item.array_len,
-                item.type, 0);
+        ret = kastore_put(
+            self, item.key, item.key_len, item.array, item.array_len, item.type, 0);
         if (ret != 0) {
             goto out;
         }
@@ -573,7 +573,7 @@ kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
     }
     ret = kastore_openf(self, file, mode, flags);
     if (ret != 0) {
-        (void)fclose(file);
+        (void) fclose(file);
     } else {
         self->flags |= OWN_FILE;
         if (appending) {
@@ -646,7 +646,7 @@ kastore_close(kastore_t *self)
         }
     } else {
         kas_safe_free(self->read_buffer);
-        if (! (self->flags & KAS_READ_ALL)) {
+        if (!(self->flags & KAS_READ_ALL)) {
             /* The arrays have been individually malloced on demand. */
             if (self->items != NULL) {
                 for (j = 0; j < self->num_items; j++) {
@@ -689,8 +689,8 @@ kastore_containss(kastore_t *self, const char *key)
 }
 
 int KAS_WARN_UNUSED
-kastore_get(kastore_t *self, const char *key, size_t key_len,
-        void **array, size_t *array_len, int *type)
+kastore_get(kastore_t *self, const char *key, size_t key_len, void **array,
+    size_t *array_len, int *type)
 {
     int ret = KAS_ERR_KEY_NOT_FOUND;
     kaitem_t search;
@@ -707,8 +707,8 @@ kastore_get(kastore_t *self, const char *key, size_t key_len,
         goto out;
     }
     memcpy(search.key, key, key_len);
-    item = bsearch(&search, self->items, self->num_items, sizeof(kaitem_t),
-            compare_items);
+    item = bsearch(
+        &search, self->items, self->num_items, sizeof(kaitem_t), compare_items);
     if (item == NULL) {
         goto out;
     }
@@ -728,13 +728,15 @@ out:
 }
 
 int KAS_WARN_UNUSED
-kastore_gets(kastore_t *self, const char *key, void **array, size_t *array_len, int *type)
+kastore_gets(
+    kastore_t *self, const char *key, void **array, size_t *array_len, int *type)
 {
     return kastore_get(self, key, strlen(key), array, array_len, type);
 }
 
 static int KAS_WARN_UNUSED
-kastore_gets_type(kastore_t *self, const char *key, void **array, size_t *array_len, int type)
+kastore_gets_type(
+    kastore_t *self, const char *key, void **array, size_t *array_len, int type)
 {
     int loaded_type;
     int ret;
@@ -770,7 +772,8 @@ kastore_gets_int16(kastore_t *self, const char *key, int16_t **array, size_t *ar
 }
 
 int KAS_WARN_UNUSED
-kastore_gets_uint16(kastore_t *self, const char *key, uint16_t **array, size_t *array_len)
+kastore_gets_uint16(
+    kastore_t *self, const char *key, uint16_t **array, size_t *array_len)
 {
     return kastore_gets_type(self, key, (void **) array, array_len, KAS_UINT16);
 }
@@ -782,7 +785,8 @@ kastore_gets_int32(kastore_t *self, const char *key, int32_t **array, size_t *ar
 }
 
 int KAS_WARN_UNUSED
-kastore_gets_uint32(kastore_t *self, const char *key, uint32_t **array, size_t *array_len)
+kastore_gets_uint32(
+    kastore_t *self, const char *key, uint32_t **array, size_t *array_len)
 {
     return kastore_gets_type(self, key, (void **) array, array_len, KAS_UINT32);
 }
@@ -794,7 +798,8 @@ kastore_gets_int64(kastore_t *self, const char *key, int64_t **array, size_t *ar
 }
 
 int KAS_WARN_UNUSED
-kastore_gets_uint64(kastore_t *self, const char *key, uint64_t **array, size_t *array_len)
+kastore_gets_uint64(
+    kastore_t *self, const char *key, uint64_t **array, size_t *array_len)
 {
     return kastore_gets_type(self, key, (void **) array, array_len, KAS_UINT64);
 }
@@ -812,8 +817,8 @@ kastore_gets_float64(kastore_t *self, const char *key, double **array, size_t *a
 }
 
 int KAS_WARN_UNUSED
-kastore_put(kastore_t *self, const char *key, size_t key_len,
-       const void *array, size_t array_len, int type, int flags)
+kastore_put(kastore_t *self, const char *key, size_t key_len, const void *array,
+    size_t array_len, int type, int flags)
 {
     int ret;
     size_t array_size;
@@ -824,7 +829,7 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
         goto out;
     }
     array_size = type_size(type) * array_len;
-    array_copy = malloc(array_size == 0? 1: array_size);
+    array_copy = malloc(array_size == 0 ? 1 : array_size);
     if (array_copy == NULL) {
         ret = KAS_ERR_NO_MEMORY;
         goto out;
@@ -842,8 +847,8 @@ out:
 }
 
 int KAS_WARN_UNUSED
-kastore_oput(kastore_t *self, const char *key, size_t key_len,
-       void *array, size_t array_len, int type, int KAS_UNUSED(flags))
+kastore_oput(kastore_t *self, const char *key, size_t key_len, void *array,
+    size_t array_len, int type, int KAS_UNUSED(flags))
 {
     int ret = 0;
     kaitem_t *new_item;
@@ -906,156 +911,155 @@ out:
 }
 
 int KAS_WARN_UNUSED
-kastore_puts(kastore_t *self, const char *key,
-       const void *array, size_t array_len, int type, int flags)
+kastore_puts(kastore_t *self, const char *key, const void *array, size_t array_len,
+    int type, int flags)
 {
     return kastore_put(self, key, strlen(key), array, array_len, type, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_puts_int8(kastore_t *self, const char *key, const int8_t *array, size_t array_len,
-        int flags)
+kastore_puts_int8(
+    kastore_t *self, const char *key, const int8_t *array, size_t array_len, int flags)
 {
     return kastore_puts(self, key, (const void *) array, array_len, KAS_INT8, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_puts_uint8(kastore_t *self, const char *key, const uint8_t *array, size_t array_len,
-        int flags)
+kastore_puts_uint8(
+    kastore_t *self, const char *key, const uint8_t *array, size_t array_len, int flags)
 {
     return kastore_puts(self, key, (const void *) array, array_len, KAS_UINT8, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_puts_int16(kastore_t *self, const char *key, const int16_t *array, size_t array_len,
-        int flags)
+kastore_puts_int16(
+    kastore_t *self, const char *key, const int16_t *array, size_t array_len, int flags)
 {
     return kastore_puts(self, key, (const void *) array, array_len, KAS_INT16, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_puts_uint16(kastore_t *self, const char *key, const uint16_t *array, size_t array_len,
-        int flags)
+kastore_puts_uint16(
+    kastore_t *self, const char *key, const uint16_t *array, size_t array_len, int flags)
 {
     return kastore_puts(self, key, (const void *) array, array_len, KAS_UINT16, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_puts_int32(kastore_t *self, const char *key, const int32_t *array, size_t array_len,
-        int flags)
+kastore_puts_int32(
+    kastore_t *self, const char *key, const int32_t *array, size_t array_len, int flags)
 {
     return kastore_puts(self, key, (const void *) array, array_len, KAS_INT32, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_puts_uint32(kastore_t *self, const char *key, const uint32_t *array, size_t array_len,
-        int flags)
+kastore_puts_uint32(
+    kastore_t *self, const char *key, const uint32_t *array, size_t array_len, int flags)
 {
     return kastore_puts(self, key, (const void *) array, array_len, KAS_UINT32, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_puts_int64(kastore_t *self, const char *key, const int64_t *array, size_t array_len,
-        int flags)
+kastore_puts_int64(
+    kastore_t *self, const char *key, const int64_t *array, size_t array_len, int flags)
 {
     return kastore_puts(self, key, (const void *) array, array_len, KAS_INT64, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_puts_uint64(kastore_t *self, const char *key, const uint64_t *array, size_t array_len,
-        int flags)
+kastore_puts_uint64(
+    kastore_t *self, const char *key, const uint64_t *array, size_t array_len, int flags)
 {
     return kastore_puts(self, key, (const void *) array, array_len, KAS_UINT64, flags);
 }
 
-
 int KAS_WARN_UNUSED
-kastore_puts_float32(kastore_t *self, const char *key, const float *array, size_t array_len,
-        int flags)
+kastore_puts_float32(
+    kastore_t *self, const char *key, const float *array, size_t array_len, int flags)
 {
     return kastore_puts(self, key, (const void *) array, array_len, KAS_FLOAT32, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_puts_float64(kastore_t *self, const char *key, const double *array, size_t array_len,
-        int flags)
+kastore_puts_float64(
+    kastore_t *self, const char *key, const double *array, size_t array_len, int flags)
 {
     return kastore_puts(self, key, (const void *) array, array_len, KAS_FLOAT64, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_oputs(kastore_t *self, const char *key,
-       void *array, size_t array_len, int type, int flags)
+kastore_oputs(
+    kastore_t *self, const char *key, void *array, size_t array_len, int type, int flags)
 {
     return kastore_oput(self, key, strlen(key), array, array_len, type, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_oputs_int8(kastore_t *self, const char *key, int8_t *array, size_t array_len,
-        int flags)
+kastore_oputs_int8(
+    kastore_t *self, const char *key, int8_t *array, size_t array_len, int flags)
 {
     return kastore_oputs(self, key, (void *) array, array_len, KAS_INT8, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_oputs_uint8(kastore_t *self, const char *key, uint8_t *array, size_t array_len,
-        int flags)
+kastore_oputs_uint8(
+    kastore_t *self, const char *key, uint8_t *array, size_t array_len, int flags)
 {
     return kastore_oputs(self, key, (void *) array, array_len, KAS_UINT8, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_oputs_int16(kastore_t *self, const char *key, int16_t *array, size_t array_len,
-        int flags)
+kastore_oputs_int16(
+    kastore_t *self, const char *key, int16_t *array, size_t array_len, int flags)
 {
     return kastore_oputs(self, key, (void *) array, array_len, KAS_INT16, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_oputs_uint16(kastore_t *self, const char *key, uint16_t *array, size_t array_len,
-        int flags)
+kastore_oputs_uint16(
+    kastore_t *self, const char *key, uint16_t *array, size_t array_len, int flags)
 {
     return kastore_oputs(self, key, (void *) array, array_len, KAS_UINT16, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_oputs_int32(kastore_t *self, const char *key, int32_t *array, size_t array_len,
-        int flags)
+kastore_oputs_int32(
+    kastore_t *self, const char *key, int32_t *array, size_t array_len, int flags)
 {
     return kastore_oputs(self, key, (void *) array, array_len, KAS_INT32, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_oputs_uint32(kastore_t *self, const char *key, uint32_t *array, size_t array_len,
-        int flags)
+kastore_oputs_uint32(
+    kastore_t *self, const char *key, uint32_t *array, size_t array_len, int flags)
 {
     return kastore_oputs(self, key, (void *) array, array_len, KAS_UINT32, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_oputs_int64(kastore_t *self, const char *key, int64_t *array, size_t array_len,
-        int flags)
+kastore_oputs_int64(
+    kastore_t *self, const char *key, int64_t *array, size_t array_len, int flags)
 {
     return kastore_oputs(self, key, (void *) array, array_len, KAS_INT64, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_oputs_uint64(kastore_t *self, const char *key, uint64_t *array, size_t array_len,
-        int flags)
+kastore_oputs_uint64(
+    kastore_t *self, const char *key, uint64_t *array, size_t array_len, int flags)
 {
     return kastore_oputs(self, key, (void *) array, array_len, KAS_UINT64, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_oputs_float32(kastore_t *self, const char *key, float *array, size_t array_len,
-        int flags)
+kastore_oputs_float32(
+    kastore_t *self, const char *key, float *array, size_t array_len, int flags)
 {
     return kastore_oputs(self, key, (void *) array, array_len, KAS_FLOAT32, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_oputs_float64(kastore_t *self, const char *key, double *array, size_t array_len,
-        int flags)
+kastore_oputs_float64(
+    kastore_t *self, const char *key, double *array, size_t array_len, int flags)
 {
     return kastore_oputs(self, key, (void *) array, array_len, KAS_FLOAT64, flags);
 }
@@ -1073,17 +1077,17 @@ kastore_print_state(kastore_t *self, FILE *out)
     fprintf(out, "flags = %d\n", self->flags);
     fprintf(out, "num_items = %zu\n", self->num_items);
     fprintf(out, "file_size = %zu\n", self->file_size);
-    fprintf(out, "own_file  = %d\n", !! (self->flags & OWN_FILE));
+    fprintf(out, "own_file  = %d\n", !!(self->flags & OWN_FILE));
     fprintf(out, "file = '%p'\n", (void *) self->file);
     fprintf(out, "============================\n");
     for (j = 0; j < self->num_items; j++) {
         item = self->items + j;
-        fprintf(out, "%.*s: type=%d, key_start=%zu, key_len=%zu, key=%p, "
-                "array_start=%zu, array_len=%zu, array=%p\n",
-                (int) item->key_len, item->key, item->type, item->key_start, item->key_len,
-                (void *) item->key, item->array_start, item->array_len,
-                (void *) item->array);
-
+        fprintf(out,
+            "%.*s: type=%d, key_start=%zu, key_len=%zu, key=%p, "
+            "array_start=%zu, array_len=%zu, array=%p\n",
+            (int) item->key_len, item->key, item->type, item->key_start, item->key_len,
+            (void *) item->key, item->array_start, item->array_len,
+            (void *) item->array);
     }
     fprintf(out, "============================\n");
 }

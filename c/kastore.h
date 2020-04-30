@@ -12,11 +12,11 @@ extern "C" {
 #endif
 
 #ifdef __GNUC__
-    #define KAS_WARN_UNUSED __attribute__ ((warn_unused_result))
-    #define KAS_UNUSED(x) KAS_UNUSED_ ## x __attribute__((__unused__))
+#define KAS_WARN_UNUSED __attribute__((warn_unused_result))
+#define KAS_UNUSED(x) KAS_UNUSED_##x __attribute__((__unused__))
 #else
-    #define KAS_WARN_UNUSED
-    #define KAS_UNUSED(x) KAS_UNUSED_ ## x
+#define KAS_WARN_UNUSED
+#define KAS_UNUSED(x) KAS_UNUSED_##x
 #endif
 
 #include <stdbool.h>
@@ -30,6 +30,7 @@ extern "C" {
 @defgroup ERROR_GROUP Error return values.
 @{
 */
+// clang-format off
 /**
 Generic error thrown when no other message can be generated.
 */
@@ -161,6 +162,7 @@ to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 #define KAS_ITEM_DESCRIPTOR_SIZE    64
 #define KAS_MAGIC                   "\211KAS\r\n\032\n"
 #define KAS_ARRAY_ALIGN             8
+// clang-format on
 
 typedef struct {
     int type;
@@ -313,7 +315,6 @@ the array in the specified destination pointers.
 */
 int kastore_containss(kastore_t *self, const char *key);
 
-
 /**
 @brief Get the array for the specified key.
 
@@ -340,8 +341,8 @@ in the array.
 @param type The destination pointer for the type code of the array.
 @return Return 0 on success or a negative value on failure.
 */
-int kastore_get(kastore_t *self, const char *key, size_t key_len,
-        void **array, size_t *array_len, int *type);
+int kastore_get(kastore_t *self, const char *key, size_t key_len, void **array,
+    size_t *array_len, int *type);
 
 /**
 @brief Get the array for the specified NULL-terminated key.
@@ -358,24 +359,34 @@ in the array.
 @param type The destination pointer for the type code of the array.
 @return Return 0 on success or a negative value on failure.
 */
-int kastore_gets(kastore_t *self, const char *key, void **array,
-        size_t *array_len, int *type);
+int kastore_gets(
+    kastore_t *self, const char *key, void **array, size_t *array_len, int *type);
 
 /**
 @defgroup TYPED_GETS_GROUP Typed get functions.
 @{
 */
 
-int kastore_gets_int8(kastore_t *self, const char *key, int8_t **array, size_t *array_len);
-int kastore_gets_uint8(kastore_t *self, const char *key, uint8_t **array, size_t *array_len);
-int kastore_gets_int16(kastore_t *self, const char *key, int16_t **array, size_t *array_len);
-int kastore_gets_uint16(kastore_t *self, const char *key, uint16_t **array, size_t *array_len);
-int kastore_gets_int32(kastore_t *self, const char *key, int32_t **array, size_t *array_len);
-int kastore_gets_uint32(kastore_t *self, const char *key, uint32_t **array, size_t *array_len);
-int kastore_gets_int64(kastore_t *self, const char *key, int64_t **array, size_t *array_len);
-int kastore_gets_uint64(kastore_t *self, const char *key, uint64_t **array, size_t *array_len);
-int kastore_gets_float32(kastore_t *self, const char *key, float **array, size_t *array_len);
-int kastore_gets_float64(kastore_t *self, const char *key, double **array, size_t *array_len);
+int kastore_gets_int8(
+    kastore_t *self, const char *key, int8_t **array, size_t *array_len);
+int kastore_gets_uint8(
+    kastore_t *self, const char *key, uint8_t **array, size_t *array_len);
+int kastore_gets_int16(
+    kastore_t *self, const char *key, int16_t **array, size_t *array_len);
+int kastore_gets_uint16(
+    kastore_t *self, const char *key, uint16_t **array, size_t *array_len);
+int kastore_gets_int32(
+    kastore_t *self, const char *key, int32_t **array, size_t *array_len);
+int kastore_gets_uint32(
+    kastore_t *self, const char *key, uint32_t **array, size_t *array_len);
+int kastore_gets_int64(
+    kastore_t *self, const char *key, int64_t **array, size_t *array_len);
+int kastore_gets_uint64(
+    kastore_t *self, const char *key, uint64_t **array, size_t *array_len);
+int kastore_gets_float32(
+    kastore_t *self, const char *key, float **array, size_t *array_len);
+int kastore_gets_float64(
+    kastore_t *self, const char *key, double **array, size_t *array_len);
 
 /** @} */
 
@@ -402,8 +413,8 @@ strings, it is usually more convenient to use the :ref:`typed variants
 @param flags The insertion flags. Currently unused.
 @return Return 0 on success or a negative value on failure.
 */
-int kastore_put(kastore_t *self, const char *key, size_t key_len,
-        const void *array, size_t array_len, int type, int flags);
+int kastore_put(kastore_t *self, const char *key, size_t key_len, const void *array,
+    size_t array_len, int type, int flags);
 /**
 @brief Insert the specified NULL terminated key and array pair into the store.
 
@@ -420,33 +431,33 @@ As for :c:func:`kastore_put` except the key must be NULL-terminated C string.
 @return Return 0 on success or a negative value on failure.
 */
 int kastore_puts(kastore_t *self, const char *key, const void *array, size_t array_len,
-        int type, int flags);
+    int type, int flags);
 
 /**
  @defgroup TYPED_PUTS_GROUP Typed put functions.
  @{
  */
 
-int kastore_puts_int8(kastore_t *self, const char *key, const int8_t *array,
-        size_t array_len, int flags);
-int kastore_puts_uint8(kastore_t *self, const char *key, const uint8_t *array,
-        size_t array_len, int flags);
-int kastore_puts_int16(kastore_t *self, const char *key, const int16_t *array,
-        size_t array_len, int flags);
+int kastore_puts_int8(
+    kastore_t *self, const char *key, const int8_t *array, size_t array_len, int flags);
+int kastore_puts_uint8(
+    kastore_t *self, const char *key, const uint8_t *array, size_t array_len, int flags);
+int kastore_puts_int16(
+    kastore_t *self, const char *key, const int16_t *array, size_t array_len, int flags);
 int kastore_puts_uint16(kastore_t *self, const char *key, const uint16_t *array,
-        size_t array_len, int flags);
-int kastore_puts_int32(kastore_t *self, const char *key, const int32_t *array,
-        size_t array_len, int flags);
+    size_t array_len, int flags);
+int kastore_puts_int32(
+    kastore_t *self, const char *key, const int32_t *array, size_t array_len, int flags);
 int kastore_puts_uint32(kastore_t *self, const char *key, const uint32_t *array,
-        size_t array_len, int flags);
-int kastore_puts_int64(kastore_t *self, const char *key, const int64_t *array,
-        size_t array_len, int flags);
+    size_t array_len, int flags);
+int kastore_puts_int64(
+    kastore_t *self, const char *key, const int64_t *array, size_t array_len, int flags);
 int kastore_puts_uint64(kastore_t *self, const char *key, const uint64_t *array,
-        size_t array_len, int flags);
-int kastore_puts_float32(kastore_t *self, const char *key, const float *array,
-        size_t array_len, int flags);
-int kastore_puts_float64(kastore_t *self, const char *key, const double *array,
-        size_t array_len, int flags);
+    size_t array_len, int flags);
+int kastore_puts_float32(
+    kastore_t *self, const char *key, const float *array, size_t array_len, int flags);
+int kastore_puts_float64(
+    kastore_t *self, const char *key, const double *array, size_t array_len, int flags);
 
 /** @} */
 
@@ -475,8 +486,8 @@ function are identical to :c:func:`kastore_put`.
 @param flags The insertion flags. Currently unused.
 @return Return 0 on success or a negative value on failure.
 */
-int kastore_oput(kastore_t *self, const char *key, size_t key_len,
-        void *array, size_t array_len, int type, int flags);
+int kastore_oput(kastore_t *self, const char *key, size_t key_len, void *array,
+    size_t array_len, int type, int flags);
 /**
 @brief Insert the specified NULL terminated key and array pair into the store,
 transferring ownership of the malloced array buffer to the store (own-put).
@@ -494,37 +505,35 @@ As for :c:func:`kastore_oput` except the key must be NULL-terminated C string.
 @return Return 0 on success or a negative value on failure.
 */
 int kastore_oputs(kastore_t *self, const char *key, void *array, size_t array_len,
-        int type, int flags);
+    int type, int flags);
 
 /**
  @defgroup TYPED_OPUTS_GROUP Typed own-and-put functions.
  @{
  */
 
-int kastore_oputs_int8(kastore_t *self, const char *key, int8_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_uint8(kastore_t *self, const char *key, uint8_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_int16(kastore_t *self, const char *key, int16_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_uint16(kastore_t *self, const char *key, uint16_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_int32(kastore_t *self, const char *key, int32_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_uint32(kastore_t *self, const char *key, uint32_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_int64(kastore_t *self, const char *key, int64_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_uint64(kastore_t *self, const char *key, uint64_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_float32(kastore_t *self, const char *key, float *array,
-        size_t array_len, int flags);
-int kastore_oputs_float64(kastore_t *self, const char *key, double *array,
-        size_t array_len, int flags);
+int kastore_oputs_int8(
+    kastore_t *self, const char *key, int8_t *array, size_t array_len, int flags);
+int kastore_oputs_uint8(
+    kastore_t *self, const char *key, uint8_t *array, size_t array_len, int flags);
+int kastore_oputs_int16(
+    kastore_t *self, const char *key, int16_t *array, size_t array_len, int flags);
+int kastore_oputs_uint16(
+    kastore_t *self, const char *key, uint16_t *array, size_t array_len, int flags);
+int kastore_oputs_int32(
+    kastore_t *self, const char *key, int32_t *array, size_t array_len, int flags);
+int kastore_oputs_uint32(
+    kastore_t *self, const char *key, uint32_t *array, size_t array_len, int flags);
+int kastore_oputs_int64(
+    kastore_t *self, const char *key, int64_t *array, size_t array_len, int flags);
+int kastore_oputs_uint64(
+    kastore_t *self, const char *key, uint64_t *array, size_t array_len, int flags);
+int kastore_oputs_float32(
+    kastore_t *self, const char *key, float *array, size_t array_len, int flags);
+int kastore_oputs_float64(
+    kastore_t *self, const char *key, double *array, size_t array_len, int flags);
 
 /** @} */
-
-
 
 void kastore_print_state(kastore_t *self, FILE *out);
 
@@ -547,13 +556,13 @@ scheme here also takes into account ABI compatability.
 */
 kas_version_t kas_version(void);
 
-#define kas_safe_free(pointer) \
-do {\
-    if (pointer != NULL) {\
-        free(pointer);\
-        pointer = NULL;\
-    }\
-} while (0)
+#define kas_safe_free(pointer)                                                          \
+    do {                                                                                \
+        if (pointer != NULL) {                                                          \
+            free(pointer);                                                              \
+            pointer = NULL;                                                             \
+        }                                                                               \
+    } while (0)
 
 #ifdef __cplusplus
 }

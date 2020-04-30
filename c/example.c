@@ -11,7 +11,7 @@
 static void
 handle_kas_error(int line, int retval)
 {
-   errx(1, "Error at line %d: %s", line, kas_strerror(retval));
+    errx(1, "Error at line %d: %s", line, kas_strerror(retval));
 }
 
 static void
@@ -19,7 +19,7 @@ write_example(const char *path)
 {
     int ret;
     kastore_t store;
-    const uint32_t a[] = {1, 2, 3, 4};
+    const uint32_t a[] = { 1, 2, 3, 4 };
     size_t b_length = 10;
     uint32_t *b = calloc(b_length, sizeof(*b));
 
@@ -62,7 +62,7 @@ read_example(const char *path)
     kastore_t store;
     uint32_t *array;
     size_t j, k, array_len;
-    const char *keys[] = {"a", "b"};
+    const char *keys[] = { "a", "b" };
 
     ret = kastore_open(&store, path, "r", 0);
     if (ret != 0) {
@@ -75,7 +75,7 @@ read_example(const char *path)
         }
         printf("key: %s = [", keys[j]);
         for (k = 0; k < array_len; k++) {
-            printf("%d%s", array[k], k == array_len - 1 ? "]\n": ", ");
+            printf("%d%s", array[k], k == array_len - 1 ? "]\n" : ", ");
         }
     }
     ret = kastore_close(&store);

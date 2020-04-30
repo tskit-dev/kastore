@@ -9,9 +9,8 @@
 
 #include <CUnit/Basic.h>
 
-char * _tmp_file_name;
-FILE * _devnull;
-
+char *_tmp_file_name;
+FILE *_devnull;
 
 static void
 write_example_file(char *filename)
@@ -52,7 +51,7 @@ test_bad_open_flags(void)
 {
     int ret;
     kastore_t store;
-    const int bad_flags[] = {2, 3, 1<<31, -1};
+    const int bad_flags[] = { 2, 3, 1 << 31, -1 };
     size_t j;
 
     for (j = 0; j < sizeof(bad_flags) / sizeof(*bad_flags); j++) {
@@ -73,7 +72,7 @@ test_bad_open_mode(void)
 {
     int ret;
     kastore_t store;
-    const char *bad_modes[] = {"", "R", "W", "read", "rw", "write"};
+    const char *bad_modes[] = { "", "R", "W", "read", "rw", "write" };
     size_t j;
 
     for (j = 0; j < sizeof(bad_modes) / sizeof(*bad_modes); j++) {
@@ -240,7 +239,7 @@ test_write_errors(void)
 {
     int ret;
     kastore_t store;
-    int64_t a[4] = {1, 2, 3, 4};
+    int64_t a[4] = { 1, 2, 3, 4 };
 
     /* Write /dev/null should be fine */
     ret = kastore_open(&store, "/dev/random", "w", 0);
@@ -258,13 +257,13 @@ test_write_errors(void)
 static void
 test_strerror(void)
 {
-    const int max_err = 100;  /* arbitrary */
+    const int max_err = 100; /* arbitrary */
     int err;
     const char *str;
 
     /* Make sure the errno=0 codepath for IO errors is exercised */
     errno = 0;
-    for (err = 1; err < max_err ; err++) {
+    for (err = 1; err < max_err; err++) {
         str = kas_strerror(-err);
         CU_ASSERT_NOT_EQUAL_FATAL(str, NULL);
         CU_ASSERT(strlen(str) > 0);
@@ -276,7 +275,7 @@ test_bad_types(void)
 {
     int ret;
     kastore_t store;
-    uint32_t array[] = {1};
+    uint32_t array[] = { 1 };
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -309,11 +308,11 @@ verify_key_round_trip(const char **keys, size_t num_keys)
     int ret;
     kastore_t store;
     size_t j, m;
-    uint32_t array[] = {1};
+    uint32_t array[] = { 1 };
     uint32_t *a;
     size_t array_len;
     int type;
-    const char* modes[] = {"a", "w"};
+    const char *modes[] = { "a", "w" };
 
     for (m = 0; m < 2; m++) {
         if (m == 0) {
@@ -339,8 +338,8 @@ verify_key_round_trip(const char **keys, size_t num_keys)
 
         CU_ASSERT_EQUAL(store.num_items, num_keys);
         for (j = 0; j < num_keys; j++) {
-            ret = kastore_get(&store, keys[j], strlen(keys[j]),
-                    (void **) &a, &array_len, &type);
+            ret = kastore_get(
+                &store, keys[j], strlen(keys[j]), (void **) &a, &array_len, &type);
             CU_ASSERT_EQUAL_FATAL(ret, 0);
             CU_ASSERT_EQUAL(type, KAS_UINT32);
             CU_ASSERT_EQUAL(array_len, 1);
@@ -354,21 +353,21 @@ verify_key_round_trip(const char **keys, size_t num_keys)
 static void
 test_different_key_length(void)
 {
-    const char *keys[] = {"a", "aa", "aaa", "aaaa", "aaaaa"};
+    const char *keys[] = { "a", "aa", "aaa", "aaaa", "aaaaa" };
     verify_key_round_trip(keys, sizeof(keys) / sizeof(*keys));
 }
 
 static void
 test_different_key_length_reverse(void)
 {
-    const char *keys[] = {"aaaaaa", "aaaa", "aaa", "aa", "a"};
+    const char *keys[] = { "aaaaaa", "aaaa", "aaa", "aa", "a" };
     verify_key_round_trip(keys, sizeof(keys) / sizeof(*keys));
 }
 
 static void
 test_mixed_keys(void)
 {
-    const char *keys[] = {"x", "aabs", "pqrastuvw", "st", "12345", "67^%"};
+    const char *keys[] = { "x", "aabs", "pqrastuvw", "st", "12345", "67^%" };
     verify_key_round_trip(keys, sizeof(keys) / sizeof(*keys));
 }
 
@@ -416,7 +415,7 @@ test_duplicate_key(void)
 {
     int ret;
     kastore_t store;
-    uint32_t array[] = {1};
+    uint32_t array[] = { 1 };
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -477,7 +476,7 @@ test_empty_key(void)
 {
     int ret;
     kastore_t store;
-    uint32_t array[] = {1};
+    uint32_t array[] = { 1 };
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -495,7 +494,7 @@ test_put_read_mode(void)
 {
     int ret;
     kastore_t store;
-    uint32_t array[] = {1};
+    uint32_t array[] = { 1 };
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -540,7 +539,7 @@ test_contains(void)
 {
     int ret;
     kastore_t store;
-    const uint32_t array[] = {1, 2, 3, 4};
+    const uint32_t array[] = { 1, 2, 3, 4 };
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -569,7 +568,7 @@ test_missing_key(void)
 {
     int ret;
     kastore_t store;
-    const uint32_t array[] = {1, 2, 3, 4};
+    const uint32_t array[] = { 1, 2, 3, 4 };
     uint32_t *a;
     size_t array_len;
     int type;
@@ -606,11 +605,11 @@ test_simple_round_trip(void)
 {
     int ret;
     kastore_t store;
-    const uint32_t array[] = {1, 2, 3, 4};
+    const uint32_t array[] = { 1, 2, 3, 4 };
     uint32_t *a;
     size_t j, array_len;
     int type;
-    int flags[] = {0, 1};
+    int flags[] = { 0, 1 };
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -663,11 +662,11 @@ verify_simple_file_round_trip(const char *write_mode, const char *read_mode)
     int ret;
     FILE *f;
     kastore_t store;
-    const uint32_t array[] = {1, 2, 3, 4};
+    const uint32_t array[] = { 1, 2, 3, 4 };
     uint32_t *a;
     size_t j, array_len;
     int type;
-    int flags[] = {0, 1};
+    int flags[] = { 0, 1 };
 
     f = fopen(_tmp_file_name, write_mode);
     CU_ASSERT_NOT_EQUAL_FATAL(f, NULL);
@@ -744,7 +743,7 @@ test_simple_round_trip_zero_keys(void)
     int ret;
     kastore_t store;
     size_t j;
-    int flags[] = {0, 1};
+    int flags[] = { 0, 1 };
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -771,7 +770,7 @@ test_simple_round_trip_oput_buffers(void)
     uint32_t *a;
     size_t j, array_len;
     int type;
-    int flags[] = {0, 1};
+    int flags[] = { 0, 1 };
 
     CU_ASSERT_FATAL(array_a != NULL && array_b != NULL && array_c != NULL);
     array_a[0] = 1;
@@ -832,11 +831,11 @@ test_simple_round_trip_append(void)
 {
     int ret;
     kastore_t store;
-    const uint32_t array[] = {1, 2, 3, 4};
+    const uint32_t array[] = { 1, 2, 3, 4 };
     uint32_t *a;
     size_t j, array_len;
     int type;
-    int flags[] = {0, 1};
+    int flags[] = { 0, 1 };
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -1177,7 +1176,6 @@ test_round_trip_uint32(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 }
 
-
 static void
 test_round_trip_int64(void)
 {
@@ -1357,7 +1355,6 @@ verify_bad_file(const char *filename, int err)
     CU_ASSERT_EQUAL_FATAL(ret, err);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-
 }
 
 static void
@@ -1376,19 +1373,18 @@ test_read_bad_types(void)
 static void
 test_bad_filesizes(void)
 {
-    verify_bad_file("test-data/malformed/bad_filesize_0_-1.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/bad_filesize_0_1.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/bad_filesize_0_1024.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/bad_filesize_0_-1.kas", KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file("test-data/malformed/bad_filesize_0_1.kas", KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/bad_filesize_0_1024.kas", KAS_ERR_BAD_FILE_FORMAT);
 
-    verify_bad_file("test-data/malformed/bad_filesize_10_-1.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/bad_filesize_10_1.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/bad_filesize_10_1024.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/bad_filesize_10_-1.kas", KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/bad_filesize_10_1.kas", KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/bad_filesize_10_1024.kas", KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
@@ -1418,64 +1414,62 @@ test_truncated_file(void)
 static void
 test_key_offset_outside_file(void)
 {
-    verify_bad_file("test-data/malformed/key_offset_outside_file.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/key_offset_outside_file.kas", KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_array_offset_outside_file(void)
 {
-    verify_bad_file("test-data/malformed/array_offset_outside_file.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/array_offset_outside_file.kas", KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_key_len_outside_file(void)
 {
-    verify_bad_file("test-data/malformed/key_len_outside_file.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/key_len_outside_file.kas", KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_array_len_outside_file(void)
 {
-    verify_bad_file("test-data/malformed/array_len_outside_file.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/array_len_outside_file.kas", KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_bad_key_start(void)
 {
-    verify_bad_file("test-data/malformed/bad_key_start_-1.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/bad_key_start_1.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file("test-data/malformed/bad_key_start_-1.kas", KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file("test-data/malformed/bad_key_start_1.kas", KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_bad_array_start(void)
 {
-    verify_bad_file("test-data/malformed/bad_array_start_-8.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/bad_array_start_-1.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/bad_array_start_1.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/bad_array_start_8.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/bad_array_start_-8.kas", KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/bad_array_start_-1.kas", KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/bad_array_start_1.kas", KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        "test-data/malformed/bad_array_start_8.kas", KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_truncated_file_correct_size(void)
 {
     verify_bad_file("test-data/malformed/truncated_file_correct_size_100.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
+        KAS_ERR_BAD_FILE_FORMAT);
     verify_bad_file("test-data/malformed/truncated_file_correct_size_128.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
+        KAS_ERR_BAD_FILE_FORMAT);
     verify_bad_file("test-data/malformed/truncated_file_correct_size_129.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
+        KAS_ERR_BAD_FILE_FORMAT);
     verify_bad_file("test-data/malformed/truncated_file_correct_size_200.kas",
-            KAS_ERR_BAD_FILE_FORMAT);
+        KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
@@ -1484,12 +1478,10 @@ verify_all_types_n_elements(size_t n)
     int ret;
     kastore_t store;
     const char *filename_pattern = "test-data/v1/all_types_%d_elements.kas";
-    const char *keys[] = {
-        "uint8", "int8", "uint16", "int16", "uint32", "int32", "uint64",
-        "int64", "float32", "float64"};
-    const int types[] = {
-        KAS_UINT8, KAS_INT8, KAS_UINT16, KAS_INT16, KAS_UINT32, KAS_INT32,
-        KAS_UINT64, KAS_INT64, KAS_FLOAT32, KAS_FLOAT64};
+    const char *keys[] = { "uint8", "int8", "uint16", "int16", "uint32", "int32",
+        "uint64", "int64", "float32", "float64" };
+    const int types[] = { KAS_UINT8, KAS_INT8, KAS_UINT16, KAS_INT16, KAS_UINT32,
+        KAS_INT32, KAS_UINT64, KAS_INT64, KAS_FLOAT32, KAS_FLOAT64 };
     size_t j, k, array_len;
     void *a;
     int type;
@@ -1564,7 +1556,6 @@ test_library_version(void)
     CU_ASSERT_EQUAL_FATAL(version.patch, KAS_VERSION_PATCH);
 }
 
-
 /*=================================================
   Test suite management
   =================================================
@@ -1612,8 +1603,7 @@ kastore_suite_cleanup(void)
 static void
 handle_cunit_error(void)
 {
-    fprintf(stderr, "CUnit error occured: %d: %s\n",
-            CU_get_error(), CU_get_error_msg());
+    fprintf(stderr, "CUnit error occured: %d: %s\n", CU_get_error(), CU_get_error_msg());
     exit(EXIT_FAILURE);
 }
 
@@ -1624,71 +1614,69 @@ main(int argc, char **argv)
     CU_pTest test;
     CU_pSuite suite;
     CU_TestInfo tests[] = {
-        {"test_oputs_example", test_oputs_example},
-        {"test_bad_open_flags", test_bad_open_flags},
-        {"test_bad_open_mode", test_bad_open_mode},
-        {"test_openf_bad_file_read_modes", test_openf_bad_file_read_modes},
-        {"test_openf_bad_file_write_modes", test_openf_bad_file_write_modes},
-        {"test_open_io_errors", test_open_io_errors},
-        {"test_append_empty_file", test_append_empty_file},
-        {"test_write_errors", test_write_errors},
-        {"test_strerror", test_strerror},
-        {"test_empty_key", test_empty_key},
-        {"test_get_write_mode", test_get_write_mode},
-        {"test_put_read_mode", test_put_read_mode},
-        {"test_different_key_length", test_different_key_length},
-        {"test_different_key_length_reverse", test_different_key_length_reverse},
-        {"test_mixed_keys", test_mixed_keys},
-        {"test_put_copy_array", test_put_copy_array},
-        {"test_duplicate_key", test_duplicate_key},
-        {"test_duplicate_key_oput", test_duplicate_key_oput},
-        {"test_missing_key", test_missing_key},
-        {"test_contains", test_contains},
-        {"test_bad_types", test_bad_types},
-        {"test_simple_round_trip", test_simple_round_trip},
-        {"test_simple_round_trip_file_modes", test_simple_round_trip_file_modes},
-        {"test_simple_round_trip_zero_keys", test_simple_round_trip_zero_keys},
-        {"test_simple_round_trip_oput_buffers", test_simple_round_trip_oput_buffers},
-        {"test_simple_round_trip_append", test_simple_round_trip_append},
-        {"test_gets_type_errors", test_gets_type_errors},
-        {"test_round_trip_int8", test_round_trip_int8},
-        {"test_round_trip_uint8", test_round_trip_uint8},
-        {"test_round_trip_int16", test_round_trip_int16},
-        {"test_round_trip_uint16", test_round_trip_uint16},
-        {"test_round_trip_int32", test_round_trip_int32},
-        {"test_round_trip_uint32", test_round_trip_uint32},
-        {"test_round_trip_int64", test_round_trip_int64},
-        {"test_round_trip_uint64", test_round_trip_uint64},
-        {"test_round_trip_float32", test_round_trip_float32},
-        {"test_round_trip_float64", test_round_trip_float64},
-        {"test_empty_file", test_empty_file},
-        {"test_read_bad_types", test_read_bad_types},
-        {"test_bad_filesizes", test_bad_filesizes},
-        {"test_bad_magic_number", test_bad_magic_number},
-        {"test_version_0", test_version_0},
-        {"test_version_100", test_version_100},
-        {"test_truncated_file", test_truncated_file},
-        {"test_key_offset_outside_file", test_key_offset_outside_file},
-        {"test_array_offset_outside_file", test_array_offset_outside_file},
-        {"test_key_len_outside_file", test_key_len_outside_file},
-        {"test_array_len_outside_file", test_array_len_outside_file},
-        {"test_bad_key_start", test_bad_key_start},
-        {"test_bad_array_start", test_bad_array_start},
-        {"test_truncated_file_correct_size", test_truncated_file_correct_size},
-        {"test_all_types_n_elements", test_all_types_n_elements},
-        {"test_library_version", test_library_version},
+        { "test_oputs_example", test_oputs_example },
+        { "test_bad_open_flags", test_bad_open_flags },
+        { "test_bad_open_mode", test_bad_open_mode },
+        { "test_openf_bad_file_read_modes", test_openf_bad_file_read_modes },
+        { "test_openf_bad_file_write_modes", test_openf_bad_file_write_modes },
+        { "test_open_io_errors", test_open_io_errors },
+        { "test_append_empty_file", test_append_empty_file },
+        { "test_write_errors", test_write_errors },
+        { "test_strerror", test_strerror },
+        { "test_empty_key", test_empty_key },
+        { "test_get_write_mode", test_get_write_mode },
+        { "test_put_read_mode", test_put_read_mode },
+        { "test_different_key_length", test_different_key_length },
+        { "test_different_key_length_reverse", test_different_key_length_reverse },
+        { "test_mixed_keys", test_mixed_keys },
+        { "test_put_copy_array", test_put_copy_array },
+        { "test_duplicate_key", test_duplicate_key },
+        { "test_duplicate_key_oput", test_duplicate_key_oput },
+        { "test_missing_key", test_missing_key },
+        { "test_contains", test_contains },
+        { "test_bad_types", test_bad_types },
+        { "test_simple_round_trip", test_simple_round_trip },
+        { "test_simple_round_trip_file_modes", test_simple_round_trip_file_modes },
+        { "test_simple_round_trip_zero_keys", test_simple_round_trip_zero_keys },
+        { "test_simple_round_trip_oput_buffers", test_simple_round_trip_oput_buffers },
+        { "test_simple_round_trip_append", test_simple_round_trip_append },
+        { "test_gets_type_errors", test_gets_type_errors },
+        { "test_round_trip_int8", test_round_trip_int8 },
+        { "test_round_trip_uint8", test_round_trip_uint8 },
+        { "test_round_trip_int16", test_round_trip_int16 },
+        { "test_round_trip_uint16", test_round_trip_uint16 },
+        { "test_round_trip_int32", test_round_trip_int32 },
+        { "test_round_trip_uint32", test_round_trip_uint32 },
+        { "test_round_trip_int64", test_round_trip_int64 },
+        { "test_round_trip_uint64", test_round_trip_uint64 },
+        { "test_round_trip_float32", test_round_trip_float32 },
+        { "test_round_trip_float64", test_round_trip_float64 },
+        { "test_empty_file", test_empty_file },
+        { "test_read_bad_types", test_read_bad_types },
+        { "test_bad_filesizes", test_bad_filesizes },
+        { "test_bad_magic_number", test_bad_magic_number },
+        { "test_version_0", test_version_0 },
+        { "test_version_100", test_version_100 },
+        { "test_truncated_file", test_truncated_file },
+        { "test_key_offset_outside_file", test_key_offset_outside_file },
+        { "test_array_offset_outside_file", test_array_offset_outside_file },
+        { "test_key_len_outside_file", test_key_len_outside_file },
+        { "test_array_len_outside_file", test_array_len_outside_file },
+        { "test_bad_key_start", test_bad_key_start },
+        { "test_bad_array_start", test_bad_array_start },
+        { "test_truncated_file_correct_size", test_truncated_file_correct_size },
+        { "test_all_types_n_elements", test_all_types_n_elements },
+        { "test_library_version", test_library_version },
         CU_TEST_INFO_NULL,
     };
 
     /* We use initialisers here as the struct definitions change between
      * versions of CUnit */
     CU_SuiteInfo suites[] = {
-        {
-            .pName = "kastore",
+        { .pName = "kastore",
             .pInitFunc = kastore_suite_init,
             .pCleanupFunc = kastore_suite_cleanup,
-            .pTests = tests
-        },
+            .pTests = tests },
         CU_SUITE_INFO_NULL,
     };
     if (CUE_SUCCESS != CU_initialize_registry()) {

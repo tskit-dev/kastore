@@ -28,7 +28,8 @@ test_open_error()
     kastore_close(&store);
 }
 
-int main()
+int
+main()
 {
     test_open_error();
     test_strerror();

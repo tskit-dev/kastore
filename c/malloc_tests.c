@@ -10,7 +10,7 @@
 #include "kastore.h"
 #include <CUnit/Basic.h>
 
-char * _tmp_file_name;
+char *_tmp_file_name;
 
 /* Wrappers used to check for correct error handling. Must be linked with the
  * link option, e.g., -Wl,--wrap=malloc. See 'ld' manpage for details.
@@ -62,7 +62,7 @@ test_write(void)
 {
     kastore_t store;
     int ret = 0;
-    int32_t array[] = {1, 2, 3, 4};
+    int32_t array[] = { 1, 2, 3, 4 };
     bool done;
 
     /* Make sure the failing malloc setup works first */
@@ -78,7 +78,7 @@ test_write(void)
     /* keep increasing fail_at until we pass. This should catch all possible
      * places at which we can fail. */
     done = false;
-    while (! done) {
+    while (!done) {
         ret = kastore_open(&store, _tmp_file_name, "w", 0);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
         _malloc_count = 0;
@@ -101,7 +101,7 @@ test_append(void)
 {
     kastore_t store;
     int ret = 0;
-    int32_t array[] = {1, 2, 3, 4};
+    int32_t array[] = { 1, 2, 3, 4 };
     bool done;
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
@@ -115,7 +115,7 @@ test_append(void)
      * places at which we can fail. */
     _malloc_fail_at = 0;
     done = false;
-    while (! done) {
+    while (!done) {
         _malloc_count = 0;
         ret = kastore_open(&store, _tmp_file_name, "a", 0);
         if (ret == 0) {
@@ -132,7 +132,6 @@ test_append(void)
     _malloc_fail_at = -1;
 }
 
-
 static void
 test_open_read(void)
 {
@@ -141,7 +140,7 @@ test_open_read(void)
     const char *filename = "test-data/v1/all_types_1_elements.kas";
     bool done;
     size_t f;
-    int flags[] = {0, KAS_READ_ALL};
+    int flags[] = { 0, KAS_READ_ALL };
 
     /* Make sure the failing malloc setup works first */
     _malloc_fail_at = 0;
@@ -156,7 +155,7 @@ test_open_read(void)
     for (f = 0; f < sizeof(flags) / sizeof(*flags); f++) {
         _malloc_fail_at = 0;
         done = false;
-        while (! done) {
+        while (!done) {
             _malloc_count = 0;
             ret = kastore_open(&store, filename, "r", flags[f]);
             if (ret == 0) {
@@ -199,7 +198,7 @@ test_read(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     _malloc_fail_at = 0;
     done = false;
-    while (! done) {
+    while (!done) {
         _malloc_count = 0;
         ret = kastore_gets_int8(&store, "int8", &array, &size);
         if (ret == 0) {
@@ -256,8 +255,7 @@ kastore_suite_cleanup(void)
 static void
 handle_cunit_error(void)
 {
-    fprintf(stderr, "CUnit error occured: %d: %s\n",
-            CU_get_error(), CU_get_error_msg());
+    fprintf(stderr, "CUnit error occured: %d: %s\n", CU_get_error(), CU_get_error_msg());
     exit(EXIT_FAILURE);
 }
 
@@ -268,22 +266,20 @@ main(int argc, char **argv)
     CU_pTest test;
     CU_pSuite suite;
     CU_TestInfo tests[] = {
-        {"test_write", test_write},
-        {"test_append", test_append},
-        {"test_open_read", test_open_read},
-        {"test_read", test_read},
+        { "test_write", test_write },
+        { "test_append", test_append },
+        { "test_open_read", test_open_read },
+        { "test_read", test_read },
         CU_TEST_INFO_NULL,
     };
 
     /* We use initialisers here as the struct definitions change between
      * versions of CUnit */
     CU_SuiteInfo suites[] = {
-        {
-            .pName = "kastore",
+        { .pName = "kastore",
             .pInitFunc = kastore_suite_init,
             .pCleanupFunc = kastore_suite_cleanup,
-            .pTests = tests
-        },
+            .pTests = tests },
         CU_SUITE_INFO_NULL,
     };
     if (CUE_SUCCESS != CU_initialize_registry()) {
