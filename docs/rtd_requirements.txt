@@ -1,2 +1,5 @@
 numpy
-breathe
+breathe==4.14.2 #Pinned as next version needs sphinx 3 (see below)
+sphinx==2.4.4 #Pinned as breathe v3 compatibility is rough for now.
+sphinx-issues
+sphinx-argparse
