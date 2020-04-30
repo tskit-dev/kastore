@@ -72,4 +72,6 @@ setup(
     },
     setup_requires=[numpy_ver],
     cmdclass={"build_ext": local_build_ext},
+    license="MIT",
+    platforms=["POSIX", "Windows", "MacOS X"],
 )
