@@ -1,25 +1,28 @@
-environment:
-  matrix:
-    - PYTHON: "C:\\Miniconda36-x64"
-    - PYTHON: "C:\\Miniconda37-x64"
+init:
+  # The version of Python we use within the venv for tests.
+  - cmd: SET PYTHON_VERSION=3.7
+  # The base python/conda installation that we use to make the test environment.
+  - cmd: SET BASE_PYTHON=C:\\Miniconda37-x64
+  - cmd: ECHO Using base %BASE_PYTHON% with %PYTHON_VERSION% for tests.
 
 install:
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-
-build: false
-
-test_script:
+  - cmd: SET PATH=%BASE_PYTHON%;%BASE_PYTHON%\Scripts;%PATH%
+  - cmd: git submodule update --init --recursive
   # We have symlinks in the repo, which need to be treated specially on Windows.
-  - "git config core.symlinks true"
-  - "git reset --hard"
-  - "conda update --yes -q -n base conda"
-  - "conda config --add channels conda-forge"
-  - "conda create --yes --name testenv"
-  - "activate testenv"
-  - "conda install --yes --file=python/requirements/development.txt"
-  - "cd python"
-  - "python setup.py build_ext --inplace"
-  - "nosetests -vs"
+  - cmd: git config core.symlinks true
+  - cmd: git reset --hard
+  - cmd: conda config --add channels conda-forge
+  - cmd: conda create --yes -n testenv python=%PYTHON_VERSION%
+  - cmd: conda init cmd.exe
+  - cmd: conda activate testenv
+  - cmd: conda install --yes --file=python\requirements\development.txt
+  - cmd: conda info -a
+  - cmd: python --version
+
+build_script:
+  - cmd: cd python
+  - cmd: python setup.py build_ext --inplace
+  - cmd: python -m nose -vs tests
 
 after_test:
-  - "python setup.py bdist_wheel"
+  - cmd: python setup.py bdist_wheel
