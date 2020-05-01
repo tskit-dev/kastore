@@ -28,9 +28,17 @@ Python
 To make a release first prepare a pull request that sets the correct version
 number in ``kastore/_version.py`` and updates the Python CHANGELOG.rst,
 ensuring that all significant changes since the last release have been listed.
-Once this PR is merged, create a release on GitHub with the pattern
-``py_MAJOR.MINOR.PATCH``. Create the distribution artefacts for Python and
-upload to PyPI.
+Once this PR is merged, push a tag to github following PEP440 format::
+
+    git tag -a MAJOR.MINOR.PATCH -m "Python version MAJOR.MINOR.PATCH"
+    git push upstream --tags
+
+This will trigger a build of the distribution artifacts for Python
+on `Github Actions <https://github.com/tskit-dev/kastore/actions>`_. and deploy
+them to the `test PyPI <https://test.pypi.org/project/kastore/>`_. Check
+the release looks good there, then create a release on Github based on the tag you
+pushed. Publishing this release will cause the github action to deploy to the
+`production PyPI <https://pypi.org/project/kastore/>`_.
 
 -----
 C API
@@ -44,7 +52,7 @@ When modifying the C code this will conform it to the project style::
 If the C API has been updated, the ``KAS_VERSION_*`` macros should be set
 appropriately, ensuring that the Changelog has been updated to record the
 changes. After the commit including these changes has been merged, tag a
-release on GitHub using the pattern ``c_MAJOR.MINOR.PATCH``.
+release on GitHub using the pattern ``C_MAJOR.MINOR.PATCH``.
 
 
 -----------------

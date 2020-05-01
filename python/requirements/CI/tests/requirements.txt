@@ -1,0 +1,6 @@
+attrs
+hypothesis
+humanize
+nose
+numpy
+mock
