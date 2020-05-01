@@ -36,6 +36,11 @@ upload to PyPI.
 C API
 -----
 
+When modifying the C code this will conform it to the project style::
+
+  $ sudo apt-get install clang-format
+  $ clang-format -i c/*.{h,c,cpp}
+
 If the C API has been updated, the ``KAS_VERSION_*`` macros should be set
 appropriately, ensuring that the Changelog has been updated to record the
 changes. After the commit including these changes has been merged, tag a

@@ -12,7 +12,7 @@
 #include "kastore.h"
 #include <CUnit/Basic.h>
 
-char * _tmp_file_name;
+char *_tmp_file_name;
 
 /* Wrappers used to check for correct error handling. Must be linked with the
  * link option, e.g., -Wl,--wrap=fwrite. See 'ld' manpage for details.
@@ -105,7 +105,7 @@ test_write_empty(void)
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
 
-   /* Make sure we reset this for other functions */
+    /* Make sure we reset this for other functions */
     _fwrite_fail_at = -1;
 }
 
@@ -114,7 +114,7 @@ test_write(void)
 {
     kastore_t store;
     int ret = 0;
-    int8_t array[] = {1};
+    int8_t array[] = { 1 };
     bool done;
 
     /* keep increasing fail_at until we pass. This should catch all possible
@@ -122,7 +122,7 @@ test_write(void)
     _fwrite_fail_at = 0;
     _fwrite_count = 0;
     done = false;
-    while (! done) {
+    while (!done) {
         ret = kastore_open(&store, _tmp_file_name, "w", 0);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
         _fwrite_count = 0;
@@ -146,7 +146,7 @@ test_write_fclose(void)
 {
     kastore_t store;
     int ret = 0;
-    int8_t array[] = {1};
+    int8_t array[] = { 1 };
     bool done;
 
     /* keep increasing fail_at until we pass. This should catch all possible
@@ -154,7 +154,7 @@ test_write_fclose(void)
     _fclose_fail_at = 0;
     _fclose_count = 0;
     done = false;
-    while (! done) {
+    while (!done) {
         ret = kastore_open(&store, _tmp_file_name, "w", 0);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
         _fclose_count = 0;
@@ -187,7 +187,7 @@ test_read_fclose(void)
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
 
-   _fclose_fail_at = -1;
+    _fclose_fail_at = -1;
 }
 
 static void
@@ -195,10 +195,10 @@ test_append_fclose(void)
 {
     kastore_t store;
     int ret = 0;
-    int8_t array[] = {1};
+    int8_t array[] = { 1 };
     bool done;
     size_t index = 0;
-    const char * keys[] = {"b", "c"};
+    const char *keys[] = { "b", "c" };
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -212,7 +212,7 @@ test_append_fclose(void)
     _fclose_fail_at = 0;
     _fclose_count = 0;
     done = false;
-    while (! done) {
+    while (!done) {
         ret = kastore_open(&store, _tmp_file_name, "a", 0);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
         _fclose_count = 0;
@@ -241,7 +241,7 @@ test_open_read_fread(void)
     const char *filename = "test-data/v1/all_types_1_elements.kas";
     bool done;
     size_t f;
-    int flags[] = {0, KAS_READ_ALL};
+    int flags[] = { 0, KAS_READ_ALL };
 
     _fread_fail_at = 0;
     /* Make sure the failing fread setup works first */
@@ -265,7 +265,7 @@ test_open_read_fread(void)
     for (f = 0; f < sizeof(flags) / sizeof(*flags); f++) {
         _fread_fail_at = 0;
         done = false;
-        while (! done) {
+        while (!done) {
             _fread_count = 0;
             ret = kastore_open(&store, filename, "r", flags[f]);
             if (ret == 0) {
@@ -380,8 +380,7 @@ kastore_suite_cleanup(void)
 static void
 handle_cunit_error(void)
 {
-    fprintf(stderr, "CUnit error occured: %d: %s\n",
-            CU_get_error(), CU_get_error_msg());
+    fprintf(stderr, "CUnit error occured: %d: %s\n", CU_get_error(), CU_get_error_msg());
     exit(EXIT_FAILURE);
 }
 
@@ -392,27 +391,25 @@ main(int argc, char **argv)
     CU_pTest test;
     CU_pSuite suite;
     CU_TestInfo tests[] = {
-        {"test_write_empty", test_write_empty},
-        {"test_write", test_write},
-        {"test_write_fclose", test_write_fclose},
-        {"test_read_fclose", test_read_fclose},
-        {"test_append_fclose", test_append_fclose},
-        {"test_open_read_fread", test_open_read_fread},
-        {"test_get_fseek", test_get_fseek},
-        {"test_get_ftell", test_get_ftell},
-        {"test_get_fread", test_get_fread},
+        { "test_write_empty", test_write_empty },
+        { "test_write", test_write },
+        { "test_write_fclose", test_write_fclose },
+        { "test_read_fclose", test_read_fclose },
+        { "test_append_fclose", test_append_fclose },
+        { "test_open_read_fread", test_open_read_fread },
+        { "test_get_fseek", test_get_fseek },
+        { "test_get_ftell", test_get_ftell },
+        { "test_get_fread", test_get_fread },
         CU_TEST_INFO_NULL,
     };
 
     /* We use initialisers here as the struct definitions change between
      * versions of CUnit */
     CU_SuiteInfo suites[] = {
-        {
-            .pName = "kastore",
+        { .pName = "kastore",
             .pInitFunc = kastore_suite_init,
             .pCleanupFunc = kastore_suite_cleanup,
-            .pTests = tests
-        },
+            .pTests = tests },
         CU_SUITE_INFO_NULL,
     };
     if (CUE_SUCCESS != CU_initialize_registry()) {
