@@ -1358,6 +1358,23 @@ verify_bad_file(const char *filename, int err)
 }
 
 static void
+test_short_header(void)
+{
+    FILE *f;
+    char zeros[KAS_HEADER_SIZE];
+    size_t j;
+
+    memset(zeros, 0, sizeof(zeros));
+
+    for (j = 1; j < KAS_HEADER_SIZE; j++) {
+        f = fopen(_tmp_file_name, "w");
+        CU_ASSERT_EQUAL_FATAL(fwrite(zeros, 1, j, f), j);
+        fclose(f);
+        verify_bad_file(_tmp_file_name, KAS_ERR_BAD_FILE_FORMAT);
+    }
+}
+
+static void
 test_empty_file(void)
 {
     verify_bad_file("test-data/malformed/empty_file.kas", KAS_ERR_EOF);
@@ -1651,6 +1668,7 @@ main(int argc, char **argv)
         { "test_round_trip_uint64", test_round_trip_uint64 },
         { "test_round_trip_float32", test_round_trip_float32 },
         { "test_round_trip_float64", test_round_trip_float64 },
+        { "test_short_header", test_short_header },
         { "test_empty_file", test_empty_file },
         { "test_read_bad_types", test_read_bad_types },
         { "test_bad_filesizes", test_bad_filesizes },

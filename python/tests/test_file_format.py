@@ -2,6 +2,7 @@
 Tests checking that the file format is as it should be.
 """
 import os
+import pathlib
 import struct
 import tempfile
 import unittest
@@ -311,3 +312,38 @@ class TestEnginesProduceIdenticalFiles(unittest.TestCase):
 
     def test_all_dtypes_4_elements(self):
         self.verify_all_dtypes(4)
+
+
+class TruncatedFilesMixin:
+    """
+    Tests that we return the correct errors when we have truncated files.
+    """
+
+    def test_zero_bytes(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            path = pathlib.Path(tempdir) / "testfile"
+            with open(path, "wb") as f:
+                f.write(b"")
+            self.assertTrue(path.exists())
+            with self.assertRaises(EOFError):
+                kas.load(path, engine=self.engine)
+
+    def test_short_file(self):
+        example = {"a": np.arange(2)}
+        encoded = kas.dumps(example)
+        with tempfile.TemporaryDirectory() as tempdir:
+            path = pathlib.Path(tempdir) / "testfile"
+            for j in range(1, 64):  # len(encoded) - 2):
+                with open(path, "wb") as f:
+                    f.write(encoded[:j])
+                self.assertTrue(path.exists())
+                with self.assertRaises(kas.FileFormatError):
+                    kas.load(path, engine=self.engine)
+
+
+class TestTruncatedFilesPyEngine(unittest.TestCase, TruncatedFilesMixin):
+    engine = kas.PY_ENGINE
+
+
+class TestTruncatedFilesCEngine(unittest.TestCase, TruncatedFilesMixin):
+    engine = kas.C_ENGINE

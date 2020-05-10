@@ -66,7 +66,7 @@ kas_strerror(int err)
             ret = "Mismatch between requested and stored types for array";
             break;
         case KAS_ERR_EOF:
-            ret = "Unexpected end of file";
+            ret = "End of file";
             break;
     }
     return ret;
@@ -155,17 +155,12 @@ kastore_read_header(kastore_t *self)
     uint64_t file_size;
     size_t count;
 
-    count = fread(header, KAS_HEADER_SIZE, 1, self->file);
-    if (count == 0) {
-        /* If the file ends unexpectedly this could be a file format error.
-         * However, in the case of reading from a pipe, EOF indicates that the
-         * writer end has been closed. This is a condition the user needs to
-         * handle differently from a file format error. */
-        if (feof(self->file)) {
-            ret = KAS_ERR_EOF;
-        } else {
-            ret = kastore_get_read_io_error(self);
-        }
+    count = fread(header, 1, KAS_HEADER_SIZE, self->file);
+    if (count == 0 && feof(self->file)) {
+        ret = KAS_ERR_EOF;
+        goto out;
+    } else if (count != KAS_HEADER_SIZE) {
+        ret = kastore_get_read_io_error(self);
         goto out;
     }
     if (strncmp(header, KAS_MAGIC, 8) != 0) {
