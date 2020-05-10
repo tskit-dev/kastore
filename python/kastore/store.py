@@ -295,7 +295,11 @@ class Store(Mapping):
         self._read_file()
 
     def _read_header(self):
-        header = self._read(HEADER_SIZE, allow_eof=True)
+        first_byte = self._file.read(1)
+        if len(first_byte) != 1:
+            raise EOFError("End of file")
+
+        header = first_byte + self._read(HEADER_SIZE - 1)
         if header[0:8] != MAGIC:
             raise exceptions.FileFormatError("Magic number mismatch")
         version_major = struct.unpack("<H", header[8:10])[0]
@@ -406,7 +410,7 @@ class Store(Mapping):
         if self._file is None:
             raise exceptions.StoreClosedError()
 
-    def _read(self, size, allow_eof=False):
+    def _read(self, size):
         """
         Reads exactly size bytes from the file and returns them.
         """
@@ -415,10 +419,7 @@ class Store(Mapping):
             chunk = self._file.read(size - len(data))
             data += chunk
             if len(chunk) == 0:  # EOF
-                if allow_eof:
-                    raise EOFError("End of file")
-                else:
-                    raise exceptions.FileFormatError("Truncated file")
+                raise exceptions.FileFormatError("Truncated file")
         return data
 
     def info(self, key):
