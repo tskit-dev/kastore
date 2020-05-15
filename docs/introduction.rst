@@ -14,6 +14,6 @@ Kastore is developed as the file backing for tskit, but may
 be useful in other projects that need a simple storage format
 for numerical arrays with a portable C API.
 
-.. note:: This documentation is incomplete and still under developement. If
+.. note:: This documentation is incomplete and still under development. If
     you would like to help, please open an issue on
     `GitHub <https://github.com/tskit-dev/kastore>`_.
