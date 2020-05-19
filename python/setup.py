@@ -70,7 +70,7 @@ setup(
         "Bug Reports": "https://github.com/tskit-dev/kastore/issues",
         "Source": "https://github.com/tskit-dev/kastore",
     },
-    setup_requires=[numpy_ver],
+    setup_requires=["oldest-supported-numpy"],
     cmdclass={"build_ext": local_build_ext},
     license="MIT",
     platforms=["POSIX", "Windows", "MacOS X"],
