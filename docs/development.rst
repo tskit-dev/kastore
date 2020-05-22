@@ -4,6 +4,11 @@
 Developer documentation
 =======================
 
+Kastore largely follows the same structure and development processes
+as `tskit <https://tskit.readthedocs.io/>`__. Please see the
+tskit `developer documentation <https://tskit.readthedocs.io/en/stable/development.html>`__
+for details on project structure, code formatting, and more.
+
 **********
 Versioning
 **********
@@ -44,29 +49,9 @@ pushed. Publishing this release will cause the github action to deploy to the
 C API
 -----
 
-When modifying the C code this will conform it to the project style::
-
-  $ sudo apt-get install clang-format
-  $ clang-format -i c/*.{h,c,cpp}
-
 If the C API has been updated, the ``KAS_VERSION_*`` macros should be set
 appropriately, ensuring that the Changelog has been updated to record the
 changes. After the commit including these changes has been merged, tag a
 release on GitHub using the pattern ``C_MAJOR.MINOR.PATCH``.
 
 
------------------
-Pre-commit checks
------------------
-
-You can install pre-commit checks with: ``pre-commit install``
-Then on each commit a `pre-commit hook <https://pre-commit.com/>`_  will run
-checks for code style and common problems.
-Sometimes these will report "files were modified by this hook" ``git add``
-and ``git commit --amend`` will update the commit with the automatically modified
-version.
-The modifications made are for consistency, code readability and designed to
-minimise merge conflicts. They are guaranteed not to modify the functionality of the
-code. To run the checks without committing use ``pre-commit run``. To bypass
-the checks (to save or get feedback on work-in-progress) use ``git commit
---no-verify``
