@@ -104,8 +104,8 @@ def load(file, read_all=False, key_encoding=DEFAULT_KEY_ENCODING, engine=PY_ENGI
     :param str file: The path of the file to load, or a file-like object
         with a ``read()`` method.
     :param bool read_all: If True, read the entire file into memory. This
-        optimisation is useful when all the data will be needed, saving some
-        malloc and fread overhead.
+        optimisation can be useful when all the data will be needed,
+        as it saves a little overhead. Defaults to False.
     :param str key_encoding: The encoding to use when converting the keys from
         raw bytes.
     :param str engine: The underlying implementation to use.
