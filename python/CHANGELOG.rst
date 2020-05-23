@@ -1,5 +1,5 @@
 --------------------
-[0.3.0] - 2020-XX-XX
+[0.3.0] - 2020-05-23
 --------------------
 
 **New features**
@@ -15,6 +15,8 @@
 
 - The ``filename`` named argument to load/dump has been changed to
   ``file`` to reflect the support for file objects.
+
+- Minimum python version is now 3.6.
 
 --------------------
 [0.2.2] - 2018-12-07
