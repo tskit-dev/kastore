@@ -1,5 +1,5 @@
 --------------------
-[2.0.0] - 2020-XX-XX
+[2.0.0] - 2020-05-23
 --------------------
 
 - Major file version bumped because new fields were added to the kastore_t

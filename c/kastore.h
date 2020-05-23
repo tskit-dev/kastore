@@ -131,7 +131,7 @@ to the file format.
 #define KAS_FILE_VERSION_MAJOR  1
 /**
 The file version minor number. Incremented when non-breaking backward-compatible
-changes are madeto the file format.
+changes are made to the file format.
 */
 #define KAS_FILE_VERSION_MINOR  0
 /** @} */
