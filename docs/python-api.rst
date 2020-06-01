@@ -37,8 +37,8 @@ to a file and load them again.
     data = {"one": np.arange(5, dtype=np.int8), "two": np.arange(5, dtype=np.uint64)}
     kastore.dump(data, "tmp.kas")
 
-    d2 = kastore.load("tmp.kas")
-    print(list(d2.items()))
+    kas = kastore.load("tmp.kas")
+    print(list(kas.items()))
 
 
 Running this code chunk gives us::
@@ -58,3 +58,27 @@ also have 5 elements but has type ``uint64`` and therefore consumes 40 bytes of 
 
 Please see the output of ``python3 -m kastore --help`` for more help on this
 command line interface.
+
+The python module gives a *read-only* view of the kastore file,
+so to add more data to an existing store, we need to load it,
+convert it to a dict (which is efficient, as the underlying arrays won't be copied),
+and dump it back out again.
+For instance, here's how we might add a new key to the previous example:
+
+.. code-block:: python
+
+   kas_dict = dict(kas)
+   print(kas_dict)
+   # {'one': array([0, 1, 2, 3, 4], dtype=int8), 'two': array([0, 1, 2, 3, 4], dtype=uint64)}
+
+   kas_dict["three"] = np.array([0.5772, 2.7818, 3.1415])
+   kastore.dump(kas_dict, "tmp2.kas")
+
+After this, we get::
+
+   # python3 -m kastore ls -lH tmp2.kas
+   int8    5  5B one
+   float64 3 24B three
+   uint64  5 40B two
+
+indicating that the key "three" has three float64 entries.
