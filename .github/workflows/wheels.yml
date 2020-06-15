@@ -24,10 +24,13 @@ jobs:
         env:
           PYTHON: "py -${{ matrix.python }}-${{ matrix.wordsize }}"
         shell: bash
+        # Instead of letting setup.py install a newer numpy we install it here
+        # using the oldest supported version for ABI compatibility
         run: |
           set -ex
           ${PYTHON} -m pip install --upgrade pip
-          ${PYTHON} -m pip install setuptools wheel cython
+          ${PYTHON} -m pip install setuptools wheel
+          ${PYTHON} -m pip install oldest-supported-numpy
       - name: Build C extension
         env:
           PYTHON: "py -${{ matrix.python }}-${{ matrix.wordsize }}"
@@ -81,9 +84,12 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install deps
+        # Instead of letting setup.py install a newer numpy we install it here
+        # using the oldest supported version for ABI compatibility
         run: |
           pip install --upgrade pip
           pip install setuptools wheel
+          pip install oldest-supported-numpy
       - name: Build C extension
         run: |
           cd python
