@@ -13,6 +13,13 @@ import os
 import subprocess
 import sys
 
+# It's easier not to try to build the low-level module for the
+# documentation build on readthedocs, so we mock the module. Follows
+# the recommended pattern at
+# http://docs.readthedocs.org/en/latest/faq.html
+autodoc_mock_imports = ["_kastore"]
+
+
 sys.path.insert(0, os.path.abspath("../python"))
 
 read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"

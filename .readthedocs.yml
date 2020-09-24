@@ -11,6 +11,3 @@ python:
   version: 3.7
   install:
     - requirements: docs/rtd_requirements.txt
-    # Install the package locally so that the low-level module will be available.
-    - method: pip
-      path: python
