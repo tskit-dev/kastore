@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/python:3.6-stretch
+      - image: circleci/python:3.8.7-buster
     steps:
       - checkout
       - run:
@@ -11,13 +11,13 @@ jobs:
             pip install --user -r python/requirements/development.txt
             sudo apt-get install ninja-build libcunit1-dev valgrind clang doxygen
             # Install meson as root so we can install to the system below.
-            sudo pip install meson 
+            sudo pip install meson
             echo 'export PATH=/home/circleci/.local/bin:$PATH' >> $BASH_ENV
       - run:
           name: Compile Python
           command: |
-            cd python 
-            CFLAGS="--coverage -Wall -Wextra -Werror -Wno-unused-parameter" \
+            cd python
+            CFLAGS="--coverage -Wall -Wextra -Werror -Wno-unused-parameter -Wno-cast-function-type" \
               python setup.py build_ext --inplace
       - run:
           name: Lint Python
@@ -25,7 +25,7 @@ jobs:
             cd python
             flake8 --max-line-length 89 kastore setup.py tests
       - run:
-          name: Run Python tests 
+          name: Run Python tests
           command: |
             PYTHONPATH=python nosetests -v --with-coverage --cover-package kastore \
               --cover-branches --cover-erase --cover-xml \
@@ -38,18 +38,18 @@ jobs:
             rm -fR build
             python setup.py sdist
             python -m venv venv
-            source venv/bin/activate 
+            source venv/bin/activate
             pip install --upgrade setuptools pip wheel
             python setup.py build_ext
             python setup.py egg_info
             python setup.py bdist_wheel
             pip wheel dist/*.tar.gz
-            pip install dist/*.tar.gz 
+            pip install dist/*.tar.gz
       - run:
           name: Compile C
           command: |
             # Build with coverage options
-            meson c/ build-gcc -D b_coverage=true 
+            meson c/ build-gcc -D b_coverage=true
             ninja -C build-gcc
       - run:
           name: Run C tests
@@ -65,7 +65,7 @@ jobs:
             gcov -pb ./build-gcc/tests@exe/kastore.c.gcno \
               ./build-gcc/malloc_tests@exe/kastore.c.gcno \
               ./build-gcc/io_tests@exe/kastore.c.gcno \
-              ./build-gcc/kastore@sha/kastore.c.gcno 
+              ./build-gcc/kastore@sha/kastore.c.gcno
             codecov -X gcov -F C
       - run:
           name: Valgrind for C tests.
@@ -77,7 +77,7 @@ jobs:
       - run:
           name: Compile C tests under clang
           command: |
-            CC=clang CXX=clang++ meson c/ build-clang 
+            CC=clang CXX=clang++ meson c/ build-clang
             ninja -C build-clang
       - run:
           name: Run clang C tests
