@@ -261,7 +261,7 @@ kastore_read_descriptors(kastore_t *self)
     if (size + KAS_HEADER_SIZE > self->file_size) {
         goto out;
     }
-    read_buffer = malloc(size);
+    read_buffer = (char *) malloc(size);
     if (read_buffer == NULL) {
         ret = KAS_ERR_NO_MEMORY;
         goto out;
@@ -386,7 +386,7 @@ kastore_read_file(kastore_t *self)
     assert(size > offset);
     size -= offset;
 
-    self->read_buffer = malloc(size);
+    self->read_buffer = (char *) malloc(size);
     if (self->read_buffer == NULL) {
         ret = KAS_ERR_NO_MEMORY;
         goto out;
@@ -480,7 +480,7 @@ kastore_read(kastore_t *self)
         goto out;
     }
     if (self->num_items > 0) {
-        self->items = calloc(self->num_items, sizeof(*self->items));
+        self->items = (kaitem_t *) calloc(self->num_items, sizeof(*self->items));
         if (self->items == NULL) {
             ret = KAS_ERR_NO_MEMORY;
             goto out;
@@ -690,7 +690,7 @@ kastore_get(kastore_t *self, const char *key, size_t key_len, void **array,
     int ret = KAS_ERR_KEY_NOT_FOUND;
     kaitem_t search;
     kaitem_t *item;
-    search.key = malloc(key_len);
+    search.key = (char *) malloc(key_len);
     search.key_len = key_len;
 
     if (self->mode != KAS_READ) {
@@ -847,7 +847,7 @@ kastore_oput(kastore_t *self, const char *key, size_t key_len, void *array,
 {
     int ret = 0;
     kaitem_t *new_item;
-    void *p;
+    kaitem_t *p;
     size_t j;
 
     if (self->mode != KAS_WRITE) {
@@ -864,7 +864,7 @@ kastore_oput(kastore_t *self, const char *key, size_t key_len, void *array,
     }
     /* This isn't terribly efficient, but we're not expecting large
      * numbers of items. */
-    p = realloc(self->items, (self->num_items + 1) * sizeof(*self->items));
+    p = (kaitem_t *) realloc(self->items, (self->num_items + 1) * sizeof(*self->items));
     if (p == NULL) {
         ret = KAS_ERR_NO_MEMORY;
         goto out;
@@ -877,7 +877,7 @@ kastore_oput(kastore_t *self, const char *key, size_t key_len, void *array,
     new_item->key_len = key_len;
     new_item->array_len = array_len;
     new_item->array = array;
-    new_item->key = malloc(key_len);
+    new_item->key = (char *) malloc(key_len);
     if (new_item->key == NULL) {
         kas_safe_free(new_item->key);
         ret = KAS_ERR_NO_MEMORY;
