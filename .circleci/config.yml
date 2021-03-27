@@ -20,11 +20,6 @@ jobs:
             CFLAGS="--coverage -Wall -Wextra -Werror -Wno-unused-parameter -Wno-cast-function-type" \
               python setup.py build_ext --inplace
       - run:
-          name: Lint Python
-          command: |
-            cd python
-            flake8 --max-line-length 89 kastore setup.py tests
-      - run:
           name: Run Python tests
           command: |
             PYTHONPATH=python nosetests -v --with-coverage --cover-package kastore \

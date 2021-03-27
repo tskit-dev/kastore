@@ -41,8 +41,8 @@ handle_library_error(int err)
             PyErr_Format(PyExc_EOFError, "Unexpected end of file");
             break;
         default:
-            PyErr_Format(PyExc_ValueError, "Error occured: %d: %s",
-                    err, kas_strerror(err));
+            PyErr_Format(
+                PyExc_ValueError, "Error occured: %d: %s", err, kas_strerror(err));
     }
 }
 
@@ -154,8 +154,8 @@ build_dictionary(kastore_t *store)
          * aren't set until after 'get' is called. So, we have to kludge
          * around this until we have a proper API for accessing all items
          */
-        err = kastore_get(store, item->key, item->key_len, &dummy_array,
-                &dummy_len, &dummy_type);
+        err = kastore_get(
+            store, item->key, item->key_len, &dummy_array, &dummy_len, &dummy_type);
         if (err != 0) {
             handle_library_error(err);
             goto out;
@@ -170,8 +170,8 @@ build_dictionary(kastore_t *store)
         if (array == NULL) {
             goto out;
         }
-        memcpy(PyArray_DATA(array), item->array,
-                item->array_len * PyArray_ITEMSIZE(array));
+        memcpy(
+            PyArray_DATA(array), item->array, item->array_len * PyArray_ITEMSIZE(array));
         if (PyDict_SetItem(data, key, (PyObject *) array) != 0) {
             goto out;
         }
@@ -215,8 +215,8 @@ parse_dictionary(kastore_t *store, PyObject *data)
             goto out;
         }
         /* This ensures that only 1D arrays are accepted. */
-        array = (PyArrayObject *) PyArray_FromAny(py_value, NULL, 1, 1,
-                NPY_ARRAY_IN_ARRAY, NULL);
+        array = (PyArrayObject *) PyArray_FromAny(
+            py_value, NULL, 1, 1, NPY_ARRAY_IN_ARRAY, NULL);
         if (array == NULL) {
             goto out;
         }
@@ -227,7 +227,7 @@ parse_dictionary(kastore_t *store, PyObject *data)
             goto out;
         }
         err = kastore_put(store, key, (size_t) key_len, PyArray_DATA(array),
-                (size_t) shape[0], type, 0);
+            (size_t) shape[0], type, 0);
         if (err != 0) {
             handle_library_error(err);
             goto out;
@@ -280,14 +280,14 @@ kastore_load(PyObject *self, PyObject *args, PyObject *kwds)
     PyObject *data = NULL;
     PyObject *fileobj = NULL;
     FILE *file = NULL;
-    static char *kwlist[] = {"file", "read_all", NULL};
+    static char *kwlist[] = { "file", "read_all", NULL };
     int read_all = 0;
     int flags = 0;
 
     memset(&store, 0, sizeof(store));
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|i:load", kwlist,
-                &fileobj, &read_all)) {
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwds, "O|i:load", kwlist, &fileobj, &read_all)) {
         goto out;
     }
     if (read_all) {
@@ -341,12 +341,12 @@ kastore_dump(PyObject *self, PyObject *args, PyObject *kwds)
     PyObject *data = NULL;
     PyObject *fileobj = NULL;
     FILE *file = NULL;
-    static char *kwlist[] = {"data", "file", NULL};
+    static char *kwlist[] = { "data", "file", NULL };
 
     memset(&store, 0, sizeof(store));
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!O:dump", kwlist,
-                &PyDict_Type, &data, &fileobj)) {
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwds, "O!O:dump", kwlist, &PyDict_Type, &data, &fileobj)) {
         goto out;
     }
 
@@ -379,21 +379,15 @@ out:
 }
 
 static PyMethodDef kastore_methods[] = {
-    {"load", (PyCFunction) kastore_load, METH_VARARGS|METH_KEYWORDS,
-            "Loads a store from the specified file name." },
-    {"dump", (PyCFunction) kastore_dump, METH_VARARGS|METH_KEYWORDS,
-            "Writes a store to the specified file name." },
-    {NULL}        /* Sentinel */
+    { "load", (PyCFunction) kastore_load, METH_VARARGS | METH_KEYWORDS,
+        "Loads a store from the specified file name." },
+    { "dump", (PyCFunction) kastore_dump, METH_VARARGS | METH_KEYWORDS,
+        "Writes a store to the specified file name." },
+    { NULL } /* Sentinel */
 };
 
-static struct PyModuleDef kastoremodule = {
-    PyModuleDef_HEAD_INIT,
-    "_kastore",
-    "C interface for kastore.",
-    -1,
-    kastore_methods,
-    NULL, NULL, NULL, NULL
-};
+static struct PyModuleDef kastoremodule = { PyModuleDef_HEAD_INIT, "_kastore",
+    "C interface for kastore.", -1, kastore_methods, NULL, NULL, NULL, NULL };
 
 PyObject *
 PyInit__kastore(void)
@@ -411,15 +405,18 @@ PyInit__kastore(void)
     Py_INCREF(KastoreException);
     PyModule_AddObject(module, "KastoreException", KastoreException);
 
-    KastoreFileFormatError = PyErr_NewException("_kastore.FileFormatError", KastoreException, NULL);
+    KastoreFileFormatError
+        = PyErr_NewException("_kastore.FileFormatError", KastoreException, NULL);
     Py_INCREF(KastoreFileFormatError);
     PyModule_AddObject(module, "FileFormatError", KastoreFileFormatError);
 
-    KastoreVersionTooOldError = PyErr_NewException("_kastore.VersionTooOldError", KastoreException, NULL);
+    KastoreVersionTooOldError
+        = PyErr_NewException("_kastore.VersionTooOldError", KastoreException, NULL);
     Py_INCREF(KastoreVersionTooOldError);
     PyModule_AddObject(module, "VersionTooOldError", KastoreVersionTooOldError);
 
-    KastoreVersionTooNewError = PyErr_NewException("_kastore.VersionTooNewError", KastoreException, NULL);
+    KastoreVersionTooNewError
+        = PyErr_NewException("_kastore.VersionTooNewError", KastoreException, NULL);
     Py_INCREF(KastoreVersionTooNewError);
     PyModule_AddObject(module, "VersionTooNewError", KastoreVersionTooNewError);
 

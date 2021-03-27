@@ -53,7 +53,7 @@ class MalformedFilesBuilder:
                 assert len(buff) == before_len
 
                 filename = os.path.join(
-                    self.destination_dir, f"bad_filesize_{num_items}_{offset}.kas",
+                    self.destination_dir, f"bad_filesize_{num_items}_{offset}.kas"
                 )
                 with open(filename, "wb") as f:
                     f.write(buff)
