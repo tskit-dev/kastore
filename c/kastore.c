@@ -9,7 +9,10 @@
 
 /* Private flag used to indicate when we have opened the file ourselves
  * and need to free it. */
-#define OWN_FILE (1 << 31)
+/* Note: we use 1<<14 to keep this flag at the end of the flag space,
+ * and this is the highest bit that can be guaranteed to fit into
+ * an int. */
+#define OWN_FILE (1 << 14)
 
 const char *
 kas_strerror(int err)
