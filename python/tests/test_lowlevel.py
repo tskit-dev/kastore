@@ -53,7 +53,7 @@ class TestBasicOperation(unittest.TestCase):
 
 @unittest.skipIf(IS_WINDOWS, "Not worth making this work on windows")
 class TestInputs(unittest.TestCase):
-    def test_bad_numeric(self):
+    def test_bad_numeric_fd(self):
         for fd in ["1", 1.0, 2.0]:
             with self.assertRaises(TypeError):
                 _kastore.dump({}, fd)
@@ -79,3 +79,14 @@ class TestInputs(unittest.TestCase):
         with open(os.devnull, "w") as f:
             with self.assertRaises(OSError):
                 _kastore.load(f)
+
+    def test_bad_load_args(self):
+        with self.assertRaises(TypeError):
+            _kastore.load(0, read_all="sdf")
+
+    def test_bad_dtype(self):
+        with open(os.devnull, "w") as f:
+            with self.assertRaises(ValueError):
+                # complex number
+                array = np.array([0], dtype="c16")
+                _kastore.dump({"a": array}, f)
