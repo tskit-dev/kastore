@@ -24,8 +24,6 @@ extern "C" {
 #include <stddef.h>
 #include <stdio.h>
 
-/** @} */
-
 /**
 @defgroup ERROR_GROUP Error return values.
 @{
