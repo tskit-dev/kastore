@@ -1,9 +1,13 @@
-project('kastore', ['c', 'cpp'], default_options: ['c_std=c99', 'cpp_std=c++11'])
+project('kastore', ['c', 'cpp'], 
+  default_options: [
+    'c_std=c99', 
+    'cpp_std=c++11', 
+    'warning_level=3', 
+    'werror=true'])
 
 if not meson.is_subproject()
     add_global_arguments([
-        '-Wall', '-Wextra', '-Werror', '-Wpedantic', '-W',
-        '-Wmissing-prototypes',  '-Wstrict-prototypes',
+        '-W', '-Wmissing-prototypes',  '-Wstrict-prototypes',
         '-Wconversion', '-Wshadow', '-Wpointer-arith', '-Wcast-align',
         '-Wcast-qual', '-Wwrite-strings', '-Wnested-externs',
         '-fshort-enums', '-fno-common'], language : 'c')
@@ -21,6 +25,9 @@ if not meson.is_subproject()
     shared_library('kastore', 'kastore.c', install: true)
     executable('example', ['example.c'], link_with: kastore)
 
+    # Note: we don't declare these as meson tests because they depend on 
+    # being run from the current working directory because of the paths
+    # to example files.
     cunit_dep = dependency('cunit')
     executable('tests', ['tests.c', 'kastore.c'], dependencies: cunit_dep)
 
