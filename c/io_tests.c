@@ -211,6 +211,10 @@ test_append_fclose(void)
      * places at which we can fail. */
     _fclose_fail_at = 0;
     _fclose_count = 0;
+    /* First fail is a special case, happens when closing the tmp file */
+    ret = kastore_open(&store, _tmp_file_name, "a", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    _fclose_fail_at = 1;
     done = false;
     while (!done) {
         ret = kastore_open(&store, _tmp_file_name, "a", 0);

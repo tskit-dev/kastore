@@ -562,6 +562,7 @@ kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
         tmp.file = NULL;
         if (err != 0) {
             ret = KAS_ERR_IO;
+            goto out;
         }
     }
     file = fopen(filename, file_mode);
