@@ -1,4 +1,15 @@
 --------------------
+[2.0.1] - 2021-11-xx
+--------------------
+
+- Minor bug-release and maintenance update.
+
+**Bug fixes**
+
+- Fix an overflow in an internal flags value on platforms with
+  16 bit int types (:user:`jeromekelleher`, :issue:`153`, :pr:`153`).
+
+--------------------
 [2.0.0] - 2020-05-23
 --------------------
 
