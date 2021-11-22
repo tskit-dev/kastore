@@ -4,7 +4,8 @@ coverage
 flake8
 hypothesis
 humanize
-nose
+pytest
+pytest-cov
 numpy
 mock
 pre-commit

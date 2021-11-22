@@ -29,7 +29,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python: [ 3.6, 3.9 ]
+        python: [ 3.7, "3.10" ]
         os:  [ macos-latest, ubuntu-latest, windows-latest ]
     defaults:
       run:
@@ -45,7 +45,7 @@ jobs:
 
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          python-version: ${{matrix.python}}
 
       - name: Install pip deps
         run: pip install -r python/requirements/CI/tests/requirements.txt
@@ -58,4 +58,4 @@ jobs:
       - name: Run tests
         working-directory: python
         run: |
-          python -m nose tests
+          python -m pytest tests
