@@ -63,7 +63,7 @@ class FormatMixin:
             trailer = contents[24 : store.HEADER_SIZE]
             # The remainder should be zeros.
             self.assertEqual(
-                trailer, bytearray([0 for _ in range(store.HEADER_SIZE - 24)])
+                trailer, bytearray(0 for _ in range(store.HEADER_SIZE - 24))
             )
 
     def test_zero_items(self):
@@ -94,7 +94,7 @@ class FormatMixin:
                 # The remainder should be zeros.
                 self.assertEqual(
                     trailer,
-                    bytearray([0 for _ in range(store.ITEM_DESCRIPTOR_SIZE - 40)]),
+                    bytearray(0 for _ in range(store.ITEM_DESCRIPTOR_SIZE - 40)),
                 )
                 self.assertEqual(descriptor[1:4], bytearray([0, 0, 0]))
                 self.assertEqual(type_, store.FLOAT64)

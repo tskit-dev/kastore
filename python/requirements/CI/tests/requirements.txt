@@ -1,6 +1,7 @@
 attrs
 hypothesis
 humanize
-nose
+pytest
+pytest-cov
 numpy
 mock
