@@ -209,6 +209,9 @@ parse_dictionary(kastore_t *store, PyObject *data)
         }
         encoded_key = PyUnicode_AsEncodedString(py_key, "utf-8", "strict");
         if (encoded_key == NULL) {
+            /* This error is very difficult/impossible to provoke because
+             * PyUnicode_Check makes sure it's unicode, and you can't make
+             * invalid unicode strings. */
             goto out;
         }
         if (PyBytes_AsStringAndSize(encoded_key, &key, &key_len) != 0) {

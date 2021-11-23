@@ -20,7 +20,7 @@ jobs:
           name: Compile Python
           command: |
             cd python
-            CFLAGS="--coverage -Wall -Wextra -Werror -Wno-unused-parameter -Wno-cast-function-type" \
+            CFLAGS="-Wall -Wextra -Werror -Wno-unused-parameter -Wno-cast-function-type" \
               python setup.py build_ext --inplace
       - run:
           name: Run Python tests
@@ -28,6 +28,7 @@ jobs:
             cd python
             python3 -m pytest --cov=kastore  --cov-report=xml --cov-branch tests
             python3 -m codecov -F python
+
       - run:
           name: Build Python package
           command: |
@@ -42,12 +43,14 @@ jobs:
             python setup.py bdist_wheel
             pip wheel dist/*.tar.gz
             pip install dist/*.tar.gz
+
       - run:
           name: Compile C
           command: |
             # Build with coverage options
             meson c/ build-gcc -D b_coverage=true
             ninja -C build-gcc
+
       - run:
           name: Run C tests
           command: |
@@ -55,6 +58,15 @@ jobs:
             ./build-gcc/cpp_tests
             ./build-gcc/malloc_tests
             ./build-gcc/io_tests
+
+      - run:
+          name: Run Python with C coverage
+          command: |
+            cd python
+            rm -fR build
+            CFLAGS="--coverage"  python setup.py build_ext --inplace
+            python3 -m pytest tests
+
       - run:
           name: Run gcov & upload coverage.
           command: |
@@ -64,6 +76,7 @@ jobs:
               ./build-gcc/io_tests@exe/kastore.c.gcno \
               ./build-gcc/kastore@sha/kastore.c.gcno
             codecov -X gcov -F C
+
       - run:
           name: Valgrind for C tests.
           command: |
