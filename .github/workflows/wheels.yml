@@ -64,7 +64,7 @@ jobs:
           ${PYTHON} -c "import kastore"
           ${PYTHON} -m pip install -r python/requirements/CI/tests/requirements.txt
           rm -rf python/kastore python/*.pyd
-          ${PYTHON} -m nose -v python
+          ${PYTHON} -m pytest -v python
       - name: Upload Wheels
         uses: actions/upload-artifact@v2
         with:
@@ -108,7 +108,7 @@ jobs:
           python -c "import kastore"
           pip install -r python/requirements/CI/tests/requirements.txt
           rm -rf python/kastore python/*.so
-          python -m nose -v python
+          python -m pytest -v python
       - name: Upload Wheels
         uses: actions/upload-artifact@v2
         with:
@@ -157,7 +157,7 @@ jobs:
           pip install -v kastore --only-binary kastore -f python/dist/wheelhouse --no-index
           python -c "import kastore"
           pip install -r python/requirements/CI/tests/requirements.txt
-          python -m nose -v python
+          python -m pytest -v python
 
       - name: Set up Python 3.9
         uses: actions/setup-python@v2
@@ -173,7 +173,7 @@ jobs:
           pip install -v kastore --only-binary kastore -f python/dist/wheelhouse --no-index
           python -c "import kastore"
           pip install -r python/requirements/CI/tests/requirements.txt
-          python -m nose -v python
+          python -m pytest -v python
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
@@ -189,7 +189,7 @@ jobs:
           pip install -v kastore --only-binary kastore -f python/dist/wheelhouse --no-index
           python -c "import kastore"
           pip install -r python/requirements/CI/tests/requirements.txt
-          python -m nose -v python
+          python -m pytest -v python
 
       - name: Set up Python 3.7
         uses: actions/setup-python@v2
@@ -205,7 +205,7 @@ jobs:
           pip install -v kastore --only-binary kastore -f python/dist/wheelhouse --no-index
           python -c "import kastore"
           pip install -r python/requirements/CI/tests/requirements.txt
-          python -m nose -v python
+          python -m pytest -v python
 
       - name: Upload Wheels
         uses: actions/upload-artifact@v2
