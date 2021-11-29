@@ -1,4 +1,4 @@
-project('kastore', ['c', 'cpp'], 
+project('kastore', ['c', 'cpp'],
   default_options: [
     'c_std=c99', 
     'cpp_std=c++11', 
