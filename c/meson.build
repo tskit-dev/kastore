@@ -1,4 +1,5 @@
 project('kastore', ['c', 'cpp'],
+  version: files('VERSION'),
   default_options: [
     'c_std=c99', 
     'cpp_std=c++11', 

@@ -10,7 +10,6 @@ jobs:
           command: |
             sudo apt-get update
             sudo apt-get install -y ninja-build libcunit1-dev valgrind clang doxygen python3-pip
-            sudo apt-get install ninja-build libcunit1-dev valgrind clang doxygen
             # Install meson as root so we can install to the system below.
             sudo pip install meson
             pip install numpy==1.18.5
