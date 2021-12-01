@@ -15,9 +15,9 @@ if not meson.is_subproject()
 endif
 
 # Subprojects should compile in the static library for simplicity.
-inc = include_directories('.')
+kastore_inc = include_directories('.')
 kastore = static_library('kastore', 'kastore.c')
-kastore_dep = declare_dependency(link_with : kastore, include_directories: inc)
+kastore_dep = declare_dependency(link_with : kastore, include_directories: kastore_inc)
 
 if not meson.is_subproject()
 
@@ -30,7 +30,8 @@ if not meson.is_subproject()
     # being run from the current working directory because of the paths
     # to example files.
     cunit_dep = dependency('cunit')
-    executable('tests', ['tests.c', 'kastore.c'], dependencies: cunit_dep)
+    executable('tests', ['tests.c', 'kastore.c'], dependencies: cunit_dep,
+      c_args: ['-DMESON_VERSION="@0@"'.format(meson.project_version())])
 
     executable('cpp_tests', ['cpp_tests.cpp'], link_with: kastore)
 

@@ -1573,6 +1573,17 @@ test_library_version(void)
     CU_ASSERT_EQUAL_FATAL(version.patch, KAS_VERSION_PATCH);
 }
 
+static void
+test_meson_version(void)
+{
+    char version[100];
+
+    sprintf(
+        version, "%d.%d.%d", KAS_VERSION_MAJOR, KAS_VERSION_MINOR, KAS_VERSION_PATCH);
+    /* the MESON_VERSION define is passed in by meson when compiling */
+    CU_ASSERT_STRING_EQUAL(version, MESON_VERSION);
+}
+
 /*=================================================
   Test suite management
   =================================================
@@ -1685,6 +1696,7 @@ main(int argc, char **argv)
         { "test_truncated_file_correct_size", test_truncated_file_correct_size },
         { "test_all_types_n_elements", test_all_types_n_elements },
         { "test_library_version", test_library_version },
+        { "test_meson_version", test_meson_version },
         CU_TEST_INFO_NULL,
     };
 
