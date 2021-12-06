@@ -380,31 +380,44 @@ kastore_read_file(kastore_t *self)
 
     offset = KAS_HEADER_SIZE + self->num_items * KAS_ITEM_DESCRIPTOR_SIZE;
 
-    size = self->file_size;
-    if (!read_all) {
-        /* Read in up to the start of first array. This will contain all the keys. */
-        size = self->items[0].array_start;
-    }
+    /* Read in up to the start of first array. This will contain all the keys. */
+    size = self->items[0].array_start;
 
     assert(size > offset);
     size -= offset;
 
-    self->read_buffer = (char *) malloc(size);
-    if (self->read_buffer == NULL) {
+    self->key_read_buffer = (char *) malloc(size);
+    if (self->key_read_buffer == NULL) {
         ret = KAS_ERR_NO_MEMORY;
         goto out;
     }
-    count = fread(self->read_buffer, size, 1, self->file);
+    count = fread(self->key_read_buffer, size, 1, self->file);
     if (count == 0) {
         ret = kastore_get_read_io_error(self);
         goto out;
     }
     /* Assign the pointers for the keys and arrays */
     for (j = 0; j < self->num_items; j++) {
-        self->items[j].key = self->read_buffer + self->items[j].key_start - offset;
+        /* keys are already loaded in the read buffer */
+        self->items[j].key = self->key_read_buffer + self->items[j].key_start - offset;
         if (read_all) {
-            self->items[j].array
-                = self->read_buffer + self->items[j].array_start - offset;
+            if (j == self->num_items - 1) {
+                size = self->file_size - self->items[j].array_start;
+            } else {
+                size = self->items[j + 1].array_start - self->items[j].array_start;
+            }
+            self->items[j].array = (char *) malloc(size == 0 ? 1 : size);
+            if (self->items[j].array == NULL) {
+                ret = KAS_ERR_NO_MEMORY;
+                goto out;
+            }
+            if (size > 0) {
+                count = fread(self->items[j].array, size, 1, self->file);
+                if (count == 0) {
+                    ret = kastore_get_read_io_error(self);
+                    goto out;
+                }
+            }
         }
     }
 out:
@@ -644,13 +657,10 @@ kastore_close(kastore_t *self)
             }
         }
     } else {
-        kas_safe_free(self->read_buffer);
-        if (!(self->flags & KAS_READ_ALL)) {
-            /* The arrays have been individually malloced on demand. */
-            if (self->items != NULL) {
-                for (j = 0; j < self->num_items; j++) {
-                    kas_safe_free(self->items[j].array);
-                }
+        kas_safe_free(self->key_read_buffer);
+        if (self->items != NULL) {
+            for (j = 0; j < self->num_items; j++) {
+                kas_safe_free(self->items[j].array);
             }
         }
     }

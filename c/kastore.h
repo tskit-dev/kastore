@@ -184,7 +184,7 @@ typedef struct {
     FILE *file;
     size_t file_size;
     long file_offset;
-    char *read_buffer;
+    char *key_read_buffer;
 } kastore_t;
 
 /**
