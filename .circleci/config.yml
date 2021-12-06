@@ -16,6 +16,38 @@ jobs:
             pip install --user -r python/requirements/development.txt
             echo 'export PATH=/home/circleci/.local/bin:$PATH' >> $BASH_ENV
       - run:
+          name: Compile C
+          command: |
+            # Build with coverage options
+            meson c/ build-gcc -D b_coverage=true
+            ninja -C build-gcc
+      - run:
+          name: Run C tests
+          command: |
+            ./build-gcc/tests
+            ./build-gcc/cpp_tests
+            ./build-gcc/malloc_tests
+            ./build-gcc/io_tests
+      - run:
+          name: Valgrind for C tests.
+          command: |
+            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/tests
+            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/cpp_tests
+            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/malloc_tests
+            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/io_tests
+      - run:
+          name: Compile C tests under clang
+          command: |
+            CC=clang CXX=clang++ meson c/ build-clang
+            ninja -C build-clang
+      - run:
+          name: Run clang C tests
+          command: |
+            ./build-clang/tests
+            ./build-clang/cpp_tests
+            ./build-clang/malloc_tests
+            ./build-clang/io_tests
+      - run:
           name: Compile Python
           command: |
             cd python
@@ -42,22 +74,6 @@ jobs:
             python setup.py bdist_wheel
             pip wheel dist/*.tar.gz
             pip install dist/*.tar.gz
-
-      - run:
-          name: Compile C
-          command: |
-            # Build with coverage options
-            meson c/ build-gcc -D b_coverage=true
-            ninja -C build-gcc
-
-      - run:
-          name: Run C tests
-          command: |
-            ./build-gcc/tests
-            ./build-gcc/cpp_tests
-            ./build-gcc/malloc_tests
-            ./build-gcc/io_tests
-
       - run:
           name: Run Python with C coverage
           command: |
@@ -75,26 +91,6 @@ jobs:
               ./build-gcc/io_tests@exe/kastore.c.gcno \
               ./build-gcc/kastore@sha/kastore.c.gcno
             codecov -X gcov -F C
-
-      - run:
-          name: Valgrind for C tests.
-          command: |
-            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/tests
-            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/cpp_tests
-            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/malloc_tests
-            valgrind --leak-check=full --error-exitcode=1 ./build-gcc/io_tests
-      - run:
-          name: Compile C tests under clang
-          command: |
-            CC=clang CXX=clang++ meson c/ build-clang
-            ninja -C build-clang
-      - run:
-          name: Run clang C tests
-          command: |
-            ./build-clang/tests
-            ./build-clang/cpp_tests
-            ./build-clang/malloc_tests
-            ./build-clang/io_tests
 
       - run:
           name: Install shared library
