@@ -34,7 +34,8 @@ kas_strerror(int err)
             ret = "Bad open mode; must be \"r\", \"w\", or \"a\"";
             break;
         case KAS_ERR_BAD_FLAGS:
-            ret = "Unknow flags specified. Only KAS_READ_ALL or 0 allowed.";
+            ret = "Unknow flags specified. Only (KAS_GET_TAKES_OWNERSHIP and/or "
+                  "KAS_READ_ALL) or 0 can be specified";
             break;
         case KAS_ERR_NO_MEMORY:
             ret = "Out of memory";
@@ -617,7 +618,8 @@ kastore_openf(kastore_t *self, FILE *file, const char *mode, int flags)
         ret = KAS_ERR_BAD_MODE;
         goto out;
     }
-    if (!(flags == 0 || flags == KAS_READ_ALL)) {
+
+    if (flags > (KAS_READ_ALL | KAS_GET_TAKES_OWNERSHIP) || flags < 0) {
         ret = KAS_ERR_BAD_FLAGS;
         goto out;
     }
@@ -730,6 +732,9 @@ kastore_get(kastore_t *self, const char *key, size_t key_len, void **array,
     *array = item->array;
     *array_len = item->array_len;
     *type = item->type;
+    if (self->flags & KAS_GET_TAKES_OWNERSHIP) {
+        item->array = NULL;
+    }
     ret = 0;
 out:
     kas_safe_free(search.key);

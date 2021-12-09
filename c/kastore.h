@@ -94,7 +94,8 @@ Unknown flags were provided to open.
 /** @} */
 
 /* Flags for open */
-#define KAS_READ_ALL            1
+#define KAS_READ_ALL            (1 << 0)
+#define KAS_GET_TAKES_OWNERSHIP            (1 << 1)
 
 
 /**
@@ -162,6 +163,28 @@ to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 #define KAS_ARRAY_ALIGN             8
 // clang-format on
 
+#ifndef KAS_BUG_ASSERT_MESSAGE
+#define KAS_BUG_ASSERT_MESSAGE                                                          \
+    "If you are using kastore directly please open an issue on"                         \
+    " GitHub, ideally with a reproducible example."                                     \
+    " (https://github.com/tskit-dev/kastore/issues) If you are"                         \
+    " using software that uses kastore, please report an issue"                         \
+    " to that software's issue tracker, at least initially."
+#endif
+
+/**
+We often wish to assert a condition that is unexpected, but using the normal `assert`
+means compiling without NDEBUG. This macro still asserts when NDEBUG is defined.
+*/
+#define kas_bug_assert(condition)                                                       \
+    do {                                                                                \
+        if (!(condition)) {                                                             \
+            fprintf(stderr, "Bug detected in %s at line %d. %s\n", __FILE__, __LINE__,  \
+                KAS_BUG_ASSERT_MESSAGE);                                                \
+            abort();                                                                    \
+        }                                                                               \
+    } while (0)
+
 typedef struct {
     int type;
     size_t key_len;
@@ -224,6 +247,16 @@ KAS_READ_ALL
     If this option is specified, read the entire file at
     open time. This will give slightly better performance as the file can
     be read sequentially in a single pass.
+
+KAS_GET_TAKES_OWNERSHIP
+    If this option is specified, all ``get`` operations will transfer
+    ownership of the array to the caller. ``kastore`` will not ``free``
+    the array memory and this is the responsibility of the caller.
+    If ``get`` is called on the same key multiple times, a new buffer will be
+    returned each time. Note that second and subsequent ``get`` calls
+    on a given key will result in ``seek`` operations even when the
+    KAS_READ_ALL flag is set, and will therefore fail on unseekable
+    streams.
 
 @endrst
 

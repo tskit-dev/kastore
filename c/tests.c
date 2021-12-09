@@ -51,7 +51,7 @@ test_bad_open_flags(void)
 {
     int ret;
     kastore_t store;
-    const int bad_flags[] = { 2, 3, 1 << 31, -1 };
+    const int bad_flags[] = { 4, 5, 1 << 31, -1 };
     size_t j;
 
     for (j = 0; j < sizeof(bad_flags) / sizeof(*bad_flags); j++) {
@@ -653,6 +653,80 @@ test_simple_round_trip(void)
 
         ret = kastore_close(&store);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
+    }
+}
+
+static void
+test_take_ownership(void)
+{
+    int ret;
+    kastore_t store;
+    const uint32_t array[] = { 1, 2, 3, 4 };
+    uint32_t *a, *b, *b2, *c;
+    size_t j, array_len;
+    int type;
+    int flags[] = { 0, 1 };
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_puts(&store, "c", array, 4, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "b", array, 2, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "a", array, 1, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_puts(&store, "not_got", array, 2, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    for (j = 0; j < sizeof(flags) / sizeof(*flags); j++) {
+        ret = kastore_open(
+            &store, _tmp_file_name, "r", flags[j] | KAS_GET_TAKES_OWNERSHIP);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+        CU_ASSERT_EQUAL(store.num_items, 4);
+        ret = kastore_gets(&store, "a", (void **) &a, &array_len, &type);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        CU_ASSERT_EQUAL(type, KAS_UINT32);
+        CU_ASSERT_EQUAL(array_len, 1);
+
+        ret = kastore_gets(&store, "b", (void **) &b, &array_len, &type);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        CU_ASSERT_EQUAL(type, KAS_UINT32);
+        CU_ASSERT_EQUAL(array_len, 2);
+        CU_ASSERT_EQUAL(b[0], 1);
+        CU_ASSERT_EQUAL(b[1], 2);
+        kas_safe_free(b);
+        /* Read twice to check that kastore gives a new buffer */
+        ret = kastore_gets(&store, "b", (void **) &b2, &array_len, &type);
+        CU_ASSERT_NOT_EQUAL(b, b2);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        CU_ASSERT_EQUAL(type, KAS_UINT32);
+        CU_ASSERT_EQUAL(array_len, 2);
+
+        ret = kastore_gets(&store, "c", (void **) &c, &array_len, &type);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        CU_ASSERT_EQUAL(type, KAS_UINT32);
+        CU_ASSERT_EQUAL(array_len, 4);
+
+        ret = kastore_close(&store);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+        CU_ASSERT_EQUAL(a[0], 1);
+        CU_ASSERT_EQUAL(b2[0], 1);
+        CU_ASSERT_EQUAL(b2[1], 2);
+        CU_ASSERT_EQUAL(c[0], 1);
+        CU_ASSERT_EQUAL(c[1], 2);
+        CU_ASSERT_EQUAL(c[2], 3);
+        CU_ASSERT_EQUAL(c[3], 4);
+
+        kas_safe_free(a);
+        kas_safe_free(b2);
+        kas_safe_free(c);
     }
 }
 
@@ -1697,6 +1771,7 @@ main(int argc, char **argv)
         { "test_all_types_n_elements", test_all_types_n_elements },
         { "test_library_version", test_library_version },
         { "test_meson_version", test_meson_version },
+        { "test_take_ownership", test_take_ownership },
         CU_TEST_INFO_NULL,
     };
 
