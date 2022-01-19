@@ -94,8 +94,9 @@ Unknown flags were provided to open.
 /** @} */
 
 /* Flags for open */
-#define KAS_READ_ALL            (1 << 0)
+#define KAS_READ_ALL                       (1 << 0)
 #define KAS_GET_TAKES_OWNERSHIP            (1 << 1)
+#define KAS_PUT_BORROWS_ARRAY              (1 << 2)
 
 
 /**
@@ -190,6 +191,8 @@ typedef struct {
     size_t key_len;
     size_t array_len;
     char *key;
+    /* Used when KAS_PUT_BORROWS_ARRAY is set */
+    const void *borrowed_array;
     void *array;
     size_t key_start;
     size_t array_start;
@@ -491,6 +494,9 @@ int kastore_puts_float64(
     kastore_t *self, const char *key, const double *array, size_t array_len, int flags);
 
 /** @} */
+
+int kastore_bput(kastore_t *self, const char *key, size_t key_len, const void *array,
+    size_t array_len, int type, int flags);
 
 /**
 @brief Insert the specified key-array pair into the store, transferring ownership

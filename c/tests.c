@@ -51,7 +51,7 @@ test_bad_open_flags(void)
 {
     int ret;
     kastore_t store;
-    const int bad_flags[] = { 4, 5, 1 << 31, -1 };
+    const int bad_flags[] = { 8, 9, 1 << 31, -1 };
     size_t j;
 
     for (j = 0; j < sizeof(bad_flags) / sizeof(*bad_flags); j++) {
@@ -728,6 +728,54 @@ test_take_ownership(void)
         kas_safe_free(b2);
         kas_safe_free(c);
     }
+}
+
+static void
+test_borrow_array(void)
+{
+    int ret;
+    kastore_t store;
+    const uint32_t array[] = { 1, 2, 3, 4 };
+    uint32_t *a, *b, *c;
+    size_t array_len;
+    int type;
+
+    ret = kastore_open(&store, _tmp_file_name, "w", KAS_PUT_BORROWS_ARRAY);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_puts(&store, "c", array, 4, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "b", array, 2, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "a", array, 1, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_open(&store, _tmp_file_name, "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    CU_ASSERT_EQUAL(store.num_items, 3);
+    ret = kastore_gets(&store, "a", (void **) &a, &array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL(type, KAS_UINT32);
+    CU_ASSERT_EQUAL(array_len, 1);
+
+    ret = kastore_gets(&store, "b", (void **) &b, &array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL(type, KAS_UINT32);
+    CU_ASSERT_EQUAL(array_len, 2);
+    CU_ASSERT_EQUAL(b[0], 1);
+    CU_ASSERT_EQUAL(b[1], 2);
+
+    ret = kastore_gets(&store, "c", (void **) &c, &array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL(type, KAS_UINT32);
+    CU_ASSERT_EQUAL(array_len, 4);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
 }
 
 static void
@@ -1772,6 +1820,7 @@ main(int argc, char **argv)
         { "test_library_version", test_library_version },
         { "test_meson_version", test_meson_version },
         { "test_take_ownership", test_take_ownership },
+        { "test_borrow_array", test_borrow_array },
         CU_TEST_INFO_NULL,
     };
 
