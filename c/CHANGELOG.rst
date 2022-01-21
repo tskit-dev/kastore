@@ -1,4 +1,12 @@
 --------------------
+[2.1.0] - 2022-01-25
+--------------------
+
+- Add flag KAS_BORROWS_ARRAY to put. When specified kastore will not copy
+  or free the array, which must persist for the life of the store.
+  (:user:`benjeffery`, :pr:`181`, :issue:`180`).
+
+--------------------
 [2.0.1] - 2021-11-26
 --------------------
 

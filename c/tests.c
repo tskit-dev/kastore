@@ -51,7 +51,7 @@ test_bad_open_flags(void)
 {
     int ret;
     kastore_t store;
-    const int bad_flags[] = { 8, 9, 1 << 31, -1 };
+    const int bad_flags[] = { 4, 5, 1 << 31, -1 };
     size_t j;
 
     for (j = 0; j < sizeof(bad_flags) / sizeof(*bad_flags); j++) {
@@ -472,6 +472,46 @@ test_duplicate_key_oput(void)
 }
 
 static void
+test_bad_flag_put(void)
+{
+    int ret;
+    kastore_t store;
+    uint32_t *a = calloc(1, sizeof(uint32_t));
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_put(&store, "a", 1, a, 1, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_put(&store, "b", 1, a, 1, KAS_UINT32, 5);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_FLAGS);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    kas_safe_free(a);
+}
+
+static void
+test_bad_flag_oput(void)
+{
+    int ret;
+    kastore_t store;
+    uint32_t *a = calloc(1, sizeof(uint32_t));
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_oput(&store, "a", 1, a, 1, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_oput(&store, "b", 1, a, 1, KAS_UINT32, 1);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_FLAGS);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
 test_empty_key(void)
 {
     int ret;
@@ -740,14 +780,14 @@ test_borrow_array(void)
     size_t array_len;
     int type;
 
-    ret = kastore_open(&store, _tmp_file_name, "w", KAS_PUT_BORROWS_ARRAY);
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
     ret = kastore_puts(&store, "c", array, 4, KAS_UINT32, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_puts(&store, "b", array, 2, KAS_UINT32, 0);
+    ret = kastore_puts(&store, "b", array, 2, KAS_UINT32, KAS_BORROWS_ARRAY);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-    ret = kastore_puts(&store, "a", array, 1, KAS_UINT32, 0);
+    ret = kastore_puts_uint32(&store, "a", array, 1, KAS_BORROWS_ARRAY);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
     ret = kastore_close(&store);
@@ -905,7 +945,6 @@ test_simple_round_trip_oput_buffers(void)
 
     ret = kastore_open(&store, _tmp_file_name, "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-
     ret = kastore_oputs_uint32(&store, "c", array_c, 4, 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_oputs_uint32(&store, "b", array_b, 2, 0);
@@ -1782,6 +1821,8 @@ main(int argc, char **argv)
         { "test_put_copy_array", test_put_copy_array },
         { "test_duplicate_key", test_duplicate_key },
         { "test_duplicate_key_oput", test_duplicate_key_oput },
+        { "test_bad_flag_oput", test_bad_flag_oput },
+        { "test_bad_flag_put", test_bad_flag_put },
         { "test_missing_key", test_missing_key },
         { "test_contains", test_contains },
         { "test_bad_types", test_bad_types },
