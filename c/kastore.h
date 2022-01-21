@@ -96,7 +96,9 @@ Unknown flags were provided to open.
 /* Flags for open */
 #define KAS_READ_ALL                       (1 << 0)
 #define KAS_GET_TAKES_OWNERSHIP            (1 << 1)
-#define KAS_PUT_BORROWS_ARRAY              (1 << 2)
+
+/* Flags for put */
+#define KAS_BORROWS_ARRAY          (1 << 8)
 
 
 /**
@@ -191,7 +193,7 @@ typedef struct {
     size_t key_len;
     size_t array_len;
     char *key;
-    /* Used when KAS_PUT_BORROWS_ARRAY is set */
+    /* Used when KAS_BORROWS_ARRAY is set */
     const void *borrowed_array;
     void *array;
     size_t key_start;
@@ -430,12 +432,14 @@ int kastore_gets_float64(
 @rst
 A key with the specified length is inserted into the store and associated with
 an array of the specified type and number of elements. The contents of the
-specified key and array are copied. Keys can be any sequence of bytes but must
-be at least one byte long and be unique. There is no restriction on the
-contents of arrays. This is the most general form of ``put`` operation in
-kastore; when the type of the array is known and the keys are standard C
-strings, it is usually more convenient to use the :ref:`typed variants
-<sec_c_api_typed_put>` of this function.
+specified key and array are copied unless the KAS_BORROWS_ARRAY flag is specified.
+If KAS_BORROWS_ARRAY is specified the array buffer must persist until the
+kastore is closed.
+Keys can be any sequence of bytes but must be at least one byte long and be
+unique. There is no restriction on the contents of arrays. This is the most
+general form of ``put`` operation in kastore; when the type of the array
+is known and the keys are standard C strings, it is usually more convenient
+to use the :ref:`typed variants <sec_c_api_typed_put>` of this function.
 @endrst
 
 @param self A pointer to a kastore object.
@@ -444,7 +448,7 @@ strings, it is usually more convenient to use the :ref:`typed variants
 @param array The array.
 @param array_len The number of elements in the array.
 @param type The type of the array.
-@param flags The insertion flags. Currently unused.
+@param flags The insertion flags, only KAS_BORROWS_ARRAY or 0 is a valid.
 @return Return 0 on success or a negative value on failure.
 */
 int kastore_put(kastore_t *self, const char *key, size_t key_len, const void *array,
@@ -494,9 +498,6 @@ int kastore_puts_float64(
     kastore_t *self, const char *key, const double *array, size_t array_len, int flags);
 
 /** @} */
-
-int kastore_bput(kastore_t *self, const char *key, size_t key_len, const void *array,
-    size_t array_len, int type, int flags);
 
 /**
 @brief Insert the specified key-array pair into the store, transferring ownership

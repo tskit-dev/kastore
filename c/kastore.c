@@ -34,8 +34,9 @@ kas_strerror(int err)
             ret = "Bad open mode; must be \"r\", \"w\", or \"a\"";
             break;
         case KAS_ERR_BAD_FLAGS:
-            ret = "Unknow flags specified. Only (KAS_GET_TAKES_OWNERSHIP, "
-                  "KAS_READ_ALL or KAS_PUT_BORROWS_ARRAY) or 0 can be specified";
+            ret = "Unknown flags specified. Only (KAS_GET_TAKES_OWNERSHIP, "
+                  "KAS_READ_ALL or ) or 0 can be specified "
+                  "for open, and KAS_BORROWS_ARRAY or 0 for put";
             break;
         case KAS_ERR_NO_MEMORY:
             ret = "Out of memory";
@@ -341,6 +342,7 @@ kastore_write_data(kastore_t *self)
     int ret = 0;
     size_t j, size, offset, padding;
     char pad[KAS_ARRAY_ALIGN] = { 0, 0, 0, 0, 0, 0, 0 };
+    const void *write_array;
 
     offset = KAS_HEADER_SIZE + self->num_items * KAS_ITEM_DESCRIPTOR_SIZE;
 
@@ -362,17 +364,13 @@ kastore_write_data(kastore_t *self)
             goto out;
         }
         size = self->items[j].array_len * type_size(self->items[j].type);
-        if (self->flags & KAS_PUT_BORROWS_ARRAY) {
-            if (size > 0
-                && fwrite(self->items[j].borrowed_array, size, 1, self->file) != 1) {
-                ret = KAS_ERR_IO;
-                goto out;
-            }
-        } else {
-            if (size > 0 && fwrite(self->items[j].array, size, 1, self->file) != 1) {
-                ret = KAS_ERR_IO;
-                goto out;
-            }
+        write_array = self->items[j].borrowed_array != NULL
+                          ? self->items[j].borrowed_array
+                          : self->items[j].array;
+        assert(write_array != NULL);
+        if (size > 0 && fwrite(write_array, size, 1, self->file) != 1) {
+            ret = KAS_ERR_IO;
+            goto out;
         }
         offset = self->items[j].array_start + size;
     }
@@ -535,13 +533,8 @@ kastore_insert_all(kastore_t *self, kastore_t *other)
 
     for (j = 0; j < other->num_items; j++) {
         item = other->items[j];
-        if (other->flags && KAS_PUT_BORROWS_ARRAY) {
-            ret = kastore_put(
-                self, item.key, item.key_len, item.array, item.array_len, item.type, 0);
-        } else {
-            ret = kastore_put(self, item.key, item.key_len, item.borrowed_array,
-                item.array_len, item.type, 0);
-        }
+        ret = kastore_put(
+            self, item.key, item.key_len, item.array, item.array_len, item.type, 0);
         if (ret != 0) {
             goto out;
         }
@@ -632,8 +625,7 @@ kastore_openf(kastore_t *self, FILE *file, const char *mode, int flags)
         goto out;
     }
 
-    if (flags > (KAS_READ_ALL | KAS_GET_TAKES_OWNERSHIP | KAS_PUT_BORROWS_ARRAY)
-        || flags < 0) {
+    if (flags > (KAS_READ_ALL | KAS_GET_TAKES_OWNERSHIP) || flags < 0) {
         ret = KAS_ERR_BAD_FLAGS;
         goto out;
     }
@@ -844,39 +836,6 @@ kastore_gets_float64(kastore_t *self, const char *key, double **array, size_t *a
     return kastore_gets_type(self, key, (void **) array, array_len, KAS_FLOAT64);
 }
 
-int KAS_WARN_UNUSED
-kastore_put(kastore_t *self, const char *key, size_t key_len, const void *array,
-    size_t array_len, int type, int flags)
-{
-    int ret;
-    size_t array_size;
-    void *array_copy = NULL;
-
-    if (type < 0 || type >= KAS_NUM_TYPES) {
-        ret = KAS_ERR_BAD_TYPE;
-        goto out;
-    }
-    if (self->flags & KAS_PUT_BORROWS_ARRAY) {
-        ret = kastore_bput(self, key, key_len, array, array_len, type, flags);
-    } else {
-        array_size = type_size(type) * array_len;
-        array_copy = malloc(array_size == 0 ? 1 : array_size);
-        if (array_copy == NULL) {
-            ret = KAS_ERR_NO_MEMORY;
-            goto out;
-        }
-        memcpy(array_copy, array, array_size);
-        ret = kastore_oput(self, key, key_len, array_copy, array_len, type, flags);
-        if (ret == 0) {
-            /* Kastore has taken ownership of the array, so we don't need to free it */
-            array_copy = NULL;
-        }
-    }
-out:
-    kas_safe_free(array_copy);
-    return ret;
-}
-
 static int KAS_WARN_UNUSED
 kastore_put_item(kastore_t *self, kaitem_t **ret_item, const char *key, size_t key_len,
     int type, int KAS_UNUSED(flags))
@@ -934,29 +893,12 @@ kastore_put_item(kastore_t *self, kaitem_t **ret_item, const char *key, size_t k
             goto out;
         }
     }
-out:
     *ret_item = new_item;
-    return ret;
-}
-
-int KAS_WARN_UNUSED
-kastore_oput(kastore_t *self, const char *key, size_t key_len, void *array,
-    size_t array_len, int type, int flags)
-{
-    int ret = 0;
-    kaitem_t *item;
-
-    ret = kastore_put_item(self, &item, key, key_len, type, flags);
-    if (ret != 0) {
-        goto out;
-    }
-    item->array = array;
-    item->array_len = array_len;
 out:
     return ret;
 }
 
-int KAS_WARN_UNUSED
+static int KAS_WARN_UNUSED
 kastore_bput(kastore_t *self, const char *key, size_t key_len, const void *array,
     size_t array_len, int type, int flags)
 {
@@ -967,6 +909,66 @@ kastore_bput(kastore_t *self, const char *key, size_t key_len, const void *array
         goto out;
     }
     item->borrowed_array = array;
+    item->array_len = array_len;
+out:
+    return ret;
+}
+
+int KAS_WARN_UNUSED
+kastore_put(kastore_t *self, const char *key, size_t key_len, const void *array,
+    size_t array_len, int type, int flags)
+{
+    int ret;
+    size_t array_size;
+    void *array_copy = NULL;
+
+    if (flags != KAS_BORROWS_ARRAY && flags != 0) {
+        ret = KAS_ERR_BAD_FLAGS;
+        goto out;
+    }
+
+    if (type < 0 || type >= KAS_NUM_TYPES) {
+        ret = KAS_ERR_BAD_TYPE;
+        goto out;
+    }
+    if (flags & KAS_BORROWS_ARRAY) {
+        ret = kastore_bput(self, key, key_len, array, array_len, type, flags);
+    } else {
+        array_size = type_size(type) * array_len;
+        array_copy = malloc(array_size == 0 ? 1 : array_size);
+        if (array_copy == NULL) {
+            ret = KAS_ERR_NO_MEMORY;
+            goto out;
+        }
+        memcpy(array_copy, array, array_size);
+        ret = kastore_oput(self, key, key_len, array_copy, array_len, type, flags);
+        if (ret == 0) {
+            /* Kastore has taken ownership of the array, so we don't need to free it */
+            array_copy = NULL;
+        }
+    }
+out:
+    kas_safe_free(array_copy);
+    return ret;
+}
+
+int KAS_WARN_UNUSED
+kastore_oput(kastore_t *self, const char *key, size_t key_len, void *array,
+    size_t array_len, int type, int flags)
+{
+    int ret = 0;
+    kaitem_t *item;
+
+    if (flags != 0) {
+        ret = KAS_ERR_BAD_FLAGS;
+        goto out;
+    }
+
+    ret = kastore_put_item(self, &item, key, key_len, type, flags);
+    if (ret != 0) {
+        goto out;
+    }
+    item->array = array;
     item->array_len = array_len;
 out:
     return ret;
