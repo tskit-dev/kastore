@@ -2,9 +2,15 @@
 [2.1.0] - 2022-01-25
 --------------------
 
-- Add flag KAS_BORROWS_ARRAY to put. When specified kastore will not copy
+- Add flag ``KAS_BORROWS_ARRAY`` to put. When specified kastore will not copy
   or free the array, which must persist for the life of the store.
   (:user:`benjeffery`, :pr:`181`, :issue:`180`).
+
+- Add flag ``KAS_GET_TAKES_OWNERSHIP`` to open. If specified all ``get`` 
+  operations will transfer ownership of the array to the caller. 
+  ``kastore`` will not ``free`` the array memory and this is the
+  responsibility of the caller.
+  (:user:`benjeffery`, :pr:`179`, :issue:`176`)
 
 --------------------
 [2.0.1] - 2021-11-26
