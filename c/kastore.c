@@ -34,8 +34,8 @@ kas_strerror(int err)
             ret = "Bad open mode; must be \"r\", \"w\", or \"a\"";
             break;
         case KAS_ERR_BAD_FLAGS:
-            ret = "Unknown flags specified. Only (KAS_GET_TAKES_OWNERSHIP, "
-                  "KAS_READ_ALL or ) or 0 can be specified "
+            ret = "Unknown flags specified. Only (KAS_GET_TAKES_OWNERSHIP and/or"
+                  "KAS_READ_ALL) or 0 can be specified "
                   "for open, and KAS_BORROWS_ARRAY or 0 for put";
             break;
         case KAS_ERR_NO_MEMORY:
