@@ -465,7 +465,7 @@ As for :c:func:`kastore_put` except the key must be NULL-terminated C string.
 @param array The array.
 @param array_len The number of elements in the array.
 @param type The type of the array.
-@param flags The insertion flags. Currently unused.
+@param flags The insertion flags, only KAS_BORROWS_ARRAY or 0 is a valid.
 @return Return 0 on success or a negative value on failure.
 */
 int kastore_puts(kastore_t *self, const char *key, const void *array, size_t array_len,
