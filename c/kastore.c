@@ -908,6 +908,12 @@ kastore_bput(kastore_t *self, const char *key, size_t key_len, const void *array
     if (ret != 0) {
         goto out;
     }
+    if (array == NULL) {
+        /* Both can't be null, so assign a dummy array */
+        item->array = malloc(1);
+    } else {
+        item->borrowed_array = array;
+    }
     item->borrowed_array = array;
     item->array_len = array_len;
 out:
