@@ -1,4 +1,16 @@
 --------------------
+[2.1.1] - 2021-03-01
+--------------------
+
+- Minor bug-release and maintenance update.
+
+- Fix assertion triggered when NULL was passed along with KAS_BORROWS_ARRAY.
+  (:user:`benjeffery`, :pr:`185`)
+
+- Move VERSION to VERSION.txt to prevent issues on macos.
+  (:user:`benjeffery`, :pr:`187`, :issue:`186`)
+
+--------------------
 [2.1.0] - 2022-01-25
 --------------------
 
