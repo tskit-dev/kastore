@@ -728,6 +728,10 @@ test_take_ownership(void)
             &store, _tmp_file_name, "r", flags[j] | KAS_GET_TAKES_OWNERSHIP);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
 
+        // Check that contains doesn't borrow
+        ret = kastore_containss(&store, "a");
+        CU_ASSERT_EQUAL_FATAL(ret, 1);
+
         CU_ASSERT_EQUAL(store.num_items, 4);
         ret = kastore_gets(&store, "a", (void **) &a, &array_len, &type);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
