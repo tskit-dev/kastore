@@ -109,8 +109,8 @@ class FileobjMixin(DictVerifyMixin):
     def test_load_and_dump_fileobj_multi(self):
         datalist = [
             {
-                "i" + str(i): i + np.arange(10 ** 5, dtype=int),
-                "f" + str(i): i + np.arange(10 ** 5, dtype=float),
+                "i" + str(i): i + np.arange(10**5, dtype=int),
+                "f" + str(i): i + np.arange(10**5, dtype=float),
             }
             for i in range(10)
         ]
@@ -141,8 +141,8 @@ class FileobjMixin(DictVerifyMixin):
     def test_load_and_dump_file_multi_rw(self):
         datalist = [
             {
-                "i" + str(i): i + np.arange(10 ** 5, dtype=int),
-                "f" + str(i): i + np.arange(10 ** 5, dtype=float),
+                "i" + str(i): i + np.arange(10**5, dtype=int),
+                "f" + str(i): i + np.arange(10**5, dtype=float),
             }
             for i in range(10)
         ]
@@ -171,8 +171,8 @@ class FileobjMixin(DictVerifyMixin):
     def test_load_and_dump_fd_multi_rw(self):
         datalist = [
             {
-                "i" + str(i): i + np.arange(10 ** 5, dtype=int),
-                "f" + str(i): i + np.arange(10 ** 5, dtype=float),
+                "i" + str(i): i + np.arange(10**5, dtype=int),
+                "f" + str(i): i + np.arange(10**5, dtype=float),
             }
             for i in range(20)
         ]
@@ -288,8 +288,8 @@ class StreamingMixin(DictVerifyMixin):
     def test_stream_multi(self):
         datalist = [
             {
-                "i" + str(i): i + np.arange(10 ** 5, dtype=int),
-                "f" + str(i): i + np.arange(10 ** 5, dtype=float),
+                "i" + str(i): i + np.arange(10**5, dtype=int),
+                "f" + str(i): i + np.arange(10**5, dtype=float),
             }
             for i in range(100)
         ]
@@ -368,8 +368,8 @@ class SocketMixin(DictVerifyMixin):
     def test_multi(self):
         datalist = [
             {
-                "i" + str(i): i + np.arange(10 ** 5, dtype=int),
-                "f" + str(i): i + np.arange(10 ** 5, dtype=float),
+                "i" + str(i): i + np.arange(10**5, dtype=int),
+                "f" + str(i): i + np.arange(10**5, dtype=float),
             }
             for i in range(10)
         ]

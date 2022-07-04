@@ -43,7 +43,7 @@ class MalformedFilesBuilder:
 
     def make_bad_file_sizes(self):
         for num_items in [0, 10]:
-            for offset in [-1, 1, 2 ** 10]:
+            for offset in [-1, 1, 2**10]:
                 self.write_file(num_items)
                 file_size = os.path.getsize(self.temp_file.name)
                 with open(self.temp_file.name, "rb") as f:
@@ -98,7 +98,7 @@ class MalformedFilesBuilder:
         with open(self.temp_file.name, "rb") as f:
             buff = bytearray(f.read())
         off = 64
-        buff[off + 8 : off + 16] = struct.pack("<Q", 2 ** 32)
+        buff[off + 8 : off + 16] = struct.pack("<Q", 2**32)
         filename = os.path.join(self.destination_dir, "key_offset_outside_file.kas")
         with open(filename, "wb") as f:
             f.write(buff)
@@ -122,7 +122,7 @@ class MalformedFilesBuilder:
         with open(self.temp_file.name, "rb") as f:
             buff = bytearray(f.read())
         off = 64
-        buff[off + 24 : off + 32] = struct.pack("<Q", 2 ** 32)
+        buff[off + 24 : off + 32] = struct.pack("<Q", 2**32)
         filename = os.path.join(self.destination_dir, "array_offset_outside_file.kas")
         with open(filename, "wb") as f:
             f.write(buff)
@@ -146,7 +146,7 @@ class MalformedFilesBuilder:
         with open(self.temp_file.name, "rb") as f:
             buff = bytearray(f.read())
         off = 64
-        buff[off + 16 : off + 24] = struct.pack("<Q", 2 ** 32)
+        buff[off + 16 : off + 24] = struct.pack("<Q", 2**32)
         filename = os.path.join(self.destination_dir, "key_len_outside_file.kas")
         with open(filename, "wb") as f:
             f.write(buff)
@@ -156,7 +156,7 @@ class MalformedFilesBuilder:
         with open(self.temp_file.name, "rb") as f:
             buff = bytearray(f.read())
         off = 64
-        buff[off + 32 : off + 40] = struct.pack("<Q", 2 ** 32)
+        buff[off + 32 : off + 40] = struct.pack("<Q", 2**32)
         filename = os.path.join(self.destination_dir, "array_len_outside_file.kas")
         with open(filename, "wb") as f:
             f.write(buff)
