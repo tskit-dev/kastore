@@ -11,11 +11,10 @@ cd python
 for V in "${PYTHON_VERSIONS[@]}"; do
     PYBIN=/opt/python/$V/bin
     rm -rf build/       # Avoid lib build by narrow Python is used by wide python
-    # Instead of letting setup.py install a newer numpy we install it here
-    # using the oldest supported version for ABI compatibility
-    $PYBIN/pip install oldest-supported-numpy
-    $PYBIN/python setup.py build_ext --inplace
-    $PYBIN/python setup.py bdist_wheel
+    $PYBIN/python -m venv env
+    source env/bin/activate
+    $PYBIN/python -m pip install --upgrade build
+    SETUPTOOLS_SCM_DEBUG=1 $PYBIN/python -m build
 done
 
 cd dist

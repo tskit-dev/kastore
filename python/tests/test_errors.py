@@ -164,7 +164,7 @@ class MalformedFilesMixin(FileFormatsMixin):
 
     def test_bad_file_size(self):
         for num_items in range(10):
-            for offset in [-2, -1, 1, 2 ** 10]:
+            for offset in [-2, -1, 1, 2**10]:
                 self.write_file(num_items)
                 file_size = os.path.getsize(self.temp_file)
                 with open(self.temp_file, "rb") as f:

@@ -20,18 +20,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Install deps
-        env:
-          PYTHON: "py -${{ matrix.python }}-${{ matrix.wordsize }}"
-        shell: bash
-        # Instead of letting setup.py install a newer numpy we install it here
-        # using the oldest supported version for ABI compatibility
-        run: |
-          set -ex
-          ${PYTHON} -m pip install --upgrade pip
-          ${PYTHON} -m pip install setuptools wheel
-          ${PYTHON} -m pip install oldest-supported-numpy
-      - name: Build C extension
+      - name: Build wheel
         env:
           PYTHON: "py -${{ matrix.python }}-${{ matrix.wordsize }}"
         shell: bash
@@ -42,15 +31,9 @@ jobs:
           git reset --hard
           cd python
           ${PYTHON} -VV
-          ${PYTHON} setup.py build_ext --inplace
-      - name: Build Wheel
-        env:
-          PYTHON: "py -${{ matrix.python }}-${{ matrix.wordsize }}"
-        shell: bash
-        run: |
-          set -ex
-          cd python
-          ${PYTHON} setup.py bdist_wheel
+          ${PYTHON} -m pip install delocate build
+          ${PYTHON} -m build --wheel
+
       - name: Install wheel and run tests
         env:
           PYTHON: "py -${{ matrix.python }}-${{ matrix.wordsize }}"
@@ -83,22 +66,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
-      - name: Install deps
-        # Instead of letting setup.py install a newer numpy we install it here
-        # using the oldest supported version for ABI compatibility
-        run: |
-          pip install --upgrade pip
-          pip install setuptools wheel
-          pip install oldest-supported-numpy
-      - name: Build C extension
-        run: |
-          cd python
-          python -VV
-          python setup.py build_ext --inplace
       - name: Build Wheel
         run: |
           cd python
-          python setup.py bdist_wheel
+          python -m pip install build
+          python -m build --wheel
       - name: Install wheel and run tests
         run: |
           # We install in this odd way to make sure we get both deps and a local kastore
@@ -130,6 +102,7 @@ jobs:
         shell: bash
         run: |
           cd python
+          python -m pip install numpy
           python setup.py sdist
 
       - name: Upload sdist
