@@ -1,4 +1,11 @@
 --------------------
+[0.3.2] - 2022-07-12
+--------------------
+
+Upgrade build system to build module. Fixes numpy version inconsistency as sdist didn't
+specify oldest-supported-numpy. (:user:`benjeffery`, :issue:`190`, :pr:`191`)
+
+--------------------
 [0.3.1] - 2020-07-06
 --------------------
 
