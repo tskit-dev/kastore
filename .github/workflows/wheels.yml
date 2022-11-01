@@ -15,7 +15,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        python: [3.7, 3.8, 3.9, "3.10"]
+        python: [3.7, 3.8, 3.9, "3.10", 3.11]
         wordsize: [64]
     steps:
       - name: Checkout
@@ -58,7 +58,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        python: [3.7, 3.8, 3.9, "3.10"]
+        python: [3.7, 3.8, 3.9, "3.10", 3.11]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -115,6 +115,22 @@ jobs:
         shell: bash
         run: |
           docker run --rm -v `pwd`:/project -w /project quay.io/pypa/manylinux2010_x86_64 bash docker/buildwheel.sh
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.11"
+
+      - name: Run tests (3.11)
+        run: |
+          python -VV
+          # We install in this odd way to make sure we get both deps and a local kastore
+          pip install kastore --only-binary kastore -f python/dist/wheelhouse
+          pip uninstall -y kastore
+          pip install -v kastore --only-binary kastore -f python/dist/wheelhouse --no-index
+          python -c "import kastore"
+          pip install -r python/requirements/CI/tests/requirements.txt
+          python -m pytest -v python
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v2
