@@ -255,7 +255,6 @@ class Store(Mapping):
     """
 
     def __init__(self, file, read_all=False, key_encoding="utf8"):
-
         # Get ourselves a local version of the file. The semantics here are complex
         # because need to support a range of inputs and the free behaviour is
         # slightly different on each.
