@@ -1,4 +1,8 @@
-version: 2
+version: 2.1
+
+orbs:
+  codecov: codecov/codecov@3.2.4
+
 jobs:
   build:
     docker:
@@ -58,7 +62,10 @@ jobs:
           command: |
             cd python
             python3 -m pytest --cov=kastore  --cov-report=xml --cov-branch tests
-            python3 -m codecov -F python
+
+      - codecov/upload:
+          flags: python
+          token: CODECOV_TOKEN
 
       - run:
           name: Build Python package
@@ -92,7 +99,10 @@ jobs:
               ./build-gcc/malloc_tests@exe/kastore.c.gcno \
               ./build-gcc/io_tests@exe/kastore.c.gcno \
               ./build-gcc/kastore@sha/kastore.c.gcno
-            codecov -X gcov -F C
+
+      - codecov/upload:
+          flags: C
+          token: CODECOV_TOKEN
 
       - run:
           name: Install shared library
