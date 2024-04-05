@@ -1,6 +1,3 @@
-"""
-The CLI for kastore. Provides utilities for examining kastore files.
-"""
 import argparse
 import logging
 import os
@@ -10,6 +7,9 @@ import humanize
 
 import kastore
 
+"""
+The CLI for kastore. Provides utilities for examining kastore files.
+"""
 
 logger = logging.getLogger(__name__)
 

@@ -1,3 +1,12 @@
+import logging
+import os
+import struct
+from collections.abc import Mapping
+
+import numpy as np
+
+import kastore.exceptions as exceptions
+
 """
 The Python engine for kastore.
 
@@ -14,14 +23,7 @@ The file format layout is as follows.
 + 8 byte bounaries.
 +===================================+
 """
-import logging
-import os
-import struct
-from collections.abc import Mapping
 
-import numpy as np
-
-import kastore.exceptions as exceptions
 
 logger = logging.getLogger(__name__)
 

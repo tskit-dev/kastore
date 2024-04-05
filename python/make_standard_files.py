@@ -1,6 +1,3 @@
-"""
-Makes the files in the test-data directory.
-"""
 import os.path
 import struct
 import tempfile
@@ -9,6 +6,10 @@ import numpy as np
 
 import kastore as kas
 import kastore.store as store
+
+"""
+Makes the files in the test-data directory.
+"""
 
 
 class MalformedFilesBuilder:

@@ -1,7 +1,3 @@
-"""
-Code to stress the low-level API as much as possible to expose
-any memory leaks or error handling issues.
-"""
 import argparse
 import os
 import random
@@ -14,6 +10,12 @@ import tests.test_errors as test_errors
 import tests.test_file_format as test_file_format
 import tests.test_lowlevel as test_lowlevel
 import tests.test_storage as test_storage
+
+
+"""
+Code to stress the low-level API as much as possible to expose
+any memory leaks or error handling issues.
+"""
 
 
 def main():

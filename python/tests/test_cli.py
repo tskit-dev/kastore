@@ -1,6 +1,3 @@
-"""
-Test cases for the kastore CLI.
-"""
 import io
 import logging
 import os
@@ -15,6 +12,10 @@ import numpy as np
 import kastore as kas
 import kastore.__main__ as main
 import kastore.cli as cli
+
+"""
+Test cases for the kastore CLI.
+"""
 
 
 def capture_output(func, *args, **kwargs):

@@ -1,6 +1,3 @@
-"""
-Basic tests for the storage integrity of the data.
-"""
 import os
 import tempfile
 import unittest
@@ -12,8 +9,19 @@ import numpy as np
 
 import kastore as kas
 
+
+"""
+Basic tests for the storage integrity of the data.
+"""
+
+
 # Set the deadline to None to avoid weird behaviour on CI.
-hypothesis.settings.register_profile("kastore_defaults", deadline=None)
+hypothesis.settings.register_profile(
+    "kastore_defaults",
+    deadline=None,
+    # Supress warnings resultsing from inheritance
+    suppress_health_check=(hypothesis.HealthCheck.differing_executors,),
+)
 hypothesis.settings.load_profile("kastore_defaults")
 
 # Exclude any 'other' unicode categories:

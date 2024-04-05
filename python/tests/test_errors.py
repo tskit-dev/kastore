@@ -1,6 +1,3 @@
-"""
-Tests for error conditions.
-"""
 import os
 import platform
 import struct
@@ -11,6 +8,10 @@ import numpy as np
 
 import kastore as kas
 import kastore.store as store
+
+"""
+Tests for error conditions.
+"""
 
 IS_WINDOWS = platform.system() == "Windows"
 

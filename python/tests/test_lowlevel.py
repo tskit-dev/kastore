@@ -1,6 +1,3 @@
-"""
-Tests for the low-level C interface
-"""
 import os
 import platform
 import tempfile
@@ -9,6 +6,11 @@ import unittest
 import numpy as np
 
 import _kastore
+
+"""
+Tests for the low-level C interface
+"""
+
 
 IS_WINDOWS = platform.system() == "Windows"
 
