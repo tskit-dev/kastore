@@ -1,6 +1,3 @@
-"""
-Tests for load()ing and dump()ing with file-like objects.
-"""
 import multiprocessing
 import os
 import pathlib
@@ -16,6 +13,10 @@ import unittest
 import numpy as np
 
 import kastore as kas
+
+"""
+Tests for load()ing and dump()ing with file-like objects.
+"""
 
 
 IS_WINDOWS = platform.system() == "Windows"

@@ -1,12 +1,13 @@
-"""
-Tests reading in the standard test files.
-"""
 import os.path
 import unittest
 
 import numpy as np
 
 import kastore as kas
+
+"""
+Tests reading in the standard test files.
+"""
 
 
 class StandardFilesMixin:

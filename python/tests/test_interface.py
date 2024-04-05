@@ -1,6 +1,3 @@
-"""
-Basic tests for the information API.
-"""
 import io
 import os
 import pathlib
@@ -11,6 +8,10 @@ import numpy as np
 
 import kastore as kas
 import kastore.exceptions as exceptions
+
+"""
+Basic tests for the information API.
+"""
 
 
 class InterfaceTest(unittest.TestCase):

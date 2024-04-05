@@ -1,6 +1,3 @@
-"""
-Tests checking that the file format is as it should be.
-"""
 import os
 import pathlib
 import struct
@@ -13,6 +10,10 @@ import numpy as np
 
 import kastore as kas
 import kastore.store as store
+
+"""
+Tests checking that the file format is as it should be.
+"""
 
 # Set the deadline to None to avoid weird behaviour on CI.
 hypothesis.settings.register_profile(

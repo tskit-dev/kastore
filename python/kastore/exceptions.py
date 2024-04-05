@@ -1,10 +1,11 @@
-"""
-Exception definitions for kastore.
-"""
 from _kastore import FileFormatError
 from _kastore import KastoreException
 from _kastore import VersionTooNewError
 from _kastore import VersionTooOldError
+
+"""
+Exception definitions for kastore.
+"""
 
 # Some exceptions are defined in the low-level module. In particular, the
 # superclass of all exceptions for kastore is defined here. We define the

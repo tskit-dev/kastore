@@ -1,6 +1,3 @@
-"""
-Basic tests for the storage integrity of the data.
-"""
 import os
 import tempfile
 import unittest
@@ -11,6 +8,11 @@ import hypothesis.strategies as hst
 import numpy as np
 
 import kastore as kas
+
+
+"""
+Basic tests for the storage integrity of the data.
+"""
 
 
 # Set the deadline to None to avoid weird behaviour on CI.
