@@ -72,17 +72,12 @@ jobs:
           command: |
             cd python
             rm -fR build
-            python setup.py sdist
             python -m venv venv
             source venv/bin/activate
             pip install --upgrade setuptools pip wheel numpy
             pip install build
             python -m build
-            python setup.py build_ext
-            python setup.py egg_info
-            python setup.py bdist_wheel
-            pip wheel dist/*.tar.gz
-            pip install dist/*.tar.gz
+            pip install dist/*.whl
       - run:
           name: Run Python with C coverage
           command: |
