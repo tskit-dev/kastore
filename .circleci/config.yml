@@ -6,7 +6,7 @@ orbs:
 jobs:
   build:
     docker:
-      - image: cimg/python:3.8
+      - image: cimg/python:3.9
     steps:
       - checkout
       - run:
@@ -16,7 +16,6 @@ jobs:
             sudo apt-get install -y ninja-build libcunit1-dev valgrind clang doxygen python3-pip
             # Install meson as root so we can install to the system below.
             sudo pip install meson
-            pip install numpy==1.18.5
             pip install --user -r python/requirements/development.txt
             echo 'export PATH=/home/circleci/.local/bin:$PATH' >> $BASH_ENV
       - run:

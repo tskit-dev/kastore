@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
+        uses: styfle/cancel-workflow-action@0.12.1
         with:
           access_token: ${{ github.token }}
       - uses: actions/checkout@v3
@@ -27,21 +27,21 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python: [ 3.8, 3.11 ]
+        python: [ 3.9, 3.12 ]
         os:  [ macos-latest, ubuntu-latest, windows-latest ]
     defaults:
       run:
         shell: bash
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
+        uses: styfle/cancel-workflow-action@0.12.1
         with:
           access_token: ${{ github.token }}
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{matrix.python}}
 
@@ -51,9 +51,15 @@ jobs:
       - name: Build module
         working-directory: python
         run: |
-          python setup.py build_ext --inplace
+          python -m build
+          python -m pip install dist/*.whl
 
       - name: Run tests
-        working-directory: python
         run: |
-          python -m pytest tests
+          python -m pytest python/tests
+          
+      - name: Run tests (numpy < 2)
+        run: |
+          pip install setuptools
+          pip install "numpy<2"
+          python -m pytest python/tests
