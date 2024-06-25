@@ -1,8 +1,11 @@
 --------------------
-[0.3.X] - 202X-XX-XX
+[0.3.3] - 2024-06-25
 --------------------
 
-kastore now requires Python 3.8 or later.
+Maintenance release:
+
+- Support for numpy 1.x and 2.x
+- Require Python >= 3.9
 
 
 --------------------
