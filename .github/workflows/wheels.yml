@@ -19,7 +19,7 @@ jobs:
         wordsize: [64]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
       - name: Build wheel
         env:
           PYTHON: "py -${{ matrix.python }}-${{ matrix.wordsize }}"
@@ -49,7 +49,7 @@ jobs:
           rm -rf python/kastore python/*.pyd
           ${PYTHON} -m pytest -v python
       - name: Upload Wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3
         with:
           name: win-wheel-${{ matrix.python }}-${{ matrix.wordsize }}
           path: python/dist
@@ -61,9 +61,9 @@ jobs:
         python: [3.9, "3.10", 3.11, 3.12]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: ${{ matrix.python }}
       - name: Build Wheel
@@ -82,7 +82,7 @@ jobs:
           rm -rf python/kastore python/*.so
           python -m pytest -v python
       - name: Upload Wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3
         with:
           name: osxarm-wheel-${{ matrix.python }}
           path: python/dist
@@ -92,10 +92,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: 3.9
 
@@ -107,7 +107,7 @@ jobs:
           python -m build --sdist
 
       - name: Upload sdist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3
         with:
           name: sdist
           path: python/dist
@@ -118,7 +118,7 @@ jobs:
           docker run --rm -v `pwd`:/project -w /project quay.io/pypa/manylinux2014_x86_64 bash docker/buildwheel.sh
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: 3.12
 
@@ -134,7 +134,7 @@ jobs:
           python -m pytest -v python
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: 3.12
 
@@ -150,7 +150,7 @@ jobs:
           python -m pytest -v python
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: "3.10"
 
@@ -166,7 +166,7 @@ jobs:
           python -m pytest -v python
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: 3.9
 
@@ -182,7 +182,7 @@ jobs:
           python -m pytest -v python
 
       - name: Upload Wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3
         with:
           name: linux-wheels
           path: python/dist/wheelhouse
@@ -196,16 +196,16 @@ jobs:
       id-token: write
     steps:
       - name: Download all
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.1.8
       - name: Move to dist
         run: |
           mkdir dist
           cp */*.{whl,gz} dist/.
       - name: Publish distribution to Test PyPI
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && !contains(github.event.ref, 'C_')
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@v1.12.3
         with:
           repository_url: https://test.pypi.org/legacy/
       - name: Publish distribution to PRODUCTION PyPI
         if: github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'C_')
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@v1.12.3
