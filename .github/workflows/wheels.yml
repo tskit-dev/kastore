@@ -89,7 +89,7 @@ jobs:
 
 
   manylinux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -189,7 +189,7 @@ jobs:
 
 
   PyPI_Upload:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: release
     needs: ['windows', 'OSX-ARM', 'manylinux']
     permissions:
