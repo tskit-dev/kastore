@@ -1,5 +1,5 @@
 attrs
-breathe==4.35.0
+breathe==4.36.0
 coverage
 flake8
 hypothesis
