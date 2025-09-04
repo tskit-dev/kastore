@@ -203,9 +203,9 @@ jobs:
           cp */*.{whl,gz} dist/.
       - name: Publish distribution to Test PyPI
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && !contains(github.event.ref, 'C_')
-        uses: pypa/gh-action-pypi-publish@v1.12.4
+        uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
           repository_url: https://test.pypi.org/legacy/
       - name: Publish distribution to PRODUCTION PyPI
         if: github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'C_')
-        uses: pypa/gh-action-pypi-publish@v1.12.4
+        uses: pypa/gh-action-pypi-publish@v1.13.0
