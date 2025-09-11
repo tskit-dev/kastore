@@ -53,8 +53,11 @@ jobs:
           uv run --no-sync pytest tests
           
       - name: Run tests (numpy < 2)
+        # No wheel for numpy < 2 on Windows and Python 3.13
+        if: ${{ !(matrix.os == 'windows-latest' && matrix.python == '3.13' )}}
         working-directory: ./python
         run: |
           uv pip install setuptools
           uv pip install "numpy<2"
           uv run --no-sync pytest tests
+
