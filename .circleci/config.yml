@@ -6,7 +6,7 @@ orbs:
 jobs:
   build:
     docker:
-      - image: cimg/python:3.9
+      - image: cimg/python:3.10
     steps:
       - checkout
       - run:
@@ -16,7 +16,10 @@ jobs:
             sudo apt-get install -y ninja-build libcunit1-dev valgrind clang doxygen python3-pip
             # Install meson as root so we can install to the system below.
             sudo pip install meson
-            pip install --user -r python/requirements/development.txt
+            # Install uv
+            pip install uv
+            # Install test dependencies from pyproject.toml using uv
+            cd python && uv pip install --system -r pyproject.toml --extra test
             echo 'export PATH=/home/circleci/.local/bin:$PATH' >> $BASH_ENV
       - run:
           name: Compile C
@@ -56,6 +59,13 @@ jobs:
             cd python
             CFLAGS="-Wall -Wextra -Werror -Wno-unused-parameter -Wno-cast-function-type" \
               python setup.py build_ext --inplace
+
+      - run:
+          name: Build docs
+          command: |
+            pip install --user -r docs/rtd_requirements.txt
+            cd docs && make
+
       - run:
           name: Run Python tests
           command: |
@@ -114,8 +124,3 @@ jobs:
           command: |
             g++ c/cpp_tests.cpp -o cpp_tests -lkastore
             ./cpp_tests
-
-      - run:
-          name: Build docs
-          command: |
-            cd docs && make

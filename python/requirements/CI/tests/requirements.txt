@@ -1,9 +1,0 @@
-attrs
-build
-hypothesis
-humanize
-pytest
-pytest-cov
-numpy
-mock
-setuptools
