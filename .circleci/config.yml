@@ -6,7 +6,7 @@ orbs:
 jobs:
   build:
     docker:
-      - image: cimg/python:3.9
+      - image: cimg/python:3.10
     steps:
       - checkout
       - run:
@@ -16,7 +16,10 @@ jobs:
             sudo apt-get install -y ninja-build libcunit1-dev valgrind clang doxygen python3-pip
             # Install meson as root so we can install to the system below.
             sudo pip install meson
-            pip install --user -r python/requirements/development.txt
+            # Install uv
+            pip install uv
+            # Install test dependencies from pyproject.toml using uv
+            cd python && uv pip install --system -r pyproject.toml --extra test
             echo 'export PATH=/home/circleci/.local/bin:$PATH' >> $BASH_ENV
       - run:
           name: Compile C
@@ -118,4 +121,5 @@ jobs:
       - run:
           name: Build docs
           command: |
-            cd docs && make
+            uv pip install --system -r docs/rtd_requirements.txt
+            SPHINXBUILD="uv run --no-sync sphinx-build" make -C docs
