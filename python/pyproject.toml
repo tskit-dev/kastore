@@ -25,7 +25,8 @@ classifiers = [
 ]
 keywords = ["binary store", "numerical", "arrays"]
 dependencies = [
-    "numpy>=1.23.5",
+    "numpy>=1.23.5; python_version < '3.13'",
+    "numpy>=2; python_version >= '3.13'",
     "humanize",
 ]
 requires-python = ">=3.10"
