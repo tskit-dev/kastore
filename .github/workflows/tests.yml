@@ -8,18 +8,7 @@ on:
 jobs:
   pre-commit:
     name: Lint
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.12.1
-        with:
-          access_token: ${{ github.token }}
-      - uses: actions/checkout@v4.2.2
-      - uses: actions/setup-python@v5.4.0
-      - name: install clang-format
-        run: |
-          pip install clang-format==6.0.1
-      - uses: pre-commit/action@v3.0.1
+    uses: tskit-dev/.github/.github/workflows/lint.yml@v2
 
 
   test:
@@ -27,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python: [ 3.9, 3.12 ]
+        python: [ "3.10", 3.13 ]
         os:  [ macos-latest, ubuntu-24.04, windows-latest ]
     defaults:
       run:
@@ -41,25 +30,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - uses: actions/setup-python@v5.4.0
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: ${{matrix.python}}
-
+          python-version: ${{ matrix.python }}
+          version: "0.8.15"
+      
       - name: Install pip deps
-        run: pip install -r python/requirements/CI/tests/requirements.txt
+        working-directory: ./python
+        run: | 
+          uv venv
+          uv pip install -r pyproject.toml --extra test
 
       - name: Build module
-        working-directory: python
+        working-directory: ./python
         run: |
-          python -m build
-          python -m pip install dist/*.whl
+          uv run --no-sync python setup.py build_ext --inplace
 
       - name: Run tests
+        working-directory: ./python
         run: |
-          python -m pytest python/tests
+          uv run --no-sync pytest tests
           
       - name: Run tests (numpy < 2)
+        working-directory: ./python
         run: |
-          pip install setuptools
-          pip install "numpy<2"
-          python -m pytest python/tests
+          uv pip install setuptools
+          uv pip install "numpy<2"
+          uv run --no-sync pytest tests
