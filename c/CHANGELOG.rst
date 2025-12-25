@@ -1,16 +1,11 @@
 --------------------
-[2.1.1] - 2021-03-01
---------------------
-
-- Fix bug where calling `contains` would borrow the array when `KAS_BORROWS_ARRAY` was set.
-  (:user:`benjeffery`, :pr:`189`)
-
-
---------------------
-[2.1.1] - 2021-03-01
+[2.1.1] - 2022-03-01
 --------------------
 
 - Minor bug-release and maintenance update.
+
+- Fix bug where calling `contains` would borrow the array when `KAS_BORROWS_ARRAY` was set.
+  (:user:`benjeffery`, :pr:`189`)
 
 - Fix assertion triggered when NULL was passed along with KAS_BORROWS_ARRAY.
   (:user:`benjeffery`, :pr:`185`)
