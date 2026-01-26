@@ -11,20 +11,15 @@ Each file consists of three sections stored sequentially in binary on disk: the 
 
 ### 1. Header Section
 
-The **Header** occupies a fixed length and appears at the beginning of the file. It acts as a preamble and provides all necessary metadata for identifying the file, navigating internal structures, and verifying compatibility.
+The **Header** occupies a fixed length of **64 bytes** (`KAS_HEADER_SIZE`) and appears at the beginning of the file. It acts as a preamble and provides all necessary metadata for identifying the file, navigating internal structures, and verifying compatibility.
 
-- **Magic Number (4 bytes)**: A file identifier (`b'KAST'`) that uniquely marks the file as being in kastore format.
+- **Magic Number (8 bytes)**: A file identifier (`b'KAST'`) that uniquely marks the file as being in kastore format.
 - **File Version (4 bytes)**: The major and minor version numbers, ensuring forward and backward compatibility.
     - **Major Version (2 bytes)**: Incremented when breaking changes are introduced.
     - **Minor Version (2 bytes)**: Incremented when non-breaking, backward-compatible changes are made.
-- **Flags (4 bytes)**: Feature-specific flags used during interpretation.
-- **Num Keys (4 bytes)**: Number of key-value pairs stored in this file.
-- **Table Offsets (16 bytes)**:
-    - Offset to the **Keys Table**.
-    - Offset to the **Data Blocks**.
-- **Reserved (4 bytes)**: Reserved for future extensions.
-
-The complete header section is aligned to 8 bytes.
+- **Num Items (4 bytes)**: Number of key-value pairs stored in this file.
+- **File Size (8 bytes)**: Size of the file.
+- **Reserved (40 bytes)**: Reserved for future extensions.
 
 ### 2. Keys Table Section
 
