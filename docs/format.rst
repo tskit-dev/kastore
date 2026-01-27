@@ -9,11 +9,26 @@ Binary File Structure
 
 Each file consists of three sections stored sequentially in binary on disk: the **Header**, **Keys Table**, and **Data Blocks**. These sections are aligned to facilitate platform-independent access and ensure compatibility across architectures.
 
-### 1. Header Section
+The file format layout is as follows.
 
-The **Header** occupies a fixed length of **64 bytes** (`KAS_HEADER_SIZE`) and appears at the beginning of the file. It acts as a preamble and provides all necessary metadata for identifying the file, navigating internal structures, and verifying compatibility.
++-----------------------------------+
+| Header (64 bytes)                 |
++-----------------------------------+
+| Item descriptors (n * 64 bytes)   |
++-----------------------------------+
+| Keys packed densely.              |
++-----------------------------------+
+| Arrays packed densely starting on |
+| 8 byte boundaries.                |
++-----------------------------------+
+   
+*********
+1. Header
+*********
 
-- **Magic Number (8 bytes)**: A file identifier (`b'KAST'`) that uniquely marks the file as being in kastore format.
+The **Header** occupies a fixed length of **64 bytes** at the beginning of the file.
+
+- **Magic Number (8 bytes)**: Format Signature, derived from the strategy used by HDF5 and PNG.
 - **File Version (4 bytes)**: The major and minor version numbers, ensuring forward and backward compatibility.
     - **Major Version (2 bytes)**: Incremented when breaking changes are introduced.
     - **Minor Version (2 bytes)**: Incremented when non-breaking, backward-compatible changes are made.
@@ -21,61 +36,63 @@ The **Header** occupies a fixed length of **64 bytes** (`KAS_HEADER_SIZE`) and a
 - **File Size (8 bytes)**: Size of the file.
 - **Reserved (40 bytes)**: Reserved for future extensions.
 
-### 2. Keys Table Section
+Format Signature description::
 
-The **Keys Table** provides a mapping of string keys to the respective arrays.
-Each entry in the **Keys Table** holds metadata related to one key-value pair.
+    (decimal)              137  75  65  83  13  10  26  10
+    (hexadecimal)           89  4b  41  53  0d  0a  1a  0a
+    (ASCII C notation)    \211   K   A   S  \r  \n \032 \n
 
-Each key entry consists of:
 
-- **Key Length (4 bytes)**: The length of the key string (excluding the null terminator).
-- **Key Offset (8 bytes)**: Absolute offset, in bytes, to the key string in the **Keys Area**.
-- **Data Type (4 bytes)**: Encoded type identifier for the associated data array.
-- **Data Length (8 bytes)**: Number of elements in the array.
-- **Data Offset (8 bytes)**: Absolute offset where the array begins in the **Data Blocks**.
+********************
+2. Item descriptors
+********************
 
-Keys are stored in lexicographical order to enable binary search for fast access.
-The **Keys Table** itself is packed for compactness and aligned to 8-byte boundaries to optimize for random access.
+Block of **Num Items** * **64 bytes**.
+The **Item descriptors** provides a mapping for keys and arrays.
+Each item descriptor is a block of 64 bytes, which stores:
 
-### 3. Data Blocks Section
+- The numeric indentifier for the type of the array (between 0 and 9, see Supported Data Types section)
+- The start offset of the key
+- The length of the key
+- The start offset of the array
+- The length of the array
 
-The **Data Blocks** section holds the arrays themselves, stored sequentially in binary format. Each data block has the following characteristics:
+File offsets are stored as 8 bytes unsigned little endian integers.
 
-- **Alignment**: Arrays are aligned to 8 bytes to ensure efficient access and compatibility with hardware architectures.
-- **Endianness**: All numeric data is stored in little-endian format, which is standard for most modern platforms. Cross-platform compatibility is ensured by converting data to the host's native endianness on read.
-- **Compact Storage**: Arrays are written without additional padding, unless required for alignment.
+.. table:: 
+  :width: 100%
+  :align: center
 
-Within each data block:
+  +------+------+------+------+------+------+------+------+
+  | byte | byte | byte | byte | byte | byte | byte | byte |
+  +======+======+======+======+======+======+======+======+
+  | Type | Reserved                                       |
+  +------+------------------------------------------------+
+  |        Key start                                      |
+  +-------------------------------------------------------+
+  |        Key length                                     |
+  +-------------------------------------------------------+
+  |        Array start                                    |
+  +-------------------------------------------------------+
+  |        Array length                                   |
+  +-------------------------------------------------------+
+  |  Reserved (bytes 40:64)  [...]                        |
+  +-------------------------------------------------------+
 
-- The array is stored as raw binary data, with no additional metadata.
-- Arrays can represent simple types (e.g., integers, floats) or structured binary blobs, depending on the use case.
 
-#### Layout Example
+*********
+3. Keys
+*********
 
-The following table illustrates the binary layout of a typical kastore file:
+Packed keys encoded in UTF-8.
+Keys are stored in sorted order.
 
-```
-+------------------+---------------------------------------------+
-| Header           | Magic Number, Version, Metadata            |
-+------------------+---------------------------------------------+
-| Keys Table       | Key Metadata: Offsets, Data Lengths, Types |
-+------------------+---------------------------------------------+
-| Keys Area        | Null-terminated string keys                |
-+------------------+---------------------------------------------+
-| Data Blocks      | Binary-encoded array data                  |
-+------------------+---------------------------------------------+
-```
+*********
+4. Arrays
+*********
 
-Data Integrity
---------------
+Arrays are packed densely and are 8 byte aligned.
 
-Kastore files are designed to preserve data integrity during access:
-
-1. **Validation on Open**: The magic number, file version, and offsets are validated when a file is opened. Unsupported or corrupted files return a `KAS_ERR_BAD_FILE_FORMAT` error.
-2. **Immutable Keys**: Since kastore files are read-only, the keys and associated data cannot be modified after the file is created. This ensures that the binary layout remains consistent and predictable.
-3. **Error Codes**: The library provides detailed error codes for handling unexpected issues during access. For example:
-    - `KAS_ERR_NO_MEMORY` for insufficient memory during array extraction.
-    - `KAS_ERR_KEY_NOT_FOUND` when attempting to retrieve non-existent keys.
 
 Supported Data Types
 --------------------
