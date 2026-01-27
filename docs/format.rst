@@ -7,10 +7,7 @@ File format
 Binary File Structure
 ---------------------
 
-Each file consists of three sections stored sequentially in binary on disk: the **Header**, **Keys Table**, and **Data Blocks**. These sections are aligned to facilitate platform-independent access and ensure compatibility across architectures.
-
 The file format layout is as follows.
-
 +-----------------------------------+
 | Header (64 bytes)                 |
 +-----------------------------------+
