@@ -48,7 +48,7 @@ Block of **Num Items** * **64 bytes**.
 The **Item descriptors** provides a mapping for keys and arrays.
 Each item descriptor is a block of 64 bytes, which stores:
 
-- The numeric indentifier for the type of the array (between 0 and 9, see Supported Data Types section)
+- The numeric identifier for the type of the array (between 0 and 9, see Supported Data Types section)
 - The start offset of the key
 - The length of the key
 - The start offset of the array
