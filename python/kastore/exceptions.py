@@ -1,7 +1,9 @@
-from _kastore import FileFormatError
-from _kastore import KastoreException
-from _kastore import VersionTooNewError
-from _kastore import VersionTooOldError
+from _kastore import (
+    FileFormatError,
+    KastoreException,
+    VersionTooNewError,
+    VersionTooOldError,
+)
 
 """
 Exception definitions for kastore.
