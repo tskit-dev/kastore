@@ -26,6 +26,7 @@ jobs:
     name: Python-C tests
     uses: tskit-dev/.github/.github/workflows/python-c-tests.yml@main
     with:
+      tests: python/tests/test_python_c.py
       pyproject-directory: python
     secrets: inherit
 
