@@ -8,7 +8,7 @@ import unittest
 
 import tests.test_errors as test_errors
 import tests.test_file_format as test_file_format
-import tests.test_lowlevel as test_lowlevel
+import tests.test_python_c as test_python_c
 import tests.test_storage as test_storage
 
 """
@@ -22,7 +22,7 @@ def main():
         "errors": test_errors,
         "file_format": test_file_format,
         "file_storage": test_storage,
-        "lowlevel": test_lowlevel,
+        "lowlevel": test_python_c,
     }
     parser = argparse.ArgumentParser(
         description="Run tests in a loop to stress low-level interface"
