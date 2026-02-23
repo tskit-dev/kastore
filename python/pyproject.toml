@@ -36,8 +36,8 @@ test = [
     "hypothesis",
     "pytest",
     "pytest-cov",
+    "pytest-xdist",
     "mock",
-    "setuptools",
 ]
 
 # Fully pin lint requirements for determinism. 
