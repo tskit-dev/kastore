@@ -72,22 +72,22 @@ def verify_closed(store):
 
 
 def test_context_manager(temp_file):
-    N = 100
-    data = {"a": np.arange(N)}
+    n = 100
+    data = {"a": np.arange(n)}
     kas.dump(data, temp_file)
     with kas.load(temp_file) as store:
         assert "a" in store
-        assert np.array_equal(store["a"], np.arange(N))
+        assert np.array_equal(store["a"], np.arange(n))
     verify_closed(store)
 
 
 def test_manual_close(temp_file):
-    N = 100
-    data = {"a": np.arange(N)}
+    n = 100
+    data = {"a": np.arange(n)}
     kas.dump(data, temp_file)
     store = kas.load(temp_file)
     assert "a" in store
-    assert np.array_equal(store["a"], np.arange(N))
+    assert np.array_equal(store["a"], np.arange(n))
     store.close()
     verify_closed(store)
 

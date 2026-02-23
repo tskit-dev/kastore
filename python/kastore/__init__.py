@@ -3,8 +3,7 @@ import functools
 import io
 import os.path
 
-from . import _version
-from . import store
+from . import _version, store
 from .exceptions import *  # noqa
 
 __version__ = _version.kastore_version

@@ -389,9 +389,7 @@ class Store(Mapping):
                 offset += descriptor.array_len * type_size(descriptor.type)
 
         # Create the mapping for descriptors.
-        self._descriptor_map = {
-            descriptor.key: descriptor for descriptor in descriptors
-        }
+        self._descriptor_map = {descriptor.key: descriptor for descriptor in descriptors}
 
         if self._read_all:
             # Get the arrays from the buffer.

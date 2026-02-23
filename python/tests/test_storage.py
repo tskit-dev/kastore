@@ -9,7 +9,6 @@ import pytest
 
 import kastore as kas
 
-
 """
 Basic tests for the storage integrity of the data.
 """
@@ -160,9 +159,7 @@ def test_roundtrip_single_key_hypothesis(key):
         os.unlink(temp_file)
 
 
-@hypothesis.given(
-    keys=hst.sets(hst.text(alphabet=key_alphabet, min_size=1), min_size=1)
-)
+@hypothesis.given(keys=hst.sets(hst.text(alphabet=key_alphabet, min_size=1), min_size=1))
 def test_roundtrip_many_keys_hypothesis(keys):
     fd, temp_file = tempfile.mkstemp(prefix="kas_test_rt")
     os.close(fd)
@@ -178,9 +175,7 @@ def test_bytes_roundtrip_single_key_hypothesis(key):
     verify_bytes_roundtrip({key: np.zeros(1)})
 
 
-@hypothesis.given(
-    keys=hst.sets(hst.text(alphabet=key_alphabet, min_size=1), min_size=1)
-)
+@hypothesis.given(keys=hst.sets(hst.text(alphabet=key_alphabet, min_size=1), min_size=1))
 def test_bytes_roundtrip_many_keys_hypothesis(keys):
     data = {key: np.ones(j) * j for j, key in enumerate(keys)}
     verify_bytes_roundtrip(data)

@@ -332,9 +332,7 @@ class StoreEchoHandler(socketserver.BaseRequestHandler):
     def handle(self):
         while True:
             try:
-                data = kas.load(
-                    self.request.fileno(), engine=self.engine, read_all=True
-                )
+                data = kas.load(self.request.fileno(), engine=self.engine, read_all=True)
             except EOFError:
                 break
             kas.dump(dict(data), self.request.fileno(), engine=self.engine)

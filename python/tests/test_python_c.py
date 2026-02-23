@@ -2,10 +2,9 @@ import os
 import platform
 import tempfile
 
+import _kastore
 import numpy as np
 import pytest
-
-import _kastore
 
 """
 Tests for the low-level C interface

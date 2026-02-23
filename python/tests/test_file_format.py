@@ -158,9 +158,7 @@ def test_simple_array_storage(format_temp_file, engine, n):
 # Note that hypothesis seems to be leaking memory, so when we're running tests
 # against the C API for memory leaks this must be commented out.
 @pytest.mark.parametrize("engine", [kas.PY_ENGINE, kas.C_ENGINE])
-@hypothesis.given(
-    keys=hst.sets(hst.text(alphabet=key_alphabet, min_size=1), min_size=1)
-)
+@hypothesis.given(keys=hst.sets(hst.text(alphabet=key_alphabet, min_size=1), min_size=1))
 def test_many_keys(engine, keys):
     fd, temp_file = tempfile.mkstemp(suffix=".kas", prefix="kas_rt_test")
     os.close(fd)
