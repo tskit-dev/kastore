@@ -69,6 +69,7 @@ kastore = "kastore.__main__:main"
 
 [tool.setuptools]
 packages = ["kastore"]
+include-package-data=false
 
 [tool.setuptools.dynamic]
 version = {attr = "kastore._version.kastore_version"}
