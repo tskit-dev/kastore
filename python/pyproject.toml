@@ -10,12 +10,11 @@ authors = [
 ]
 description = "A write-once-read-many store for simple numerical data"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -32,6 +31,7 @@ requires-python = ">=3.11"
 [dependency-groups]
 test = [
     "attrs",
+    "setuptools",
     "build", 
     "hypothesis",
     "pytest",
@@ -47,14 +47,14 @@ lint = [
     "prek==0.3.3",
 ]
 
+docs = [
+    "jupyter-book",
+]
+
 dev = [
     {include-group = "docs"},
     {include-group = "lint"},
     {include-group = "test"},
-]
-
-docs = [
-    "jupyter-book",
 ]
 
 [project.urls]
