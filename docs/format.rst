@@ -8,6 +8,7 @@ Binary File Structure
 ---------------------
 
 The file format layout is as follows.
+
 +-----------------------------------+
 | Header (64 bytes)                 |
 +-----------------------------------+
@@ -18,7 +19,7 @@ The file format layout is as follows.
 | Arrays packed densely starting on |
 | 8 byte boundaries.                |
 +-----------------------------------+
-   
+
 *********
 1. Header
 *********
@@ -56,7 +57,7 @@ Each item descriptor is a block of 64 bytes, which stores:
 
 File offsets are stored as 8 bytes unsigned little endian integers.
 
-.. table:: 
+.. table::
   :width: 100%
   :align: center
 

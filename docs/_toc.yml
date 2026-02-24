@@ -1,0 +1,9 @@
+format: jb-book
+root: introduction
+chapters:
+- file: installation
+- file: python-api
+- file: c-api
+- file: format
+- file: development
+- file: changelogs
