@@ -48,7 +48,11 @@ lint = [
 ]
 
 docs = [
-    "jupyter-book",
+    "jupyter-book<2",
+    "breathe",
+    "sphinx-issues",
+    "sphinx-argparse",
+    "sphinx-book-theme",
 ]
 
 dev = [
