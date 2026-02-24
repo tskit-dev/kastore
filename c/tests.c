@@ -11,6 +11,7 @@
 
 char *_tmp_file_name;
 FILE *_devnull;
+static const char *_test_prefix;
 
 static void
 write_example_file(char *filename)
@@ -1525,6 +1526,14 @@ test_round_trip_float64(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 }
 
+static const char *
+test_path(const char *path)
+{
+    static char buf[4096];
+    snprintf(buf, sizeof(buf), "%s%s", _test_prefix, path);
+    return buf;
+}
+
 static void
 verify_bad_file(const char *filename, int err)
 {
@@ -1562,115 +1571,118 @@ test_short_header(void)
 static void
 test_empty_file(void)
 {
-    verify_bad_file("test-data/malformed/empty_file.kas", KAS_ERR_EOF);
+    verify_bad_file(test_path("malformed/empty_file.kas"), KAS_ERR_EOF);
 }
 
 static void
 test_read_bad_types(void)
 {
-    verify_bad_file("test-data/malformed/bad_type_11.kas", KAS_ERR_BAD_TYPE);
-    verify_bad_file("test-data/malformed/bad_type_20.kas", KAS_ERR_BAD_TYPE);
+    verify_bad_file(test_path("malformed/bad_type_11.kas"), KAS_ERR_BAD_TYPE);
+    verify_bad_file(test_path("malformed/bad_type_20.kas"), KAS_ERR_BAD_TYPE);
 }
 
 static void
 test_bad_filesizes(void)
 {
     verify_bad_file(
-        "test-data/malformed/bad_filesize_0_-1.kas", KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/bad_filesize_0_1.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/bad_filesize_0_-1.kas"), KAS_ERR_BAD_FILE_FORMAT);
     verify_bad_file(
-        "test-data/malformed/bad_filesize_0_1024.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/bad_filesize_0_1.kas"), KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        test_path("malformed/bad_filesize_0_1024.kas"), KAS_ERR_BAD_FILE_FORMAT);
 
     verify_bad_file(
-        "test-data/malformed/bad_filesize_10_-1.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/bad_filesize_10_-1.kas"), KAS_ERR_BAD_FILE_FORMAT);
     verify_bad_file(
-        "test-data/malformed/bad_filesize_10_1.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/bad_filesize_10_1.kas"), KAS_ERR_BAD_FILE_FORMAT);
     verify_bad_file(
-        "test-data/malformed/bad_filesize_10_1024.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/bad_filesize_10_1024.kas"), KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_bad_magic_number(void)
 {
-    verify_bad_file("test-data/malformed/bad_magic_number.kas", KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        test_path("malformed/bad_magic_number.kas"), KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_version_0(void)
 {
-    verify_bad_file("test-data/malformed/version_0.kas", KAS_ERR_VERSION_TOO_OLD);
+    verify_bad_file(test_path("malformed/version_0.kas"), KAS_ERR_VERSION_TOO_OLD);
 }
 
 static void
 test_version_100(void)
 {
-    verify_bad_file("test-data/malformed/version_100.kas", KAS_ERR_VERSION_TOO_NEW);
+    verify_bad_file(test_path("malformed/version_100.kas"), KAS_ERR_VERSION_TOO_NEW);
 }
 
 static void
 test_truncated_file(void)
 {
-    verify_bad_file("test-data/malformed/truncated_file.kas", KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(test_path("malformed/truncated_file.kas"), KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_key_offset_outside_file(void)
 {
     verify_bad_file(
-        "test-data/malformed/key_offset_outside_file.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/key_offset_outside_file.kas"), KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_array_offset_outside_file(void)
 {
     verify_bad_file(
-        "test-data/malformed/array_offset_outside_file.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/array_offset_outside_file.kas"), KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_key_len_outside_file(void)
 {
     verify_bad_file(
-        "test-data/malformed/key_len_outside_file.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/key_len_outside_file.kas"), KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_array_len_outside_file(void)
 {
     verify_bad_file(
-        "test-data/malformed/array_len_outside_file.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/array_len_outside_file.kas"), KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_bad_key_start(void)
 {
-    verify_bad_file("test-data/malformed/bad_key_start_-1.kas", KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/bad_key_start_1.kas", KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(
+        test_path("malformed/bad_key_start_-1.kas"), KAS_ERR_BAD_FILE_FORMAT);
+    verify_bad_file(test_path("malformed/bad_key_start_1.kas"), KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_bad_array_start(void)
 {
     verify_bad_file(
-        "test-data/malformed/bad_array_start_-8.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/bad_array_start_-8.kas"), KAS_ERR_BAD_FILE_FORMAT);
     verify_bad_file(
-        "test-data/malformed/bad_array_start_-1.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/bad_array_start_-1.kas"), KAS_ERR_BAD_FILE_FORMAT);
     verify_bad_file(
-        "test-data/malformed/bad_array_start_1.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/bad_array_start_1.kas"), KAS_ERR_BAD_FILE_FORMAT);
     verify_bad_file(
-        "test-data/malformed/bad_array_start_8.kas", KAS_ERR_BAD_FILE_FORMAT);
+        test_path("malformed/bad_array_start_8.kas"), KAS_ERR_BAD_FILE_FORMAT);
 }
 
 static void
 test_truncated_file_correct_size(void)
 {
-    verify_bad_file("test-data/malformed/truncated_file_correct_size_100.kas",
+    verify_bad_file(test_path("malformed/truncated_file_correct_size_100.kas"),
         KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/truncated_file_correct_size_128.kas",
+    verify_bad_file(test_path("malformed/truncated_file_correct_size_128.kas"),
         KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/truncated_file_correct_size_129.kas",
+    verify_bad_file(test_path("malformed/truncated_file_correct_size_129.kas"),
         KAS_ERR_BAD_FILE_FORMAT);
-    verify_bad_file("test-data/malformed/truncated_file_correct_size_200.kas",
+    verify_bad_file(test_path("malformed/truncated_file_correct_size_200.kas"),
         KAS_ERR_BAD_FILE_FORMAT);
 }
 
@@ -1679,7 +1691,6 @@ verify_all_types_n_elements(size_t n)
 {
     int ret;
     kastore_t store;
-    const char *filename_pattern = "test-data/v1/all_types_%d_elements.kas";
     const char *keys[] = { "uint8", "int8", "uint16", "int16", "uint32", "int32",
         "uint64", "int64", "float32", "float64" };
     const int types[] = { KAS_UINT8, KAS_INT8, KAS_UINT16, KAS_INT16, KAS_UINT32,
@@ -1689,7 +1700,8 @@ verify_all_types_n_elements(size_t n)
     int type;
     char filename[1024];
 
-    sprintf(filename, filename_pattern, n);
+    snprintf(filename, sizeof(filename), "%sv1/all_types_%d_elements.kas", _test_prefix,
+        (int) n);
 
     ret = kastore_open(&store, filename, "r", 0);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
@@ -1796,6 +1808,10 @@ kastore_suite_init(void)
     _devnull = fopen("/dev/null", "w");
     if (_devnull == NULL) {
         return CUE_SINIT_FAILED;
+    }
+    _test_prefix = getenv("KAS_TEST_DATA_PREFIX");
+    if (_test_prefix == NULL) {
+        _test_prefix = "./test-data/";
     }
     return CUE_SUCCESS;
 }
