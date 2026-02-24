@@ -81,7 +81,6 @@ version = {attr = "kastore._version.kastore_version"}
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
-
 [tool.ruff]
 # Assume Python 3.11
 target-version = "py311"
