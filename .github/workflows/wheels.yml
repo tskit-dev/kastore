@@ -1,199 +1,110 @@
-name: Build and test wheels
+name: Publish release
 
 on:
   push:
-    branches:
-      - main
-      - test
-    tags:
-      - '*'
+    branches: [test-publish]
   release:
-    types: [published, created]
+    types: [published]
 
 jobs:
-  windows:
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        python: [3.11, 3.12, 3.13, 3.14]
-        wordsize: [64]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4.2.2
-      - name: Build wheel
-        env:
-          PYTHON: "py -${{ matrix.python }}-${{ matrix.wordsize }}"
-        shell: bash
-        run: |
-          set -ex
-          # Fix symlinks on windows
-          git config core.symlinks true
-          git reset --hard
-          cd python
-          ${PYTHON} -VV
-          ${PYTHON} -m pip install delocate build
-          ${PYTHON} -m build --wheel
-
-      - name: Install wheel and run tests
-        env:
-          PYTHON: "py -${{ matrix.python }}-${{ matrix.wordsize }}"
-        shell: bash
-        run: |
-          set -ex
-          # We install in this odd way to make sure we get both deps and a local kastore
-          ${PYTHON} -m pip install kastore --only-binary kastore -f python/dist/
-          ${PYTHON} -m pip uninstall -y kastore
-          ${PYTHON} -m pip install -v kastore --only-binary kastore -f python/dist/ --no-index
-          ${PYTHON} -c "import kastore"
-
-      - name: Upload Wheels
-        uses: actions/upload-artifact@v4.6.1
-        with:
-          name: win-wheel-${{ matrix.python }}-${{ matrix.wordsize }}
-          path: python/dist
-
-  OSX-ARM:
-    runs-on: macos-14
-    strategy:
-      matrix:
-        python: [3.11, 3.12, 3.13, 3.14]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4.2.2
-      - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v5.4.0
-        with:
-          python-version: ${{ matrix.python }}
-      - name: Build Wheel
-        run: |
-          cd python
-          python -m pip install build
-          python -m build --wheel
-      - name: Install wheel and run tests
-        run: |
-          # We install in this odd way to make sure we get both deps and a local kastore
-          pip install kastore --only-binary kastore -f python/dist/
-          pip uninstall -y kastore
-          pip install -v kastore --only-binary kastore -f python/dist/ --no-index
-          python -c "import kastore"
-
-      - name: Upload Wheels
-        uses: actions/upload-artifact@v4.6.1
-        with:
-          name: osxarm-wheel-${{ matrix.python }}
-          path: python/dist
-
-
-  manylinux:
+  build-sdist:
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4.2.2
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5.4.0
+      - uses: actions/checkout@v5
         with:
-          python-version: 3.11
+          fetch-depth: 0
+          submodules: true
+
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          version: "0.8.15"
 
       - name: Build sdist
+        run: uv build --project=python --sdist -o dist
+
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: build-sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  build-wheels:
+    needs: [ 'build-sdist' ]
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-15-intel, macos-14]
+    steps:
+
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.12.1
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v5
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v7.0.0
+        with:
+          name: build-sdist
+
+      - name: Copy sdist (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Copy-Item *.tar.gz sdist.tar.gz
+
+      - name: Copy sdist (Unix)
+        if: runner.os != 'Windows'
         shell: bash
-        run: |
-          cd python
-          pip install build
-          python -m build --sdist
+        run: cp *.tar.gz sdist.tar.gz
 
-      - name: Upload sdist
-        uses: actions/upload-artifact@v4.6.1
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
         with:
-          name: sdist
-          path: python/dist
+          python-version: "3.12"
+          version: "0.8.15"
 
-      - name: Build wheels in docker
-        shell: bash
-        run: |
-          docker run --rm -v `pwd`:/project -w /project quay.io/pypa/manylinux2014_x86_64 bash docker/buildwheel.sh
+      - name: Install cibuildwheel
+        run: uv sync --project=python --locked --no-default-groups --group wheels
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5.4.0
+      - name: Build wheels
+        run: uv run --no-default-groups --project=python cibuildwheel sdist.tar.gz
+
+      - uses: actions/upload-artifact@v4
         with:
-          python-version: 3.12
+          name: build-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          path: ./wheelhouse/*.whl
+          if-no-files-found: error
 
-      - name: Run tests (3.12)
-        run: |
-          python -VV
-          # We install in this odd way to make sure we get both deps and a local kastore
-          pip install kastore --only-binary kastore -f python/dist/wheelhouse
-          pip uninstall -y kastore
-          pip install -v kastore --only-binary kastore -f python/dist/wheelhouse --no-index
-          python -c "import kastore"
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5.4.0
-        with:
-          python-version: 3.11
-
-      - name: Run tests (3.11)
-        run: |
-          python -VV
-          # We install in this odd way to make sure we get both deps and a local kastore
-          pip install kastore --only-binary kastore -f python/dist/wheelhouse
-          pip uninstall -y kastore
-          pip install -v kastore --only-binary kastore -f python/dist/wheelhouse --no-index
-          python -c "import kastore"
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5.4.0
-        with:
-          python-version: 3.11
-
-      - name: Run tests (3.11)
-        run: |
-          python -VV
-          # We install in this odd way to make sure we get both deps and a local kastore
-          pip install kastore --only-binary kastore -f python/dist/wheelhouse
-          pip uninstall -y kastore
-          pip install -v kastore --only-binary kastore -f python/dist/wheelhouse --no-index
-          python -c "import kastore"
-
-      - name: Set up Python 3.14
-        uses: actions/setup-python@v5.4.0
-        with:
-          python-version: 3.14
-
-      - name: Run tests (3.14)
-        run: |
-          python -VV
-          # We install in this odd way to make sure we get both deps and a local kastore
-          pip install kastore --only-binary kastore -f python/dist/wheelhouse
-          pip uninstall -y kastore
-          pip install -v kastore --only-binary kastore -f python/dist/wheelhouse --no-index
-          python -c "import kastore"
-
-      - name: Upload Wheels
-        uses: actions/upload-artifact@v4.6.1
-        with:
-          name: linux-wheels
-          path: python/dist/wheelhouse
-
-
-  PyPI_Upload:
+  publish:
     runs-on: ubuntu-24.04
     environment: release
-    needs: ['windows', 'OSX-ARM', 'manylinux']
+    needs: [ 'build-wheels' ]
     permissions:
       id-token: write
     steps:
-      - name: Download all
-        uses: actions/download-artifact@v4.2.0
-      - name: Move to dist
-        run: |
-          mkdir dist
-          cp */*.{whl,gz} dist/.
+      - name: Download artifacts
+        uses: actions/download-artifact@v7.0.0
+        with:
+          pattern: build-*
+          path: dist
+          merge-multiple: true
+
+      - name: Show artifacts
+        run: ls -lah dist
+
       - name: Publish distribution to Test PyPI
-        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && !contains(github.event.ref, 'C_')
+        if: github.event_name == 'push' && github.ref_name == 'test-publish'
         uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
-          repository_url: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/
+          verbose: true
+
       - name: Publish distribution to PRODUCTION PyPI
-        if: github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'C_')
+        if: github.event_name == 'release'
         uses: pypa/gh-action-pypi-publish@v1.13.0
