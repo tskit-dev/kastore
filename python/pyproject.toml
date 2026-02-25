@@ -52,7 +52,6 @@ packaging = [
   "validate-pyproject[all]"
 ]
 
-
 docs = [
     "jupyter-book<2",
     "breathe",
@@ -118,3 +117,7 @@ known-third-party = [
   "numpy",
   "pytest",
 ]
+
+[tool.cibuildwheel]
+build = "cp311-* cp312-* cp313-* cp314-*"
+build-frontend = "build[uv]"
