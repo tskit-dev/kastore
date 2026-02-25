@@ -32,7 +32,7 @@ requires-python = ">=3.11"
 test = [
     "attrs",
     "setuptools",
-    "build", 
+    "build",
     "hypothesis",
     "pytest",
     "pytest-cov",
@@ -40,12 +40,18 @@ test = [
     "mock",
 ]
 
-# Fully pin lint requirements for determinism. 
+# Fully pin lint requirements for determinism.
 lint = [
     "clang-format==21.1.8",
     "ruff==0.15.1",
     "prek==0.3.3",
 ]
+
+packaging = [
+  "twine",
+  "validate-pyproject[all]"
+]
+
 
 docs = [
     "jupyter-book<2",
