@@ -68,6 +68,7 @@ dev = [
     {include-group = "docs"},
     {include-group = "lint"},
     {include-group = "test"},
+    {include-group = "packaging"},
 ]
 
 [project.urls]
