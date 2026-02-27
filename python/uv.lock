@@ -972,6 +972,8 @@ dev = [
     { name = "sphinx-argparse" },
     { name = "sphinx-book-theme" },
     { name = "sphinx-issues" },
+    { name = "twine" },
+    { name = "validate-pyproject", extra = ["all"] },
 ]
 docs = [
     { name = "breathe" },
@@ -1027,6 +1029,8 @@ dev = [
     { name = "sphinx-argparse" },
     { name = "sphinx-book-theme" },
     { name = "sphinx-issues" },
+    { name = "twine" },
+    { name = "validate-pyproject", extras = ["all"] },
 ]
 docs = [
     { name = "breathe" },
