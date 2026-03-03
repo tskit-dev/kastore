@@ -11,7 +11,7 @@ via either::
 
 or::
 
-    $conda install kastore -c conda-forge
+    $ conda install kastore -c conda-forge
 
 
 .. todo:: Discuss installing C API.
