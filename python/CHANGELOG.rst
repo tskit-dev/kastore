@@ -1,19 +1,11 @@
 --------------------
-[0.3.5] - 2026-xx-xx
+[0.3.5] - 2026-03-03
 --------------------
 
 Maintenance release:
 
 - Require Python >= 3.11, support to 3.14
 - Drop support for numpy 1.x
-
---------------------
-[0.3.4] - 2025-09-11
---------------------
-
-Maintenance release:
-
-- Require Python >= 3.10, support to 3.13
 
 --------------------
 [0.3.3] - 2024-06-25
