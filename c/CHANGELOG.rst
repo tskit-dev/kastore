@@ -1,4 +1,10 @@
 --------------------
+[2.1.2] - 2026-03-03
+--------------------
+
+Minor maintenance update.
+
+--------------------
 [2.1.1] - 2022-03-01
 --------------------
 
@@ -21,8 +27,8 @@
   or free the array, which must persist for the life of the store.
   (:user:`benjeffery`, :pr:`181`, :issue:`180`).
 
-- Add flag ``KAS_GET_TAKES_OWNERSHIP`` to open. If specified all ``get`` 
-  operations will transfer ownership of the array to the caller. 
+- Add flag ``KAS_GET_TAKES_OWNERSHIP`` to open. If specified all ``get``
+  operations will transfer ownership of the array to the caller.
   ``kastore`` will not ``free`` the array memory and this is the
   responsibility of the caller.
   (:user:`benjeffery`, :pr:`179`, :issue:`176`)
