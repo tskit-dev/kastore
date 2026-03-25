@@ -53,7 +53,7 @@ Each item descriptor is a block of 64 bytes, which stores:
 - The start offset of the key
 - The length of the key
 - The start offset of the array
-- The length of the array
+- The length of the array (specified in number of elements and not bytes)
 
 File offsets are stored as 8 bytes unsigned little endian integers.
 
