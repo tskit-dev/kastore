@@ -2,7 +2,12 @@
 [0.3.6] - 2026-xx-xx
 --------------------
 
-In development
+- Security fix (C library): reject malformed/crafted store files whose item
+  descriptors contain length and offset fields that overflow when
+  bounds-checked (e.g. a huge ``array_len`` whose byte size wraps past the
+  recorded file size). Such a file previously passed validation and could
+  cause an under-allocated buffer to be returned with a large reported length,
+  leading to an out-of-bounds read when loading the array.
 
 --------------------
 [0.3.5] - 2026-03-03
