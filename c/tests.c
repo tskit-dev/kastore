@@ -1673,6 +1673,105 @@ test_bad_array_start(void)
         test_path("malformed/bad_array_start_8.kas"), KAS_ERR_BAD_FILE_FORMAT);
 }
 
+/* Build a single-descriptor file with fully attacker-controlled header and
+ * descriptor fields, so we can exercise the bounds checking in
+ * kastore_read_descriptors directly. data_size is the number of bytes written
+ * after the header and descriptor (i.e. the key + array region on disk). */
+static void
+write_crafted_file(const char *filename, uint8_t type, uint64_t key_start,
+    uint64_t key_len, uint64_t array_start, uint64_t array_len, uint64_t file_size,
+    uint32_t num_items, size_t data_size)
+{
+    char header[KAS_HEADER_SIZE];
+    char descriptor[KAS_ITEM_DESCRIPTOR_SIZE];
+    char pad[256];
+    uint16_t version_major = KAS_FILE_VERSION_MAJOR;
+    uint16_t version_minor = KAS_FILE_VERSION_MINOR;
+    FILE *f;
+    size_t chunk;
+
+    memset(header, 0, sizeof(header));
+    memcpy(header, KAS_MAGIC, 8);
+    memcpy(header + 8, &version_major, 2);
+    memcpy(header + 10, &version_minor, 2);
+    memcpy(header + 12, &num_items, 4);
+    memcpy(header + 16, &file_size, 8);
+
+    memset(descriptor, 0, sizeof(descriptor));
+    memcpy(descriptor, &type, 1);
+    memcpy(descriptor + 8, &key_start, 8);
+    memcpy(descriptor + 16, &key_len, 8);
+    memcpy(descriptor + 24, &array_start, 8);
+    memcpy(descriptor + 32, &array_len, 8);
+
+    f = fopen(filename, "wb");
+    CU_ASSERT_FATAL(f != NULL);
+    CU_ASSERT_EQUAL_FATAL(fwrite(header, 1, sizeof(header), f), sizeof(header));
+    CU_ASSERT_EQUAL_FATAL(
+        fwrite(descriptor, 1, sizeof(descriptor), f), sizeof(descriptor));
+    memset(pad, 0, sizeof(pad));
+    while (data_size > 0) {
+        chunk = data_size < sizeof(pad) ? data_size : sizeof(pad);
+        CU_ASSERT_EQUAL_FATAL(fwrite(pad, 1, chunk, f), chunk);
+        data_size -= chunk;
+    }
+    fclose(f);
+}
+
+static void
+test_array_len_overflow(void)
+{
+    /* array_len * type_size(KAS_UINT64) == 2^61 * 8 == 2^64, which wraps to 0.
+     * On a vulnerable build this slips past the bounds check and under-allocates,
+     * while reporting a 2^61-element array. Must be rejected. */
+    uint64_t array_len = (uint64_t) 1 << 61;
+    write_crafted_file(_tmp_file_name, KAS_UINT64, 128, 8, 136, array_len, 136, 1, 8);
+    verify_bad_file(_tmp_file_name, KAS_ERR_BAD_FILE_FORMAT);
+}
+
+static void
+test_key_len_overflow(void)
+{
+    /* key_start + key_len overflows uint64 (128 + (2^64 - 1) wraps to 127). */
+    write_crafted_file(_tmp_file_name, KAS_UINT8, 128, UINT64_MAX, 136, 1, 136, 1, 8);
+    verify_bad_file(_tmp_file_name, KAS_ERR_BAD_FILE_FORMAT);
+}
+
+static void
+test_zero_key_len(void)
+{
+    /* Zero-length keys are invalid; must be rejected and must not reach the
+     * read-path assertion on the first array offset. */
+    write_crafted_file(_tmp_file_name, KAS_UINT8, 128, 0, 128, 0, 128, 1, 0);
+    verify_bad_file(_tmp_file_name, KAS_ERR_BAD_FILE_FORMAT);
+}
+
+static void
+test_crafted_file_valid_control(void)
+{
+    /* Positive control: a well-formed descriptor built by write_crafted_file
+     * opens and reads back, confirming the overflow cases above are rejected
+     * specifically because of the overflow, not some other malformation. */
+    int ret;
+    kastore_t store;
+    void *array;
+    size_t array_len;
+    int type;
+    char key[8];
+
+    memset(key, 0, sizeof(key));
+    /* key_start=128, key_len=8, array_start=136, array_len=1 uint64 -> 144 bytes */
+    write_crafted_file(_tmp_file_name, KAS_UINT64, 128, 8, 136, 1, 144, 1, 16);
+    ret = kastore_open(&store, _tmp_file_name, "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_get(&store, key, sizeof(key), &array, &array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL_FATAL(array_len, 1);
+    CU_ASSERT_EQUAL_FATAL(type, KAS_UINT64);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
 static void
 test_truncated_file_correct_size(void)
 {
@@ -1896,6 +1995,10 @@ main(int argc, char **argv)
         { "test_array_len_outside_file", test_array_len_outside_file },
         { "test_bad_key_start", test_bad_key_start },
         { "test_bad_array_start", test_bad_array_start },
+        { "test_array_len_overflow", test_array_len_overflow },
+        { "test_key_len_overflow", test_key_len_overflow },
+        { "test_zero_key_len", test_zero_key_len },
+        { "test_crafted_file_valid_control", test_crafted_file_valid_control },
         { "test_truncated_file_correct_size", test_truncated_file_correct_size },
         { "test_all_types_n_elements", test_all_types_n_elements },
         { "test_library_version", test_library_version },

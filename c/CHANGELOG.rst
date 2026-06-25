@@ -1,4 +1,15 @@
 --------------------
+[2.1.3] - 2026-xx-xx
+--------------------
+
+- Security fix: reject malformed/crafted store files whose item descriptors
+  contain length and offset fields that overflow when bounds-checked (e.g. a
+  huge ``array_len`` whose byte size wraps past ``file_size``). Such a file
+  previously passed validation and could cause an under-allocated buffer to be
+  returned with a large reported length, leading to an out-of-bounds read in
+  the caller. Zero-length keys are also now rejected on read.
+
+--------------------
 [2.1.2] - 2026-03-03
 --------------------
 
