@@ -1773,6 +1773,80 @@ test_crafted_file_valid_control(void)
 }
 
 static void
+test_array_start_seek_overflow(void)
+{
+    /* A two-item file whose SECOND array starts beyond LONG_MAX. The first array
+     * starts immediately after the short key region, so the store opens in lazy
+     * mode (only the keys are read up front and the huge file_size is never
+     * backed by real data). Fetching the second key then reaches
+     * kastore_read_item, where file_offset + array_start would overflow the
+     * (long) cast used by fseek on LLP64 platforms. This must be reported as
+     * KAS_ERR_IO rather than silently seeking to a truncated offset. */
+    char header[KAS_HEADER_SIZE];
+    char descriptors[2 * KAS_ITEM_DESCRIPTOR_SIZE];
+    char keys[16];
+    uint16_t version_major = KAS_FILE_VERSION_MAJOR;
+    uint16_t version_minor = KAS_FILE_VERSION_MINOR;
+    uint32_t num_items = 2;
+    uint8_t type = KAS_UINT8;
+    /* offset = header + two descriptors = 192 */
+    uint64_t key0_start = 192, key0_len = 8;
+    uint64_t key1_start = 200, key1_len = 8;
+    uint64_t array0_start = 208;
+    uint64_t array1_start = (uint64_t) 1 << 63;        /* > LONG_MAX */
+    uint64_t array0_len = array1_start - array0_start; /* fills the gap, type uint8 */
+    uint64_t array1_len = 8;
+    uint64_t file_size = array1_start + array1_len;
+    FILE *f;
+    int ret;
+    kastore_t store;
+    void *array;
+    size_t array_len;
+    int gtype;
+    char key1[8];
+
+    memset(header, 0, sizeof(header));
+    memcpy(header, KAS_MAGIC, 8);
+    memcpy(header + 8, &version_major, 2);
+    memcpy(header + 10, &version_minor, 2);
+    memcpy(header + 12, &num_items, 4);
+    memcpy(header + 16, &file_size, 8);
+
+    memset(descriptors, 0, sizeof(descriptors));
+    memcpy(descriptors, &type, 1);
+    memcpy(descriptors + 8, &key0_start, 8);
+    memcpy(descriptors + 16, &key0_len, 8);
+    memcpy(descriptors + 24, &array0_start, 8);
+    memcpy(descriptors + 32, &array0_len, 8);
+    memcpy(descriptors + KAS_ITEM_DESCRIPTOR_SIZE, &type, 1);
+    memcpy(descriptors + KAS_ITEM_DESCRIPTOR_SIZE + 8, &key1_start, 8);
+    memcpy(descriptors + KAS_ITEM_DESCRIPTOR_SIZE + 16, &key1_len, 8);
+    memcpy(descriptors + KAS_ITEM_DESCRIPTOR_SIZE + 24, &array1_start, 8);
+    memcpy(descriptors + KAS_ITEM_DESCRIPTOR_SIZE + 32, &array1_len, 8);
+
+    /* Two 8-byte keys in ascending order, so bsearch can locate the second. */
+    memset(keys, 0x01, 8);
+    memset(keys + 8, 0x02, 8);
+
+    f = fopen(_tmp_file_name, "wb");
+    CU_ASSERT_FATAL(f != NULL);
+    CU_ASSERT_EQUAL_FATAL(fwrite(header, 1, sizeof(header), f), sizeof(header));
+    CU_ASSERT_EQUAL_FATAL(
+        fwrite(descriptors, 1, sizeof(descriptors), f), sizeof(descriptors));
+    CU_ASSERT_EQUAL_FATAL(fwrite(keys, 1, sizeof(keys), f), sizeof(keys));
+    fclose(f);
+
+    /* Lazy open succeeds: only the key region is read. */
+    ret = kastore_open(&store, _tmp_file_name, "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    memset(key1, 0x02, sizeof(key1));
+    ret = kastore_get(&store, key1, sizeof(key1), &array, &array_len, &gtype);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
 test_truncated_file_correct_size(void)
 {
     verify_bad_file(test_path("malformed/truncated_file_correct_size_100.kas"),
@@ -1999,6 +2073,7 @@ main(int argc, char **argv)
         { "test_key_len_overflow", test_key_len_overflow },
         { "test_zero_key_len", test_zero_key_len },
         { "test_crafted_file_valid_control", test_crafted_file_valid_control },
+        { "test_array_start_seek_overflow", test_array_start_seek_overflow },
         { "test_truncated_file_correct_size", test_truncated_file_correct_size },
         { "test_all_types_n_elements", test_all_types_n_elements },
         { "test_library_version", test_library_version },

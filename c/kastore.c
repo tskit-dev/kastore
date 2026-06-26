@@ -397,16 +397,11 @@ kastore_read_file(kastore_t *self)
 
     offset = KAS_HEADER_SIZE + self->num_items * KAS_ITEM_DESCRIPTOR_SIZE;
 
-    /* Read in up to the start of first array. This will contain all the keys. */
-    size = self->items[0].array_start;
-
-    /* The first array must start strictly after the descriptors; otherwise the
-     * file geometry is corrupt (e.g. all keys have zero length). */
-    if (size <= offset) {
-        ret = KAS_ERR_BAD_FILE_FORMAT;
-        goto out;
-    }
-    size -= offset;
+    /* Read in up to the start of first array. This will contain all the keys.
+     * kastore_read_descriptors rejects zero-length keys and validates the key
+     * and array packing, so items[0].array_start is always strictly greater
+     * than offset and the subtraction below cannot underflow. */
+    size = self->items[0].array_start - offset;
 
     self->key_read_buffer = (char *) malloc(size);
     if (self->key_read_buffer == NULL) {
