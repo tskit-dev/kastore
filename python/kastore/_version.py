@@ -1,2 +1,2 @@
 # Definitive location for the version number.
-kastore_version = "0.3.6"
+kastore_version = "0.3.7.dev0"
