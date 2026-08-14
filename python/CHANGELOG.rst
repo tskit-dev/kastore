@@ -1,5 +1,5 @@
 --------------------
-[0.3.6] - 2026-xx-xx
+[0.3.6] - 2026-08-14
 --------------------
 
 - Security fix (C library): reject malformed/crafted store files whose item

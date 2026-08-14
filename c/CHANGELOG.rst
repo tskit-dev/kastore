@@ -1,5 +1,5 @@
 --------------------
-[2.1.3] - 2026-xx-xx
+[2.1.3] - 2026-08-14
 --------------------
 
 - Security fix: reject malformed/crafted store files whose item descriptors
